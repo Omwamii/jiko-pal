@@ -22,7 +22,7 @@ const Login = () => {
   return (
     <SafeAreaView>
       <Text style={styles.title}>Jiko Pal</Text>
-      <Text style={styles.subtitle}>Signup</Text>
+      <Text style={styles.subtitle}>Login</Text>
 
       <TextInput
         placeholder="Email"
@@ -67,7 +67,7 @@ const styles = StyleSheet.create({
     textAlign: 'left',
     color: '#000000',
     marginTop: 20,
-    marginLeft: 20,
+    marginBottom: 5,
   },
   input: {
     height: 50,

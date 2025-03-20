@@ -21,7 +21,7 @@ const Signup = () => {
   };
 
   return (
-    <SafeAreaView>
+    <SafeAreaView style={styles.container}>
       <Text style={styles.title}>Jiko Pal</Text>
       <Text style={styles.subtitle}>Signup</Text>
 
@@ -65,6 +65,9 @@ const Signup = () => {
 };
 
 const styles = StyleSheet.create({
+  container: {
+    padding: 20,
+  },
   title: {
     fontSize: 20,
     fontWeight: 'bold',
@@ -76,7 +79,7 @@ const styles = StyleSheet.create({
     textAlign: 'left',
     color: '#000000',
     marginTop: 20,
-    marginLeft: 20,
+    marginBottom: 5,
   },
   input: {
     height: 50,
