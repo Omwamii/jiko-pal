@@ -10,12 +10,14 @@ import {
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-// Optional: Use expo-image-picker or another library if needed
+import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
+import { faCircleUser } from '@fortawesome/free-solid-svg-icons';
+import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 
 const CreateProfileScreen = ({ navigation }) => {
   const [name, setName] = useState('');
   const [bio, setBio] = useState('');
-  const [profileImage, setProfileImage] = useState(null);
+  const [profileImage, setProfileImage] = useState<string | null>(null);
 
   const handleSubmit = () => {
     if (!name.trim()) {
@@ -34,6 +36,46 @@ const CreateProfileScreen = ({ navigation }) => {
     // Navigate or save to backend
   };
 
+  const pickImageFromGallery = () => {
+    const options = {
+      mediaType: 'photo' as const,
+      includeBase64: false,
+      maxHeight: 200,
+      maxWidth: 200,
+    };
+
+    launchImageLibrary(options, (response) => {
+      if (response.didCancel) {
+        Alert.alert('User cancelled image picker');
+      } else if (response.errorCode) {
+        Alert.alert('ImagePicker Error: ', response.errorMessage || 'Unknown error occurred');
+      } else if (response.assets && response.assets.length > 0) {
+        const source = { uri: response.assets[0].uri ?? null };
+        setProfileImage(source.uri);
+      }
+    });
+  };
+
+  // Function to open the camera
+  const takePhotoWithCamera = () => {
+    const options = {
+      mediaType: 'photo' as const,
+      includeBase64: false,
+      saveToPhotos: true, // Save the photo to the device's gallery
+    };
+
+    launchCamera(options, (response) => {
+      if (response.didCancel) {
+        Alert.alert('User cancelled camera');
+      } else if (response.errorCode) {
+        Alert.alert('Camera Error: ', response.errorMessage || 'Unknown error occurred');
+      } else if (response.assets && response.assets.length > 0) {
+        const source = { uri: response.assets[0].uri ?? null };
+        setProfileImage(source.uri);
+      }
+    });
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <Text style={styles.title}>Create Profile</Text>
@@ -41,8 +83,17 @@ const CreateProfileScreen = ({ navigation }) => {
       {profileImage ? (
         <Image source={{ uri: profileImage }} style={styles.avatar} />
       ) : (
-        <View style={[styles.avatar, styles.placeholder]}>
-          <Text style={styles.noImageText}>No Image</Text>
+        <View>
+          <TouchableOpacity onPress={takePhotoWithCamera}>
+            <Text>Take a photo</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity onPress={pickImageFromGallery}>
+            <View style={[styles.avatar, styles.placeholder]}>
+              <FontAwesomeIcon icon={faCircleUser} size={50} color="#999" />
+              <Text style={styles.noImageText}>Tap to change avatar</Text>
+            </View>
+          </TouchableOpacity>
         </View>
       )}
 
