@@ -4,7 +4,7 @@ import { List, MD3Colors, Switch } from 'react-native-paper';
 
 const Settings = ({ navigation }) => {
   return (
-    <View>
+    <View style={styles.container}>
         <List.Section>
             <List.Subheader>Settings</List.Subheader>
             <List.Item title="First Item" left={() => <List.Icon icon="folder" />} />
@@ -15,7 +15,11 @@ const Settings = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-
+    container: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
 });
 
 export default Settings;
