@@ -1,5 +1,6 @@
 export type Cylinder = {
     id: number;
+    creatorId: number;
     name: string;
     currentWeight: number;
     initialWeight: number;
@@ -15,7 +16,7 @@ export type User = {
     name: string;
     email: string;
     password: string;
-    circles: Circle[];
+    // circles: Circle[];
 }
 
 export type Circle = {

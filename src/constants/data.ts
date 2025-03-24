@@ -4,6 +4,7 @@ export const cylinders: Cylinder[] =
     [
         {
             id: 1,
+            creatorId: 1,
             name: 'Pro gas home',
             currentWeight: 2,
             initialWeight: 3,
@@ -15,6 +16,7 @@ export const cylinders: Cylinder[] =
         },
         {
             id: 2,
+            creatorId: 3,
             name: 'Pro gas office',
             currentWeight: 5,
             initialWeight: 6,
@@ -26,6 +28,7 @@ export const cylinders: Cylinder[] =
         },
         {
             id: 3,
+            creatorId: 1,
             name: 'Pro gas factory',
             currentWeight: 7,
             initialWeight: 10,
@@ -37,6 +40,7 @@ export const cylinders: Cylinder[] =
         },
         {
             id: 4,
+            creatorId: 4,
             name: 'K gas home',
             currentWeight: 1.8,
             initialWeight: 3,
@@ -48,6 +52,7 @@ export const cylinders: Cylinder[] =
         },
         {
             id: 5,
+            creatorId: 2,
             name: 'K gas School',
             currentWeight: 1.5,
             initialWeight: 3,
@@ -95,14 +100,65 @@ export const notificationSettings: notificationSetting[] = [
     },
 ];
 
-export const circles: Circle[] = [];
-
 export const users: User[] = [
     {
         id: 1,
         name: 'John Doe',
         email: 'john@gmail.com',
         password: 'password',
-        circles: [],
+    },
+    {
+        id: 2,
+        name: 'Jane Doe',
+        email: 'jane@gmail.com',
+        password: '123',
+    },
+    {
+        id: 3,
+        name: 'Alice',
+        email: 'alice@gmail.com',
+        password: '1234',
+    },
+    {
+        id: 4,
+        name: 'Bob',
+        email: 'bob@gmail.com',
+        password: '12345',
     },
 ];
+
+export const circles: Circle[] = [
+    {
+        id: 1,
+        name: 'Family',
+        cylinders: [cylinders[3], cylinders[4]],
+        members: [users[0], users[1]],
+        creator: users[0],
+        joiningCode: 'FAMILY123',
+    },
+    {
+        id: 2,
+        name: 'Office',
+        cylinders: [cylinders[1]],
+        members: [users[0], users[3], users[4]],
+        creator: users[0],
+        joiningCode: 'OFFICE123',
+    },
+    {
+        id: 3,
+        name: 'Friends',
+        cylinders: [cylinders[2]],
+        members: [users[2], users[3]],
+        creator: users[2],
+        joiningCode: 'FRIENDS123',
+    },
+    {
+        id: 4,
+        name: 'School',
+        cylinders: [cylinders[0]],
+        members: [users[4], users[3]],
+        creator: users[4],
+        joiningCode: 'SCHOOL123',
+    },
+];
+

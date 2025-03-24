@@ -5,6 +5,9 @@ import Login from '../screens/auth/Login';
 import Circles from '../screens/circles';
 import Settings from '../screens/settings';
 import CylinderDetailsScreen from '../screens/cylinder/CylinderDetailsScreen';
+import EditCircle from '../screens/circles/EditCircle';
+import CreateCircle from '../screens/circles/CreateCircle';
+import JoinCircle from '../screens/circles/JoinCircle';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
@@ -43,6 +46,27 @@ export function RootStack() {
       }}/>
       <Stack.Screen name="my-circles" component={Circles} options={{
         headerTitle: 'Your circles',
+        headerTitleStyle: {
+          fontWeight: 'bold',
+          color: '#5E60CE',
+        },
+      }}/>
+      <Stack.Screen name="edit-circle" component={EditCircle} options={{
+        headerTitle: 'Edit Circle',
+        headerTitleStyle: {
+          fontWeight: 'bold',
+          color: '#5E60CE',
+        },
+      }}/>
+      <Stack.Screen name="create-circle" component={CreateCircle} options={{
+        headerTitle: 'Create Circle',
+        headerTitleStyle: {
+          fontWeight: 'bold',
+          color: '#5E60CE',
+        },
+      }}/>
+      <Stack.Screen name="join-circle" component={JoinCircle} options={{
+        headerTitle: 'Join Circle',
         headerTitleStyle: {
           fontWeight: 'bold',
           color: '#5E60CE',
