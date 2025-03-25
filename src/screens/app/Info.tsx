@@ -1,12 +1,12 @@
 import { View, Text } from 'react-native'
 import React from 'react'
 
-const DeleteAccountScreen = () => {
+const Info = () => {
   return (
     <View>
-      <Text>DeleteAccountScreen</Text>
+      <Text>Info</Text>
     </View>
   )
 }
 
-export default DeleteAccountScreen
+export default Info

@@ -1,12 +1,12 @@
 import { View, Text } from 'react-native'
 import React from 'react'
 
-const DeleteAccountScreen = () => {
+const PairNewSensor = () => {
   return (
     <View>
-      <Text>DeleteAccountScreen</Text>
+      <Text>PairNewSensor</Text>
     </View>
   )
 }
 
-export default DeleteAccountScreen
+export default PairNewSensor

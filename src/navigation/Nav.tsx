@@ -8,6 +8,15 @@ import CylinderDetailsScreen from '../screens/cylinder/CylinderDetailsScreen';
 import EditCircle from '../screens/circles/EditCircle';
 import CreateCircle from '../screens/circles/CreateCircle';
 import JoinCircle from '../screens/circles/JoinCircle';
+import NotificationsSettingsScreen from '../screens/settings/NotificationsSettingsScreen';
+import AccountSettingsScreen from '../screens/settings/AccountSettingsScreen';
+import PrivacyPolicyScreen from '../screens/settings/PrivacyPolicySettingsScreen';
+import PairNewSensor from '../screens/cylinder/PairNewSensorScreen';
+import Info from '../screens/app/Info';
+import ChangePasswordScreen from '../screens/profile/ChangePasswordScreen';
+import ChangeAvatarScreen from '../screens/profile/ChangeAvatarScreen';
+import ChangeProfileNameScreen from '../screens/profile/ChangeProfileNameScreen';
+import DeleteAccountScreen from '../screens/settings/DeleteAccountScreen';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
@@ -72,6 +81,70 @@ export function RootStack() {
           color: '#5E60CE',
         },
       }}/>
+      <Stack.Screen name="notifications-settings" component={NotificationsSettingsScreen} options={{
+        headerTitle: 'Notifications',
+        headerTitleStyle: {
+          fontWeight: 'bold',
+          color: '#5E60CE',
+        },
+      }}/>
+      <Stack.Screen name="account-settings" component={AccountSettingsScreen} options={{
+        headerTitle: 'Account Settings',
+        headerTitleStyle: {
+          fontWeight: 'bold',
+          color: '#5E60CE',
+        },
+      }}/>
+      <Stack.Screen name="delete-account" component={DeleteAccountScreen} options={{
+        headerTitle: 'Delete Account',
+        headerTitleStyle: {
+          fontWeight: 'bold',
+          color: '#5E60CE',
+        },
+      }}/>
+      <Stack.Screen name="privacy-policy" component={PrivacyPolicyScreen} options={{
+        headerTitle: 'Privacy Policy',
+        headerTitleStyle: {
+          fontWeight: 'bold',
+          color: '#5E60CE',
+        },
+      }}/>
+      <Stack.Screen name="pair-new-sensor" component={PairNewSensor} options={{
+        headerTitle: 'Pair New Sensor',
+        headerTitleStyle: {
+          fontWeight: 'bold',
+          color: '#5E60CE',
+        },
+      }}/>
+      <Stack.Screen name="app-info" component={Info} options={{
+        headerTitle: 'App Info',
+        headerTitleStyle: {
+          fontWeight: 'bold',
+          color: '#5E60CE',
+        },
+      }}/>
+      <Stack.Screen name="change-password" component={ChangePasswordScreen} options={{
+        headerTitle: 'Change Password',
+        headerTitleStyle: {
+          fontWeight: 'bold',
+          color: '#5E60CE',
+        },
+      }}/>
+      <Stack.Screen name="change-avatar" component={ChangeAvatarScreen} options={{
+        headerTitle: 'Change Avatar',
+        headerTitleStyle: {
+          fontWeight: 'bold',
+          color: '#5E60CE',
+        },
+      }}/>
+      <Stack.Screen name="change-name" component={ChangeProfileNameScreen} options={{
+        headerTitle: 'Change Profile Name',
+        headerTitleStyle: {
+          fontWeight: 'bold',
+          color: '#5E60CE',
+        },
+      }}/>
+      
     </Stack.Navigator>
   );
 }
