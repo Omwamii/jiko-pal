@@ -2,13 +2,15 @@ import { Text,
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  Alert} from 'react-native';
+  Alert,
+  useColorScheme} from 'react-native';
 import React, { useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const scheme = useColorScheme();
 
   const handleLogin = () => {
     if (email === 'user@example.com' && password === 'password') {
@@ -20,7 +22,8 @@ const Login = () => {
   };
 
   return (
-    <SafeAreaView>
+    // eslint-disable-next-line react-native/no-inline-styles
+    <SafeAreaView style={ scheme === 'dark' ? { backgroundColor: '#222831' } : { backgroundColor: '#fff'}}>
       <Text style={styles.title}>Jiko Pal</Text>
       <Text style={styles.subtitle}>Login</Text>
 

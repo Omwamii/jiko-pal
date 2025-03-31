@@ -1,18 +1,21 @@
-import { View, Text, StyleSheet, TextInput, TouchableOpacity } from 'react-native'
-import React from 'react'
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, useColorScheme } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import React from 'react';
 
 const JoinCircle = () => {
+    const scheme = useColorScheme();
     const joinNewCircle = () => {
         console.log('Joining circle');
     };
 
   return (
-    <View style={styles.container}>
+    // eslint-disable-next-line react-native/no-inline-styles
+    <SafeAreaView style={[styles.container, scheme === 'dark' ? { backgroundColor: '#222831' } : { backgroundColor: '#fff'}]}>
       <TextInput placeholder="Enter joining code" style={styles.input} />
       <TouchableOpacity onPress={joinNewCircle} style={styles.JoinCircleBtn}>
             <Text style={styles.joinCircleText}>Join</Text>
       </TouchableOpacity>
-    </View>
+    </SafeAreaView>
   );
 };
 

@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity, Image, Alert, StyleSheet} from 'react-native';
+import { View, Text, TouchableOpacity, Image, Alert, StyleSheet, useColorScheme} from 'react-native';
 import React, { useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
@@ -7,6 +7,7 @@ import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 
 const ChangeAvatarScreen = () => {
      const [profileImage, setProfileImage] = useState<string | null>(null);
+     const scheme = useColorScheme();
   
       const handleSubmit = () => {
           const profileData = {
@@ -59,7 +60,8 @@ const ChangeAvatarScreen = () => {
         };
   
     return (
-      <SafeAreaView style={styles.container}>
+      // eslint-disable-next-line react-native/no-inline-styles
+      <SafeAreaView style={[styles.container,  scheme === 'dark' ? { backgroundColor: '#222831' } : { backgroundColor: '#fff'}]}>
          {profileImage ? (
           <Image source={{ uri: profileImage }} style={styles.avatar} />
         ) : (

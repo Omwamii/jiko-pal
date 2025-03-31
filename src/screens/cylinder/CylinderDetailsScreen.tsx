@@ -1,9 +1,11 @@
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, useColorScheme } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import React from 'react';
 import { cylinders } from '../../constants/data';
 import Cylinder from '../../components/Cylinder';
 
 const CylinderDetailsScreen = ({ route }) => {
+    const scheme = useColorScheme();
     const cylinderId = route.params.id;
     console.log(cylinderId);
     const cylinder = cylinders.find((item) => item.id === cylinderId);
@@ -11,7 +13,8 @@ const CylinderDetailsScreen = ({ route }) => {
         return <Text>No cylinder</Text>;
     }
   return (
-    <View style={styles.container}>
+    // eslint-disable-next-line react-native/no-inline-styles
+    <SafeAreaView style={[styles.container, scheme === 'dark' ? { backgroundColor: '#222831' } : { backgroundColor: '#fff'}]}>
         <Cylinder level={(cylinder.currentWeight / cylinder.initialWeight) * 100} />
 
         {/* Cylinder details */}
@@ -54,7 +57,7 @@ const CylinderDetailsScreen = ({ route }) => {
             <Text style={styles.detailName}>Circle</Text>
             <Text style={styles.detailValue}>None</Text>
         </View>
-    </View>
+    </SafeAreaView>
   );
 };
 

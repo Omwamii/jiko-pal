@@ -1,4 +1,5 @@
-import { View, Text, Image, StyleSheet, TouchableOpacity, Clipboard, Alert} from 'react-native';
+import { View, Text, Image, StyleSheet, TouchableOpacity, Clipboard, Alert, useColorScheme} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import React, { useLayoutEffect } from 'react';
 // import { useNavigation } from '@react-navigation/native';
 import { circles } from '../../constants/data';
@@ -10,6 +11,7 @@ const CircleDetails = ({ route , navigation }) => {
     // const navigation = useNavigation();
     const circle = circles.find((c) => c.id === circleId) ?? {name: `id: ${circleId}`, members: [], cylinders: [], joiningCode: '', creator: {id: 0, name: ''}};
     const creatorId = 1;
+    const scheme = useColorScheme();
 
     useLayoutEffect(() => {
         navigation.setOptions({
@@ -65,7 +67,8 @@ const CircleDetails = ({ route , navigation }) => {
     };
 
   return (
-    <View style={styles.container}>
+    // eslint-disable-next-line react-native/no-inline-styles
+    <SafeAreaView style={[styles.container, scheme === 'dark' ? { backgroundColor: '#222831' } : { backgroundColor: '#fff'}]}>
         <View>
             <Image source={circleImage} />
         </View>
@@ -117,7 +120,7 @@ const CircleDetails = ({ route , navigation }) => {
                 </TouchableOpacity>
             )}
         </View>
-    </View>
+    </SafeAreaView>
   );
 };
 

@@ -1,11 +1,15 @@
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, useColorScheme } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import React from 'react';
 import CircleListItem from '../../components/CircleListItem';
 import { circles } from '../../constants/data';
 
 const Circles = ({ navigation }) => {
+  const scheme = useColorScheme();
+  
   return (
-    <View style={styles.container}>
+    // eslint-disable-next-line react-native/no-inline-styles
+    <SafeAreaView style={[styles.container, scheme === 'dark' ? { backgroundColor: '#222831' } : { backgroundColor: '#fff'}]}>
      {circles.length === 0 ? (
       <View>
         <Text style={styles.title}>You have no circles yet</Text>
@@ -25,7 +29,7 @@ const Circles = ({ navigation }) => {
         <CircleListItem key={circle.id} circle={circle} />
       ))
      )}
-    </View>
+    </SafeAreaView>
   );
 };
 

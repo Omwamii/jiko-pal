@@ -1,4 +1,5 @@
-import { View, Text, TextInput, TouchableOpacity, StyleSheet} from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, useColorScheme} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import React, { useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { faSquarePlus } from '@fortawesome/free-solid-svg-icons';
@@ -11,6 +12,7 @@ const CreateCircle = () => {
     const [selectedCylinders, setSelectedCylinders] = useState([]);
     const userId = 1;
     const cylindersCreatedByUser = cylinders.filter(item => item.creatorId === userId);
+    const scheme = useColorScheme();
 
     const addCylinders = () => {
         console.log('Add Cylinders');
@@ -41,7 +43,8 @@ const CreateCircle = () => {
     };
 
   return (
-    <View>
+    // eslint-disable-next-line react-native/no-inline-styles
+    <SafeAreaView style={ scheme === 'dark' ? { backgroundColor: '#222831' } : { backgroundColor: '#fff'}}>
         <Text style={styles.label}>Name</Text>
         <TextInput placeholder="Circle Name" />
 
@@ -78,7 +81,7 @@ const CreateCircle = () => {
                 </TouchableOpacity>
             </View>
         </Modal>
-    </View>
+    </SafeAreaView>
   );
 };
 

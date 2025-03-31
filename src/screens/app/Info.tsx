@@ -1,12 +1,16 @@
-import { View, Text } from 'react-native'
+import { View, Text, useColorScheme } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import React from 'react'
 
 const Info = () => {
-  return (
-    <View>
-      <Text>Info</Text>
-    </View>
-  )
-}
+  const scheme = useColorScheme();
 
-export default Info
+  return (
+    // eslint-disable-next-line react-native/no-inline-styles
+    <SafeAreaView style={ scheme === 'dark' ? { backgroundColor: '#222831' } : { backgroundColor: '#fff'}}>
+      <Text>Info</Text>
+    </SafeAreaView>
+  );
+};
+
+export default Info;

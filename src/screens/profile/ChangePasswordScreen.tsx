@@ -1,19 +1,22 @@
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, useColorScheme } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import React from 'react';
 import { TextInput } from 'react-native-paper';
 
 const ChangePasswordScreen = () => {
     const [newPassword, setNewPassword] = React.useState('');
     const [confirmNewPassword, setConfirmNewPassword] = React.useState('');
+    const scheme = useColorScheme();
 
   return (
-    <View>
+    // eslint-disable-next-line react-native/no-inline-styles
+    <SafeAreaView style={ scheme === 'dark' ? { backgroundColor: '#222831' } : { backgroundColor: '#fff'}}>
         <TextInput placeholder={'New Password'} value={newPassword} onChangeText={(text) => setNewPassword(text)}/>
         <TextInput placeholder={'Confirm New Password'} value={confirmNewPassword} onChangeText={(text) => setConfirmNewPassword(text)}/>
         <TouchableOpacity style={styles.changeBtn}>
             <Text style={styles.changeBtnText}>Change</Text>
         </TouchableOpacity>
-    </View>
+    </SafeAreaView>
   );
 };
 

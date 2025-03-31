@@ -1,4 +1,5 @@
 import { View, StatusBar, useColorScheme, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import React from 'react';
 import { cylinders } from '../constants/data';
 import Cylinder from '../components/Cylinder';
@@ -6,9 +7,12 @@ import Cylinder from '../components/Cylinder';
 const Home = ({ navigation }) => {
   const theme = useColorScheme();
   const firstCylinder = cylinders[0];
+  const scheme = useColorScheme();
+
   console.log(firstCylinder);
   return (
-    <View style={styles.container}>
+    // eslint-disable-next-line react-native/no-inline-styles
+    <SafeAreaView style={[styles.container, scheme === 'dark' ? { backgroundColor: '#222831' } : { backgroundColor: '#fff'}]}>
       <View>
         <Cylinder level={(firstCylinder.currentWeight / firstCylinder.initialWeight) * 100} />
         <Text style={styles.cylinderNameText}>{firstCylinder.provider}</Text>
@@ -17,7 +21,7 @@ const Home = ({ navigation }) => {
         </TouchableOpacity>
       </View>
       <StatusBar barStyle={theme === 'dark' ? 'light-content' : 'dark-content'} backgroundColor={theme === 'dark' ? '#000' : '#6200ee'} />
-    </View>
+    </SafeAreaView>
   );
 };
 

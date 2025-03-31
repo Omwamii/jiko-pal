@@ -8,6 +8,7 @@ import {
   StyleSheet,
   Image,
   Alert,
+  useColorScheme,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
@@ -18,6 +19,7 @@ const CreateProfileScreen = ({ navigation }) => {
   const [name, setName] = useState('');
   const [bio, setBio] = useState('');
   const [profileImage, setProfileImage] = useState<string | null>(null);
+  const scheme = useColorScheme();
 
   const handleSubmit = () => {
     if (!name.trim()) {
@@ -77,7 +79,8 @@ const CreateProfileScreen = ({ navigation }) => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    // eslint-disable-next-line react-native/no-inline-styles
+    <SafeAreaView style={[styles.container, scheme === 'dark' ? { backgroundColor: '#222831' } : { backgroundColor: '#fff'}]}>
       <Text style={styles.title}>Create Profile</Text>
 
       {profileImage ? (
@@ -110,6 +113,7 @@ const CreateProfileScreen = ({ navigation }) => {
         placeholder="Short Bio"
         value={bio}
         onChangeText={setBio}
+        // eslint-disable-next-line react-native/no-inline-styles
         style={[styles.input, { height: 100 }]}
         multiline
       />

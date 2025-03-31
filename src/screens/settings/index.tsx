@@ -1,4 +1,5 @@
-import { View, StyleSheet, Text, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, Text, TouchableOpacity, useColorScheme} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import React from 'react';
 import { Switch, Divider } from 'react-native-paper';
 import { faChevronRight } from '@fortawesome/free-solid-svg-icons';
@@ -6,6 +7,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 
 const Settings = ({ navigation }) => {
   const [isDarkMode, setIsDarkMode] = React.useState(false);
+  const scheme = useColorScheme();
 
   const onToggleSwitch = () => setIsDarkMode(!isDarkMode);
 
@@ -14,7 +16,8 @@ const Settings = ({ navigation }) => {
   };
 
   return (
-    <View style={styles.container}>
+    // eslint-disable-next-line react-native/no-inline-styles
+    <SafeAreaView style={[styles.container, scheme === 'dark' ? { backgroundColor: '#222831' } : { backgroundColor: '#fff'}]}>
         <View style={styles.settingsItem}>
             <Text>Dark mode</Text>
             <Switch value={isDarkMode} onValueChange={onToggleSwitch} />
@@ -49,7 +52,7 @@ const Settings = ({ navigation }) => {
         <TouchableOpacity onPress={logout} style={styles.logoutBtn}>
             <Text>Logout</Text>
         </TouchableOpacity>
-    </View>
+    </SafeAreaView>
   );
 };
 

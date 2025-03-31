@@ -1,9 +1,13 @@
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, useColorScheme} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import React from 'react';
 
 const AccountSettingsScreen = ({ navigation }) => {
+  const scheme = useColorScheme();
+
   return (
-    <View style={styles.container}>
+    // eslint-disable-next-line react-native/no-inline-styles
+    <SafeAreaView style={[styles.container,  scheme === 'dark' ? { backgroundColor: '#222831' } : { backgroundColor: '#fff'}]}>
       <TouchableOpacity onPress={() => navigation.navigate('change-password')}>
           <Text>Change account password</Text>
       </TouchableOpacity>
@@ -16,7 +20,7 @@ const AccountSettingsScreen = ({ navigation }) => {
       <TouchableOpacity onPress={() => navigation.navigate('delete-account')}>
         <Text style={styles.deleteAccountBtnText}>Delete my account</Text>
       </TouchableOpacity>
-    </View>
+    </SafeAreaView>
   )
 }
 

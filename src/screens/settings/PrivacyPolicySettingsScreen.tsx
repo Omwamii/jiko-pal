@@ -1,9 +1,12 @@
 import React from 'react';
-import { Text, StyleSheet, ScrollView } from 'react-native';
+import { Text, StyleSheet, ScrollView, useColorScheme} from 'react-native';
 
 const PrivacyPolicyScreen = () => {
+  const scheme = useColorScheme();
+
   return (
-    <ScrollView style={styles.container}>
+    // eslint-disable-next-line react-native/no-inline-styles
+    <ScrollView style={[styles.container, scheme === 'dark' ? { backgroundColor: '#222831' } : { backgroundColor: '#fff'}]}>
       <Text style={styles.header}>Effective Date: (Change)</Text>
 
       <Text style={styles.paragraph}>

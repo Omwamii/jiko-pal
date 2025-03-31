@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, useColorScheme } from 'react-native';
 import React from 'react';
 import { TextInput } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 const ChangeProfileNameScreen = ({ route, navigation }) => {
     const userId = route.params.userId;
+    const scheme = useColorScheme();
     // if (!userId) {
     //     const user = users[0];
     // } else {
@@ -14,7 +15,8 @@ const ChangeProfileNameScreen = ({ route, navigation }) => {
     const [newProfileName, setNewProfileName] = React.useState('');
 
   return (
-    <SafeAreaView>
+    // eslint-disable-next-line react-native/no-inline-styles
+    <SafeAreaView style={ scheme === 'dark' ? { backgroundColor: '#222831' } : { backgroundColor: '#fff'}}>
         <TextInput placeholder={'Current name'} value={'Previous name'} disabled={true}/>
         <TextInput placeholder={'Enter new profile name'} value={newProfileName} onChangeText={(text) => setNewProfileName(text)}/>
         <TouchableOpacity style={styles.changeBtn}>

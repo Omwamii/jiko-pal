@@ -1,4 +1,5 @@
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, useColorScheme } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import React from 'react';
 import { Switch, Divider, TextInput } from 'react-native-paper';
 
@@ -11,13 +12,15 @@ const NotificationsSettingsScreen = () => {
     const [newCircleCylinderAlerts, setNewCircleCylinderAlerts] = React.useState(false);
     const [newCircleMemberAlerts, setNewCircleMemberAlerts] = React.useState(false);
     const [alertThreshold, setAlertThreshold] = React.useState(0);
+    const scheme = useColorScheme();
 
     const saveChanges = () => {
         console.log('save changes');
     };
 
   return (
-    <View style={styles.container}>
+    // eslint-disable-next-line react-native/no-inline-styles
+    <SafeAreaView style={[styles.container, scheme === 'dark' ? { backgroundColor: '#222831' } : { backgroundColor: '#fff'}]}>
         <View style={styles.settingsItem}>
             <Text>Refill reminders</Text>
             <Switch value={refillReminder} onValueChange={() => setRefillReminder(!refillReminder)} />
@@ -56,7 +59,7 @@ const NotificationsSettingsScreen = () => {
         <TouchableOpacity onPress={saveChanges} style={styles.saveBtn}>
             <Text style={styles.saveBtnText}>Save</Text>
         </TouchableOpacity>
-    </View>
+    </SafeAreaView>
   );
 };
 
