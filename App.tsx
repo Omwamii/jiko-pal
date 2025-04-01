@@ -3,14 +3,17 @@ import { RootStack, RootTabs } from './src/navigation/Nav';
 import { NavigationContainer } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import BootSplash from 'react-native-bootsplash';
+import QueryProvider from './src/context/QueryProvider';
 
 export default function App() {
   return (
     <SafeAreaProvider>
-      <NavigationContainer onReady={() => BootSplash.hide({ fade: true })}>
-        <RootStack />
-        <RootTabs />
-      </NavigationContainer>
+      <QueryProvider>
+        <NavigationContainer onReady={() => BootSplash.hide({ fade: true })}>
+          <RootStack />
+          <RootTabs />
+        </NavigationContainer>
+      </QueryProvider>
     </SafeAreaProvider>
   );
 }
