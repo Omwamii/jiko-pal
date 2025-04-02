@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Text} from 'react-native';
 import * as Animatable from 'react-native-animatable';
 
 const Cylinder = ({ level }: { level: Number}) => {
@@ -10,6 +10,9 @@ const Cylinder = ({ level }: { level: Number}) => {
         iterationCount="infinite"
         style={[styles.liquid, { height: `${level}%` }]}
       />
+      <View style={styles.textContainer}>
+        <Text style={styles.percentageText}>{level}%</Text>
+      </View>
     </View>
   );
 };
@@ -26,6 +29,16 @@ const styles = StyleSheet.create({
   liquid: {
     backgroundColor: 'blue',
     width: '100%',
+  },
+  textContainer: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  percentageText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: 'white', // Change color if needed for better visibility
   },
 });
 

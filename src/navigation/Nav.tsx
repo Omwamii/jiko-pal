@@ -17,6 +17,7 @@ import ChangePasswordScreen from '../screens/profile/ChangePasswordScreen';
 import ChangeAvatarScreen from '../screens/profile/ChangeAvatarScreen';
 import ChangeProfileNameScreen from '../screens/profile/ChangeProfileNameScreen';
 import DeleteAccountScreen from '../screens/settings/DeleteAccountScreen';
+import CreateProfileScreen from '../screens/profile/CreateProfileScreen';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
@@ -26,122 +27,131 @@ import { faPeopleGroup } from '@fortawesome/free-solid-svg-icons';
 import { faBell } from '@fortawesome/free-solid-svg-icons';
 import { faCircleUser } from '@fortawesome/free-solid-svg-icons';
 import { View } from 'react-native-animatable';
+import { StyleSheet } from 'react-native';
 
 export function RootStack() {
   const Stack = createNativeStackNavigator();
+
   return (
-    <Stack.Navigator initialRouteName="Home">
+    <Stack.Navigator initialRouteName="create-profile">
+      {/* Screen navigation */}
       <Stack.Screen name="Login" component={Login} options={{ headerShown: false }}/>
       <Stack.Screen name="Signup" component={Signup} options={{ headerShown: false }}/>
       <Stack.Screen name="cylinder-details" component={CylinderDetailsScreen} options={{
-        headerTitle: 'Cylinder Details',
-        headerTitleStyle: {
-          fontWeight: 'bold',
-          color: '#5E60CE',
-        },
+      headerTitle: 'Cylinder Details',
+      headerTitleStyle: {
+        fontWeight: 'bold',
+        color: '#5E60CE',
+      },
       }}/>
       <Stack.Screen name="Home" component={Home} options={{
-        headerTitle: 'Holla!',
-        headerTitleStyle: {
-          fontWeight: 'bold',
-          color: '#5E60CE',
-        },
-        headerRight: () => (
-          <View>
-              <FontAwesomeIcon icon={faBell} size={20}/>
-              <FontAwesomeIcon icon={faCircleUser} size={20}/>
-          </View>
-        ),
+      headerTitle: 'Holla!',
+      headerTitleStyle: {
+        fontWeight: 'bold',
+        color: '#5E60CE',
+      },
+      headerRight: () => (
+        <View style={styles.header}>
+          <FontAwesomeIcon icon={faBell} size={20}/>
+          <FontAwesomeIcon icon={faCircleUser} size={20}/>
+        </View>
+      ),
+      }}/>
+      <Stack.Screen name="create-profile" component={CreateProfileScreen} options={{
+      headerTitle: 'Create Profile',
+      headerTitleStyle: {
+        fontWeight: 'bold',
+        color: '#5E60CE',
+      },
       }}/>
       <Stack.Screen name="my-circles" component={Circles} options={{
-        headerTitle: 'Your circles',
-        headerTitleStyle: {
-          fontWeight: 'bold',
-          color: '#5E60CE',
-        },
+      headerTitle: 'Your circles',
+      headerTitleStyle: {
+        fontWeight: 'bold',
+        color: '#5E60CE',
+      },
       }}/>
       <Stack.Screen name="edit-circle" component={EditCircle} options={{
-        headerTitle: 'Edit Circle',
-        headerTitleStyle: {
-          fontWeight: 'bold',
-          color: '#5E60CE',
-        },
+      headerTitle: 'Edit Circle',
+      headerTitleStyle: {
+        fontWeight: 'bold',
+        color: '#5E60CE',
+      },
       }}/>
       <Stack.Screen name="create-circle" component={CreateCircle} options={{
-        headerTitle: 'Create Circle',
-        headerTitleStyle: {
-          fontWeight: 'bold',
-          color: '#5E60CE',
-        },
+      headerTitle: 'Create Circle',
+      headerTitleStyle: {
+        fontWeight: 'bold',
+        color: '#5E60CE',
+      },
       }}/>
       <Stack.Screen name="join-circle" component={JoinCircle} options={{
-        headerTitle: 'Join Circle',
-        headerTitleStyle: {
-          fontWeight: 'bold',
-          color: '#5E60CE',
-        },
+      headerTitle: 'Join Circle',
+      headerTitleStyle: {
+        fontWeight: 'bold',
+        color: '#5E60CE',
+      },
       }}/>
       <Stack.Screen name="notifications-settings" component={NotificationsSettingsScreen} options={{
-        headerTitle: 'Notifications',
-        headerTitleStyle: {
-          fontWeight: 'bold',
-          color: '#5E60CE',
-        },
+      headerTitle: 'Notifications',
+      headerTitleStyle: {
+        fontWeight: 'bold',
+        color: '#5E60CE',
+      },
       }}/>
       <Stack.Screen name="account-settings" component={AccountSettingsScreen} options={{
-        headerTitle: 'Account Settings',
-        headerTitleStyle: {
-          fontWeight: 'bold',
-          color: '#5E60CE',
-        },
+      headerTitle: 'Account Settings',
+      headerTitleStyle: {
+        fontWeight: 'bold',
+        color: '#5E60CE',
+      },
       }}/>
       <Stack.Screen name="delete-account" component={DeleteAccountScreen} options={{
-        headerTitle: 'Delete Account',
-        headerTitleStyle: {
-          fontWeight: 'bold',
-          color: '#5E60CE',
-        },
+      headerTitle: 'Delete Account',
+      headerTitleStyle: {
+        fontWeight: 'bold',
+        color: '#5E60CE',
+      },
       }}/>
       <Stack.Screen name="privacy-policy" component={PrivacyPolicyScreen} options={{
-        headerTitle: 'Privacy Policy',
-        headerTitleStyle: {
-          fontWeight: 'bold',
-          color: '#5E60CE',
-        },
+      headerTitle: 'Privacy Policy',
+      headerTitleStyle: {
+        fontWeight: 'bold',
+        color: '#5E60CE',
+      },
       }}/>
       <Stack.Screen name="pair-new-sensor" component={PairNewSensor} options={{
-        headerTitle: 'Pair New Sensor',
-        headerTitleStyle: {
-          fontWeight: 'bold',
-          color: '#5E60CE',
-        },
+      headerTitle: 'Pair New Sensor',
+      headerTitleStyle: {
+        fontWeight: 'bold',
+        color: '#5E60CE',
+      },
       }}/>
       <Stack.Screen name="app-info" component={Info} options={{
-        headerTitle: 'App Info',
-        headerTitleStyle: {
-          fontWeight: 'bold',
-          color: '#5E60CE',
-        },
+      headerTitle: 'App Info',
+      headerTitleStyle: {
+        fontWeight: 'bold',
+        color: '#5E60CE',
+      },
       }}/>
       <Stack.Screen name="change-password" component={ChangePasswordScreen} options={{
-        headerTitle: 'Change Password',
-        headerTitleStyle: {
-          fontWeight: 'bold',
-          color: '#5E60CE',
-        },
+      headerTitle: 'Change Password',
+      headerTitleStyle: {
+        fontWeight: 'bold',
+        color: '#5E60CE',
+      },
       }}/>
       <Stack.Screen name="change-avatar" component={ChangeAvatarScreen} options={{
-        headerTitle: 'Change Avatar',
-        headerTitleStyle: {
-          fontWeight: 'bold',
-          color: '#5E60CE',
-        },
+      headerTitle: 'Change Avatar',
+      headerTitleStyle: {
+        fontWeight: 'bold',
+        color: '#5E60CE',
+      },
       }}/>
       <Stack.Screen name="change-name" component={ChangeProfileNameScreen} options={{
-        headerTitle: 'Change Profile Name',
-        headerTitleStyle: {
-          fontWeight: 'bold',
-          color: '#5E60CE',
+      headerTitle: 'Change Profile Name',
+      headerTitleStyle: {
+        fontWeight: 'bold',
         },
       }}/>
       
@@ -172,3 +182,9 @@ export function RootTabs() {
   );
 }
 
+const styles = StyleSheet.create({
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+});

@@ -1,5 +1,5 @@
 import React from 'react';
-import { RootStack, RootTabs } from './src/navigation/Nav';
+import { RootStack } from './src/navigation/Nav';
 import { NavigationContainer } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import BootSplash from 'react-native-bootsplash';
@@ -11,7 +11,6 @@ export default function App() {
       <QueryProvider>
         <NavigationContainer onReady={() => BootSplash.hide({ fade: true })}>
           <RootStack />
-          <RootTabs />
         </NavigationContainer>
       </QueryProvider>
     </SafeAreaProvider>

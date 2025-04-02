@@ -3,6 +3,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import React from 'react';
 import { cylinders } from '../constants/data';
 import Cylinder from '../components/Cylinder';
+import { RootTabs } from '../navigation/Nav';
+import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
+import { faCircleArrowLeft, faCircleArrowRight } from '@fortawesome/free-solid-svg-icons';
 
 const Home = ({ navigation }) => {
   const theme = useColorScheme();
@@ -14,13 +17,18 @@ const Home = ({ navigation }) => {
     // eslint-disable-next-line react-native/no-inline-styles
     <SafeAreaView style={[styles.container, scheme === 'dark' ? { backgroundColor: '#222831' } : { backgroundColor: '#fff'}]}>
       <View>
-        <Cylinder level={(firstCylinder.currentWeight / firstCylinder.initialWeight) * 100} />
+        <View style={styles.cylinder}>
+          <FontAwesomeIcon icon={faCircleArrowLeft} size={32} color={'#D9D9D9'} />
+          <Cylinder level={(firstCylinder.currentWeight / firstCylinder.initialWeight) * 100} />
+          <FontAwesomeIcon icon={faCircleArrowRight} size={32} color={'#D9D9D9'} />
+        </View>
         <Text style={styles.cylinderNameText}>{firstCylinder.provider}</Text>
-        <TouchableOpacity onPress={() => navigation.navigate('Details', {'id': firstCylinder.id})}>
+        <TouchableOpacity onPress={() => navigation.navigate('cylinder-details', {'id': firstCylinder.id})}>
           <Text style={styles.clickableText}>View Details</Text>
         </TouchableOpacity>
       </View>
       <StatusBar barStyle={theme === 'dark' ? 'light-content' : 'dark-content'} backgroundColor={theme === 'dark' ? '#000' : '#6200ee'} />
+      <RootTabs />
     </SafeAreaView>
   );
 };
@@ -40,6 +48,9 @@ const styles = StyleSheet.create({
     color: '#6200ee',
     fontSize: 16,
     textAlign: 'center',
+  },
+  cylinder: {
+    justifyContent: 'space-between',
   },
 });
 
