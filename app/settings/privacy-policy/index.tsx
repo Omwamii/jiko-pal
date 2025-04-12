@@ -1,5 +1,6 @@
 import React from 'react';
 import { Text, StyleSheet, ScrollView, useColorScheme} from 'react-native';
+import { Stack } from 'expo-router';
 
 const PrivacyPolicyScreen = () => {
   const scheme = useColorScheme();
@@ -7,6 +8,19 @@ const PrivacyPolicyScreen = () => {
   return (
     // eslint-disable-next-line react-native/no-inline-styles
     <ScrollView style={[styles.container, scheme === 'dark' ? { backgroundColor: '#222831' } : { backgroundColor: '#fff'}]}>
+      <Stack.Screen
+        name="privacy-policy"
+        options={{
+          title: 'Privacy Policy',
+          headerTintColor: scheme === 'dark' ? '#fff' : '#000',
+          headerStyle: {
+            backgroundColor: scheme === 'dark' ? '#222831' : '#fff',
+          },
+          headerTitleStyle: {
+            color: scheme === 'dark' ? '#fff' : '#000',
+          },
+        }}
+      />
       <Text style={styles.header}>Effective Date: (Change)</Text>
 
       <Text style={styles.paragraph}>

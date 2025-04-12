@@ -2,16 +2,17 @@ import React from 'react';
 import { View, StyleSheet, Text} from 'react-native';
 import * as Animatable from 'react-native-animatable';
 
-const Cylinder = ({ level }: { level: Number}) => {
+const Cylinder = ({ level }: { level: number }) => {
+  const roundedLevel = Math.round(level);
   return (
     <View style={styles.cylinder}>
       <Animatable.View
         animation="pulse"
         iterationCount="infinite"
-        style={[styles.liquid, { height: `${level}%` }]}
+        style={[styles.liquid, { height: `${roundedLevel}%` }]}
       />
       <View style={styles.textContainer}>
-        <Text style={styles.percentageText}>{`${level}`}%</Text>
+        <Text style={styles.percentageText}>{`${roundedLevel}`}%</Text>
       </View>
     </View>
   );

@@ -1,6 +1,7 @@
 import { View, Text, StyleSheet, TouchableOpacity, useColorScheme} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Link } from 'expo-router';
+import { Stack } from 'expo-router';
 
 const AccountSettingsScreen = () => {
   const scheme = useColorScheme();
@@ -8,6 +9,7 @@ const AccountSettingsScreen = () => {
   return (
     // eslint-disable-next-line react-native/no-inline-styles
     <SafeAreaView style={[styles.container,  scheme === 'dark' ? { backgroundColor: '#222831' } : { backgroundColor: '#fff'}]}>
+        <Stack.Screen name='account-settings' options={{ title: 'Account settings' }} />
         <Link href='/profile/change-password'>
             <Text>Change account password</Text>   
         </Link>

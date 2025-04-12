@@ -6,6 +6,7 @@ import { Text,
     useColorScheme} from 'react-native';
   import React, { useState } from 'react';
   import { SafeAreaView } from 'react-native-safe-area-context';
+  import { Stack } from 'expo-router';
   
   const Signup = () => {
     const [email, setEmail] = useState('');
@@ -25,6 +26,7 @@ import { Text,
     return (
       // eslint-disable-next-line react-native/no-inline-styles
       <SafeAreaView style={[styles.container, scheme === 'dark' ? { backgroundColor: '#222831' } : { backgroundColor: '#fff'}]}>
+        <Stack.Screen name='signup' options={{ title: 'Signup' }} />
         <Text style={styles.title}>Jiko Pal</Text>
         <Text style={styles.subtitle}>Signup</Text>
   

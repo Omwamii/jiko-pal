@@ -39,7 +39,7 @@ export default function TabLayout() {
         options={{
           title: 'Circles',
           tabBarIcon: () => (
-          <FontAwesome name='bullseye' size={20}/>
+          <IconSymbol size={28} name="18.circle.fill.hi" color={Colors.light.tint} />
         ),
       }}/>
       <Tabs.Screen 
@@ -47,7 +47,7 @@ export default function TabLayout() {
         options={{
           title: 'Settings',
           tabBarIcon: () => (
-          <FontAwesome name='gear' size={20}/>
+         <IconSymbol size={28} name="gearshape.fill" color={Colors.light.tint} />
         ),
       }}/>
     </Tabs>

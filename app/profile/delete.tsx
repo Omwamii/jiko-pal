@@ -2,6 +2,7 @@ import { View, Text, TouchableOpacity, StyleSheet, Alert, useColorScheme} from '
 import { SafeAreaView } from 'react-native-safe-area-context';
 import React from 'react';
 import { TextInput, Checkbox } from 'react-native-paper';
+import { Stack } from 'expo-router';
 
 
 const DeleteAccountScreen = () => {
@@ -24,6 +25,7 @@ const DeleteAccountScreen = () => {
   return (
     // eslint-disable-next-line react-native/no-inline-styles
     <SafeAreaView style={[styles.container, scheme === 'dark' ? { backgroundColor: '#222831' } : { backgroundColor: '#fff'}]}>
+      <Stack.Screen name='delete-account' options={{ title: 'Delete your account' }} />
       <TextInput onChangeText={(text) => setDeleteReason(text)} value={deleteReason} placeholder={'Enter reason for deleting account'}/>
       <Checkbox.Item label="I understand that deleting my account is permanent and cannot be undone." status={isChecked ? 'checked' : 'unchecked'} onPress={() => setIsChecked(!isChecked)}/>
       <TouchableOpacity style={styles.deleteBtn} onPress={deleteAccount}>

@@ -5,6 +5,7 @@ import { FontAwesome } from '@expo/vector-icons';
 import { cylinders } from '@/constants/data';
 import { Cylinder } from '@/types';
 import { Checkbox, Chip } from 'react-native-paper';
+import { Stack } from 'expo-router';
 
 
 const CreateCircle = () => {
@@ -49,6 +50,19 @@ const CreateCircle = () => {
   return (
     // eslint-disable-next-line react-native/no-inline-styles
     <SafeAreaView style={ scheme === 'dark' ? { backgroundColor: '#222831' } : { backgroundColor: '#fff'}}>
+         <Stack.Screen
+            name="ceate-circle"
+            options={{
+            title: 'Create a circle',
+            headerTintColor: scheme === 'dark' ? '#fff' : '#000',
+            headerStyle: {
+                backgroundColor: scheme === 'dark' ? '#222831' : '#fff',
+                  },
+                  headerTitleStyle: {
+                    color: scheme === 'dark' ? '#fff' : '#000',
+                  },
+                }}
+        />
         <Text style={styles.label}>Name</Text>
         <TextInput placeholder="Circle Name" />
 

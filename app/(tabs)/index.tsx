@@ -15,17 +15,26 @@ const Home = () => {
   const firstCylinder = cylinders[0];
   const scheme = useColorScheme();
 
+  console.log('First cylinder:');
   console.log(firstCylinder);
+
   return (
     // eslint-disable-next-line react-native/no-inline-styles
     <SafeAreaView style={[styles.container, scheme === 'dark' ? { backgroundColor: '#222831' } : { backgroundColor: '#fff'}]}>
+      <View style={styles.header}>
+        <Text style={styles.headerText}>Hello!</Text>
+        <View style={styles.headerIcons}>
+          <FontAwesome name="bell-o" size={28} color={'#D9D9D9'} />
+          <FontAwesome name="user-circle" size={28} color={'#D9D9D9'} />
+        </View>
+      </View>
       <View>
         <View style={styles.cylinder}>
           <FontAwesome name="arrow-circle-o-left" size={32} color={'#D9D9D9'} />
           <Cylinder level={(firstCylinder.currentWeight / firstCylinder.initialWeight) * 100} />
           <FontAwesome name="arrow-circle-o-right" size={32} color={'#D9D9D9'} />
         </View>
-        <Text style={styles.cylinderNameText}>{firstCylinder.provider}</Text>
+        <Text style={styles.cylinderNameText}>{firstCylinder.name}</Text>
         <Link href={{ 
           pathname: '/cylinder/[id]',
           params: {'id': firstCylinder.id}
@@ -41,8 +50,28 @@ const Home = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
+    // justifyContent: 'center',
     alignItems: 'center',
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '100%',
+    padding: 20,
+    // borderWidth: 1,
+    // borderColor: '#ffffff',
+  },
+  headerIcons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '22%',
+  },
+  headerText: {
+    color: '#5E60CE',
+    fontSize: 20,
+    fontWeight: 'bold',
   },
   cylinderNameText: {
     color: '#D9D9D9',
@@ -55,7 +84,14 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   cylinder: {
+    flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
+    // borderWidth: 1,
+    // borderColor: '#ffffff',
+    width: '85%',
+    marginTop: '40%',
+    marginBottom: 15,
   },
 });
 

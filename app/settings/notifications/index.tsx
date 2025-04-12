@@ -2,6 +2,7 @@ import { View, Text, StyleSheet, TouchableOpacity, useColorScheme } from 'react-
 import { SafeAreaView } from 'react-native-safe-area-context';
 import React from 'react';
 import { Switch, Divider, TextInput } from 'react-native-paper';
+import { Stack } from 'expo-router';
 
 
 const NotificationsSettingsScreen = () => {
@@ -21,6 +22,7 @@ const NotificationsSettingsScreen = () => {
   return (
     // eslint-disable-next-line react-native/no-inline-styles
     <SafeAreaView style={[styles.container, scheme === 'dark' ? { backgroundColor: '#222831' } : { backgroundColor: '#fff'}]}>
+        <Stack.Screen name='notifications-settings' options={{ title: 'Notifications settings' }} />
         <View style={styles.settingsItem}>
             <Text>Refill reminders</Text>
             <Switch value={refillReminder} onValueChange={() => setRefillReminder(!refillReminder)} />

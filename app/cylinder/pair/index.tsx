@@ -3,6 +3,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import React, { useState } from 'react';
 import { TextInput } from 'react-native-paper';
 import { Link } from 'expo-router';
+import { Stack } from 'expo-router';
 
 const PairNewSensor = () => {
   const scheme = useColorScheme();
@@ -18,6 +19,7 @@ const PairNewSensor = () => {
   return (
     // eslint-disable-next-line react-native/no-inline-styles
     <SafeAreaView style={[styles.container, scheme === 'dark' ? { backgroundColor: '#222831' } : { backgroundColor: '#fff' }]}>
+      <Stack.Screen name='pair-sensor' options={{ title: 'Pair a new sensor' }} />
       <TextInput placeholder={'Cylinder Name'} value={cylinderName} onChangeText={(text) => setCylinderName(text)} />
       <TextInput placeholder={'Sensor ID'} value={sensorId} onChangeText={(text) => setSensorId(text)} />
       <TextInput placeholder={'Tare Weight'} value={tareWeight} onChangeText={(text) => setTareWeight(text)} />

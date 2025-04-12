@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import { Stack } from 'expo-router';
 
 
 const ChangeAvatarScreen = () => {
@@ -38,6 +39,7 @@ const ChangeAvatarScreen = () => {
     return (
       // eslint-disable-next-line react-native/no-inline-styles
       <SafeAreaView style={[styles.container,  scheme === 'dark' ? { backgroundColor: '#222831' } : { backgroundColor: '#fff'}]}>
+        <Stack.Screen name='change-avatar' options={{ title: 'Change profile avatar' }} />
          {image ? (
           <Image source={{ uri: image }} style={styles.avatar} />
         ) : (

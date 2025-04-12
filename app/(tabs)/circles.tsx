@@ -4,6 +4,8 @@ import React from 'react';
 import CircleListItem from '../../components/CircleListItem';
 import { circles } from '../../constants/data';
 import { Link } from 'expo-router';
+import { Stack } from 'expo-router';
+
 
 const Circles = () => {
   const scheme = useColorScheme();
@@ -11,6 +13,7 @@ const Circles = () => {
   return (
     // eslint-disable-next-line react-native/no-inline-styles
     <SafeAreaView style={[styles.container, scheme === 'dark' ? { backgroundColor: '#222831' } : { backgroundColor: '#fff'}]}>
+      <Stack.Screen name="circles" options={{ title: 'Your circles' }} />
      {circles.length === 0 ? (
       <View>
         <Text style={styles.title}>You have no circles yet</Text>
@@ -26,9 +29,11 @@ const Circles = () => {
         </Link>
       </View>
      ) : (
-      circles.map((circle) => (
-        <CircleListItem key={circle.id} circle={circle} />
-      ))
+      <View style={styles.circlesList}>
+           {circles.map((circle) => (
+            <CircleListItem key={circle.id} circle={circle} />
+          ))}
+      </View>
      )}
     </SafeAreaView>
   );
@@ -37,15 +42,28 @@ const Circles = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
+    // justifyContent: 'center',
     alignItems: 'center',
+    // borderWidth: 1,
+    // borderColor: '#D9D9D9',
   },
   title: {
     fontSize: 28,
     fontWeight: '600',
     marginBottom: 30,
     textAlign: 'center',
-  }
+  },
+  circlesList: {
+    width: '100%',
+    padding: 20,
+    height: '100%',
+    // borderWidth: 1,
+    // borderColor: '#D9D9D9',
+    gap: 10,
+    // flexDirection: 'column',
+    // justifyContent: 'center',
+    // alignItems: 'center',
+  },
 });
 
 export default Circles;

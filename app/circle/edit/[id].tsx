@@ -5,6 +5,8 @@ import { cylinders } from '@/constants/data'
 import { FontAwesome } from '@expo/vector-icons';
 import { Checkbox } from 'react-native-paper';
 import { Cylinder } from '@/types';
+import { Stack } from 'expo-router';
+
 
 const EditCircle = () => {
     const [isModalVisible, setModalVisible] = useState(false);
@@ -48,6 +50,7 @@ const EditCircle = () => {
   return (
     // eslint-disable-next-line react-native/no-inline-styles
     <SafeAreaView style={ scheme === 'dark' ? { backgroundColor: '#222831' } : { backgroundColor: '#fff'}}>
+        <Stack.Screen name='edit-circle' options={{ title: 'Edit circle details' }} />
         <Text style={styles.label}>Name</Text>
         <TextInput placeholder="Circle Name" />
 

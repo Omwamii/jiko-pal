@@ -13,6 +13,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import { Stack } from 'expo-router';
 
 const CreateProfileScreen = () => {
   const [name, setName] = useState('');
@@ -57,6 +58,7 @@ const CreateProfileScreen = () => {
   return (
     // eslint-disable-next-line react-native/no-inline-styles
     <SafeAreaView style={[styles.container, scheme === 'dark' ? { backgroundColor: '#222831' } : { backgroundColor: '#fff'}]}>
+      <Stack.Screen name='create-profile' options={{ title: 'Create your profile' }} />
       <Text style={styles.title}>Create Profile</Text>
 
       {image ? (

@@ -4,6 +4,7 @@ import { TextInput } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, Link } from 'expo-router';
 import { useSearchParams } from 'expo-router/build/hooks';
+import { Stack } from 'expo-router';
 // import { users } from '../../constants/data';
 
 const ChangeProfileNameScreen = () => {
@@ -21,6 +22,7 @@ const ChangeProfileNameScreen = () => {
   return (
     // eslint-disable-next-line react-native/no-inline-styles
     <SafeAreaView style={ scheme === 'dark' ? { backgroundColor: '#222831' } : { backgroundColor: '#fff'}}>
+        <Stack.Screen name='change-name' options={{ title: 'Change profile name' }} />
         <TextInput placeholder={'Current name'} value={'Previous name'} disabled={true}/>
         <TextInput placeholder={'Enter new profile name'} value={newProfileName} onChangeText={(text) => setNewProfileName(text)}/>
         <TouchableOpacity style={styles.changeBtn}>

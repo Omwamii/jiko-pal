@@ -4,6 +4,7 @@ import React from 'react';
 import { Switch, Divider } from 'react-native-paper';
 import { FontAwesome } from '@expo/vector-icons';
 import { Link } from 'expo-router';
+import { Stack } from 'expo-router';
 
 const Settings = () => {
   const [isDarkMode, setIsDarkMode] = React.useState(false);
@@ -18,6 +19,7 @@ const Settings = () => {
   return (
     // eslint-disable-next-line react-native/no-inline-styles
     <SafeAreaView style={[styles.container, scheme === 'dark' ? { backgroundColor: '#222831' } : { backgroundColor: '#fff'}]}>
+        <Stack.Screen name='settings' options={{ title: 'Settings' }} />
         <View style={styles.settingsItem}>
             <Text>Dark mode</Text>
             <Switch value={isDarkMode} onValueChange={onToggleSwitch} />
