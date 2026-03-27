@@ -1,55 +1,59 @@
 import { Tabs } from 'expo-router';
-import React from 'react';
-import { Platform } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
-import { HapticTab } from '@/components/HapticTab';
-import { IconSymbol } from '@/components/ui/IconSymbol';
-import TabBarBackground from '@/components/ui/TabBarBackground';
-import { Colors } from '@/constants/Colors';
-import { useColorScheme } from '@/hooks/useColorScheme';
-import { FontAwesome } from '@expo/vector-icons';
+const PRIMARY_COLOR = '#3629B7';
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
-
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
         headerShown: false,
-        tabBarButton: HapticTab,
-        tabBarBackground: TabBarBackground,
-        tabBarStyle: Platform.select({
-          ios: {
-            // Use a transparent background on iOS to show the blur effect
-            position: 'absolute',
-          },
-          default: {},
-        }),
-      }}>
+        tabBarActiveTintColor: PRIMARY_COLOR,
+        tabBarInactiveTintColor: '#9CA3AF',
+        tabBarStyle: {
+          height: 70,
+          paddingBottom: 20,
+          paddingTop: 10,
+          borderTopWidth: 1,
+          borderTopColor: '#F3F4F6',
+          backgroundColor: '#FFFFFF',
+          elevation: 0,
+          shadowOpacity: 0,
+        },
+        tabBarLabelStyle: {
+          fontSize: 11,
+          fontWeight: '500',
+        },
+      }}
+    >
       <Tabs.Screen
         name="index"
         options={{
           title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+          tabBarIcon: ({ color }) => <MaterialCommunityIcons name="home-outline" size={26} color={color} />,
         }}
       />
-      <Tabs.Screen 
-        name="Circles"
+      <Tabs.Screen
+        name="vendors"
         options={{
-          title: 'Circles',
-          tabBarIcon: () => (
-          <IconSymbol size={28} name="18.circle.fill.hi" color={Colors.light.tint} />
-        ),
-      }}/>
-      <Tabs.Screen 
-        name="Settings"
+          title: 'Vendors',
+          tabBarIcon: ({ color }) => <MaterialCommunityIcons name="account-group-outline" size={26} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="profile"
         options={{
-          title: 'Settings',
-          tabBarIcon: () => (
-         <IconSymbol size={28} name="gearshape.fill" color={Colors.light.tint} />
-        ),
-      }}/>
+          title: 'Profile',
+          tabBarIcon: ({ color }) => <MaterialCommunityIcons name="account-outline" size={26} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="help"
+        options={{
+          title: 'Help',
+          tabBarIcon: ({ color }) => <MaterialCommunityIcons name="headset" size={26} color={color} />,
+        }}
+      />
     </Tabs>
   );
 }
