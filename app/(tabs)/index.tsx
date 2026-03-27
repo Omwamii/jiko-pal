@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import Svg, { Circle } from 'react-native-svg';
+import { useRouter } from 'expo-router';
 
 const PRIMARY_COLOR = '#3629B7';
 const { width } = Dimensions.get('window');
@@ -17,6 +18,8 @@ const progress = 0.65;
 const strokeDashoffset = circumference - (circumference * progress);
 
 export default function DashboardScreen() {
+  const router = useRouter();
+
   return (
     <View style={styles.container}>
       <StatusBar style="light" />
@@ -117,7 +120,7 @@ export default function DashboardScreen() {
           <View style={styles.sectionContainer}>
             <Text style={styles.sectionTitle}>Quick Actions</Text>
             <View style={styles.quickActionsRow}>
-              <TouchableOpacity style={styles.quickActionBox}>
+              <TouchableOpacity style={styles.quickActionBox} onPress={() => router.push('/add-monitor')}>
                 <View style={[styles.iconCircle, { backgroundColor: '#E0E7FF' }]}>
                   <MaterialCommunityIcons name="plus" size={24} color={PRIMARY_COLOR} />
                 </View>
