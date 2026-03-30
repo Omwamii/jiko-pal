@@ -40,7 +40,7 @@ export default function DashboardScreen() {
                   <Text style={styles.nameText}>John Doe</Text>
                 </View>
               </View>
-              <TouchableOpacity style={styles.notificationButton}>
+              <TouchableOpacity style={styles.notificationButton} onPress={() => router.push('./notifications')}>
                 <MaterialCommunityIcons name="bell-outline" size={24} color="#FFFFFF" />
                 <View style={styles.notificationBadge}>
                   <Text style={styles.badgeText}>3</Text>
@@ -127,14 +127,14 @@ export default function DashboardScreen() {
                 <Text style={styles.quickActionText}>Add monitor</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity style={styles.quickActionBox}>
+              <TouchableOpacity style={styles.quickActionBox} onPress={() => router.push('/invite-users')}>
                 <View style={[styles.iconCircle, { backgroundColor: '#D1FAE5' }]}>
                   <MaterialCommunityIcons name="account-plus-outline" size={22} color="#10B981" />
                 </View>
                 <Text style={styles.quickActionText}>Invite Users</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity style={styles.quickActionBox}>
+              <TouchableOpacity style={styles.quickActionBox} onPress={() => router.push('/my-circle')}>
                 <View style={[styles.iconCircle, { backgroundColor: '#FEF3C7' }]}>
                   <MaterialCommunityIcons name="account-group-outline" size={22} color="#F59E0B" />
                 </View>
@@ -147,7 +147,7 @@ export default function DashboardScreen() {
           <View style={styles.sectionContainer}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Recent Activity</Text>
-              <TouchableOpacity>
+              <TouchableOpacity onPress={() => router.push('./recent-activity')}>
                 <Text style={styles.viewAllText}>View all</Text>
               </TouchableOpacity>
             </View>

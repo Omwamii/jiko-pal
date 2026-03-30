@@ -54,6 +54,18 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => <MaterialCommunityIcons name="headset" size={26} color={color} />,
         }}
       />
+      <Tabs.Screen
+        name="notifications"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="recent-activity"
+        options={{
+          href: null,
+        }}
+      />
     </Tabs>
   );
 }
