@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppCard } from '@/components/ui/AppCard';
@@ -76,12 +76,12 @@ export default function VendorDetailScreen() {
 
           <AppButton
             title="Request Refill"
-            onPress={() => router.push({ pathname: './refill-select', params: { vendorName } })}
+            onPress={() => router.push({ pathname: '/(tabs)/vendors/refill-select', params: { vendorName } } as Href)}
             style={styles.refillBtn}
           />
           <AppButton
             title="Chat with vendor"
-            onPress={() => router.push({ pathname: './chat', params: { vendorName } })}
+            onPress={() => router.push({ pathname: '/(tabs)/vendors/chat', params: { vendorName } } as Href)}
             style={styles.chatBtn}
             textStyle={styles.chatBtnText}
           />
@@ -135,7 +135,7 @@ export default function VendorDetailScreen() {
 
         <View style={styles.reviewsHeader}>
           <Text style={styles.sectionTitle}>Recent Reviews</Text>
-          <TouchableOpacity onPress={() => router.push({ pathname: './reviews', params: { vendorName } })}>
+          <TouchableOpacity onPress={() => router.push({ pathname: '/(tabs)/vendors/reviews', params: { vendorName } } as Href)}>
             <Text style={styles.viewAll}>View all</Text>
           </TouchableOpacity>
         </View>

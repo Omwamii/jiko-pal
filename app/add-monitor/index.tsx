@@ -1,13 +1,21 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 
 const PRIMARY_COLOR = '#3629B7';
 
 export default function SelectDeviceTypeScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ fromCircle?: string; circleId?: string; circleName?: string; members?: string }>();
+
+  const nextParams = {
+    fromCircle: params.fromCircle,
+    circleId: params.circleId,
+    circleName: params.circleName,
+    members: params.members,
+  };
 
   return (
     <View style={styles.container}>
@@ -45,7 +53,7 @@ export default function SelectDeviceTypeScreen() {
         {/* Option: Smart IoT Sensor */}
         <TouchableOpacity
           style={styles.optionCard}
-          onPress={() => router.push('/add-monitor/wifi-setup')}
+          onPress={() => router.push({ pathname: '/add-monitor/wifi-setup', params: nextParams } as Href)}
         >
           <View style={[styles.iconContainer, { backgroundColor: PRIMARY_COLOR }]}>
             <MaterialCommunityIcons name="qrcode-scan" size={24} color="#FFF" />
@@ -61,7 +69,7 @@ export default function SelectDeviceTypeScreen() {
         {/* Option: Manual Entry */}
         <TouchableOpacity
           style={styles.optionCard}
-          onPress={() => router.push('/add-monitor/details')}
+          onPress={() => router.push({ pathname: '/add-monitor/details', params: nextParams } as Href)}
         >
           <View style={[styles.iconContainer, { backgroundColor: '#8B5CF6' }]}>
             <MaterialCommunityIcons name="pencil" size={24} color="#FFF" />

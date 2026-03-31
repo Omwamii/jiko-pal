@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, ActivityIndicator } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 
 const PRIMARY_COLOR = '#3629B7';
 
 export default function ScanDeviceScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ fromCircle?: string; circleId?: string; circleName?: string; members?: string }>();
   const [scanState, setScanState] = useState<'idle' | 'scanning' | 'found'>('idle');
 
   const handleStartScan = () => {
@@ -19,7 +20,15 @@ export default function ScanDeviceScreen() {
   };
 
   const handleDeviceSelect = () => {
-    router.push('/add-monitor/details');
+    router.push({
+      pathname: '/add-monitor/details',
+      params: {
+        fromCircle: params.fromCircle,
+        circleId: params.circleId,
+        circleName: params.circleName,
+        members: params.members,
+      },
+    } as Href);
   };
 
   return (

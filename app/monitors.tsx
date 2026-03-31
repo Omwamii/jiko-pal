@@ -7,80 +7,62 @@ import { AppCard } from '@/components/ui/AppCard';
 
 const PRIMARY_COLOR = '#3629B7';
 
-export default function MyCircleScreen() {
-  const router = useRouter();
+const monitors = [
+  { id: 'office-gas', name: 'Office Gas', subtitle: 'Created by you', location: 'Office - Main Floor', fill: 85, icon: 'water', iconBg: '#D1FAE5', iconColor: '#10B981' },
+  { id: 'backup-cylinder', name: 'Backup Cylinder', subtitle: 'Monitored via Family Home', location: 'Home - Garage', fill: 35, icon: 'fire', iconBg: '#FEF3C7', iconColor: '#F59E0B' },
+  { id: 'kitchen-gas', name: 'Kitchen Gas', subtitle: 'Created by you', location: 'Home - Kitchen', fill: 65, icon: 'water', iconBg: '#D1FAE5', iconColor: '#10B981' },
+];
 
-  const circles = [
-    { id: 'family-home', name: 'Family Home', members: 4 },
-    { id: 'backup-cylinder', name: 'Backup Cylinder', members: 2 },
-  ];
+export default function MonitorsScreen() {
+  const router = useRouter();
 
   return (
     <View style={styles.container}>
       <StatusBar style="light" />
-      
-      {/* Header */}
+
       <View style={styles.header}>
         <SafeAreaView>
           <View style={styles.headerContent}>
-            <TouchableOpacity 
-              style={styles.backButton}
-              onPress={() => router.back()}
-            >
+            <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
               <MaterialCommunityIcons name="arrow-left" size={24} color="#FFF" />
             </TouchableOpacity>
-            <Text style={styles.headerTitle}>My Circle</Text>
+            <Text style={styles.headerTitle}>My Monitors</Text>
           </View>
         </SafeAreaView>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        
-        {/* Search */}
         <View style={styles.searchContainer}>
-          <TextInput 
-            style={styles.searchInput}
-            placeholder="Search by Name...."
-            placeholderTextColor="#9CA3AF"
-          />
+          <TextInput style={styles.searchInput} placeholder="Search by monitor name...." placeholderTextColor="#9CA3AF" />
         </View>
-
-        {/* New Circle Card */}
-        <AppCard style={styles.newCircleCard} onPress={() => router.push('/my-circle/create' as Href)}>
-          <View style={[styles.iconBadge, { backgroundColor: '#E0E7FF' }]}>
-            <MaterialCommunityIcons name="account-multiple-plus-outline" size={24} color={PRIMARY_COLOR} />
-          </View>
-          <View style={styles.cardDetails}>
-            <Text style={styles.newCircleText}>New Circle</Text>
-          </View>
-          <MaterialCommunityIcons name="chevron-right" size={24} color="#9CA3AF" />
-        </AppCard>
 
         <Text style={styles.sectionTitle}>Active Monitors</Text>
 
-        {/* Active Monitors List */}
-        {circles.map((circle) => (
+        {monitors.map((monitor) => (
           <AppCard
-            key={circle.id}
+            key={monitor.id}
             style={styles.monitorCard}
             onPress={() =>
               router.push({
-                pathname: '/my-circle/circle',
-                params: { circleId: circle.id, circleName: circle.name, members: String(circle.members) },
+                pathname: '/my-circle/cylinder',
+                params: {
+                  name: monitor.name,
+                  location: monitor.location,
+                  fill: String(monitor.fill),
+                },
               } as Href)
             }
           >
-            <View style={[styles.iconBadge, { backgroundColor: '#E0E7FF' }]}>
-              <MaterialCommunityIcons name="account-group" size={24} color={PRIMARY_COLOR} />
+            <View style={[styles.iconBadge, { backgroundColor: monitor.iconBg }]}> 
+              <MaterialCommunityIcons name={monitor.icon as any} size={18} color={monitor.iconColor} />
             </View>
             <View style={styles.cardDetails}>
-              <Text style={styles.monitorTitle}>{circle.name}</Text>
-              <Text style={styles.monitorSubtitle}>{circle.members} members</Text>
+              <Text style={styles.monitorTitle}>{monitor.name}</Text>
+              <Text style={styles.monitorSubtitle}>{monitor.subtitle}</Text>
             </View>
             <MaterialCommunityIcons name="chevron-right" size={24} color="#9CA3AF" />
           </AppCard>
         ))}
-
       </ScrollView>
     </View>
   );
@@ -132,28 +114,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E5E7EB',
   },
-  newCircleCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  iconBadge: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
-  },
-  cardDetails: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-  newCircleText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#1F2937',
-  },
   sectionTitle: {
     fontSize: 14,
     fontWeight: 'bold',
@@ -164,6 +124,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 12,
+  },
+  iconBadge: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 14,
+  },
+  cardDetails: {
+    flex: 1,
+    justifyContent: 'center',
   },
   monitorTitle: {
     fontSize: 16,

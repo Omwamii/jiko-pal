@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { AppCard } from '@/components/ui/AppCard';
 
@@ -41,13 +41,13 @@ export default function RefillSelectScreen() {
               style={styles.cylinderCard}
               onPress={() =>
                 router.push({
-                  pathname: './refill-date',
+                  pathname: '/(tabs)/vendors/refill-date',
                   params: {
                     vendorName,
                     cylinderName: cylinder.name,
                     cylinderLevel: String(cylinder.level),
                   },
-                })
+                } as Href)
               }
             >
               <View style={[styles.iconWrap, { backgroundColor: cylinder.color === '#F59E0B' ? '#FEF3C7' : '#D1FAE5' }]}>

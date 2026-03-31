@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, TextInput, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 
 const PRIMARY_COLOR = '#3629B7';
@@ -15,6 +15,7 @@ const MOCK_NETWORKS = [
 
 export default function WifiSetupScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ fromCircle?: string; circleId?: string; circleName?: string; members?: string }>();
   const [isScanning, setIsScanning] = useState(true);
   const [selectedNetwork, setSelectedNetwork] = useState<typeof MOCK_NETWORKS[0] | null>(null);
   const [password, setPassword] = useState('');
@@ -33,7 +34,15 @@ export default function WifiSetupScreen() {
     // Simulate connection delay
     setTimeout(() => {
       setIsConnecting(false);
-      router.push('/add-monitor/details');
+      router.push({
+        pathname: '/add-monitor/details',
+        params: {
+          fromCircle: params.fromCircle,
+          circleId: params.circleId,
+          circleName: params.circleName,
+          members: params.members,
+        },
+      } as Href);
     }, 1500);
   };
 
@@ -149,7 +158,20 @@ export default function WifiSetupScreen() {
         {!isScanning && (
           <View style={styles.fallbackContainer}>
             <Text style={styles.fallbackText}>Don't want to use Wi-Fi matching?</Text>
-            <TouchableOpacity style={styles.fallbackButton} onPress={() => router.push('/add-monitor/scan')}>
+            <TouchableOpacity
+              style={styles.fallbackButton}
+              onPress={() =>
+                router.push({
+                  pathname: '/add-monitor/scan',
+                  params: {
+                    fromCircle: params.fromCircle,
+                    circleId: params.circleId,
+                    circleName: params.circleName,
+                    members: params.members,
+                  },
+                } as Href)
+              }
+            >
               <MaterialCommunityIcons name="qrcode-scan" size={20} color={PRIMARY_COLOR} />
               <Text style={styles.fallbackButtonText}>Scan QR Code instead</Text>
             </TouchableOpacity>

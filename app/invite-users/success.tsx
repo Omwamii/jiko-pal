@@ -1,13 +1,21 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 
 const PRIMARY_COLOR = '#3629B7';
 
 export default function InviteSuccessScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{
+    fromCircle?: string;
+    circleId?: string;
+    circleName?: string;
+    members?: string;
+    monitorId?: string;
+  }>();
+  const fromCircle = params.fromCircle === '1';
 
   return (
     <View style={styles.container}>
@@ -28,14 +36,37 @@ export default function InviteSuccessScreen() {
         <View style={styles.footer}>
           <TouchableOpacity 
             style={styles.primaryButton}
-            onPress={() => router.replace('/(tabs)')}
+            onPress={() =>
+              fromCircle
+                ? router.replace({
+                    pathname: '/my-circle/circle',
+                    params: {
+                      circleId: params.circleId,
+                      circleName: params.circleName,
+                      members: params.members,
+                    },
+                  } as Href)
+                : router.replace('/(tabs)')
+            }
           >
-            <Text style={styles.primaryButtonText}>Go to Dashboard</Text>
+            <Text style={styles.primaryButtonText}>{fromCircle ? 'Go Back to Circle' : 'Go to Dashboard'}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity 
             style={styles.secondaryButton}
-            onPress={() => router.replace('/invite-users')}
+            onPress={() =>
+              fromCircle
+                ? router.replace({
+                    pathname: '/invite-users/method',
+                    params: {
+                      fromCircle: '1',
+                      circleId: params.circleId,
+                      circleName: params.circleName,
+                      members: params.members,
+                    },
+                  } as Href)
+                : router.replace('/invite-users')
+            }
           >
             <Text style={styles.secondaryButtonText}>Invite Another User</Text>
           </TouchableOpacity>

@@ -1,13 +1,43 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 
 const PRIMARY_COLOR = '#3629B7';
 
 export default function SuccessScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ fromCircle?: string; circleId?: string; circleName?: string; members?: string }>();
+  const isFromCircle = params.fromCircle === '1';
+
+  const backToCircle = () => {
+    router.replace({
+      pathname: '/my-circle/circle',
+      params: {
+        circleId: params.circleId,
+        circleName: params.circleName,
+        members: params.members,
+      },
+    } as Href);
+  };
+
+  const addAnotherMonitor = () => {
+    if (isFromCircle) {
+      router.replace({
+        pathname: '/add-monitor',
+        params: {
+          fromCircle: '1',
+          circleId: params.circleId,
+          circleName: params.circleName,
+          members: params.members,
+        },
+      } as Href);
+      return;
+    }
+
+    router.replace('/add-monitor');
+  };
 
   return (
     <View style={styles.container}>
@@ -28,14 +58,14 @@ export default function SuccessScreen() {
         <View style={styles.footer}>
           <TouchableOpacity 
             style={styles.primaryButton}
-            onPress={() => router.replace('/(tabs)')}
+            onPress={isFromCircle ? backToCircle : () => router.replace('/(tabs)')}
           >
-            <Text style={styles.primaryButtonText}>Go to Dashboard</Text>
+            <Text style={styles.primaryButtonText}>{isFromCircle ? 'Go back to circle' : 'Go to Dashboard'}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity 
             style={styles.secondaryButton}
-            onPress={() => router.replace('/add-monitor')}
+            onPress={addAnotherMonitor}
           >
             <Text style={styles.secondaryButtonText}>Add Another Monitor</Text>
           </TouchableOpacity>

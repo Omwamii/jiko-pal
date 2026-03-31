@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import Svg, { Circle } from 'react-native-svg';
-import { useRouter } from 'expo-router';
+import { type Href, useRouter } from 'expo-router';
 
 const PRIMARY_COLOR = '#3629B7';
 const { width } = Dimensions.get('window');
@@ -178,13 +178,21 @@ export default function DashboardScreen() {
           <View style={[styles.sectionContainer, styles.lastSection]}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Other Monitor</Text>
-              <TouchableOpacity>
+              <TouchableOpacity onPress={() => router.push('/monitors' as Href)}>
                 <Text style={styles.viewAllText}>View all</Text>
               </TouchableOpacity>
             </View>
 
-            <TouchableOpacity style={styles.otherMonitorItem}>
-              <View style={[styles.monitorIconBadge, { backgroundColor: '#D1FAE5' }]}>
+            <TouchableOpacity
+              style={styles.otherMonitorItem}
+              onPress={() =>
+                router.push({
+                  pathname: '/my-circle/cylinder',
+                  params: { name: 'Office Gas', location: 'Office - Main Floor', fill: '85' },
+                } as Href)
+              }
+            >
+              <View style={[styles.monitorIconBadge, { backgroundColor: '#D1FAE5' }]}> 
                 <MaterialCommunityIcons name="water" size={16} color="#10B981" />
               </View>
               <View style={styles.activityDetails}>
@@ -194,8 +202,16 @@ export default function DashboardScreen() {
               <MaterialCommunityIcons name="chevron-right" size={24} color="#9CA3AF" />
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.otherMonitorItem}>
-              <View style={[styles.monitorIconBadge, { backgroundColor: '#FEF3C7' }]}>
+            <TouchableOpacity
+              style={styles.otherMonitorItem}
+              onPress={() =>
+                router.push({
+                  pathname: '/my-circle/cylinder',
+                  params: { name: 'Back Up Cylinder', location: 'Home - Garage', fill: '35' },
+                } as Href)
+              }
+            >
+              <View style={[styles.monitorIconBadge, { backgroundColor: '#FEF3C7' }]}> 
                 <MaterialCommunityIcons name="fire" size={16} color="#F59E0B" />
               </View>
               <View style={styles.activityDetails}>

@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, TextInput, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 
 const PRIMARY_COLOR = '#3629B7';
 
 export default function DeviceDetailsScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ fromCircle?: string; circleId?: string; circleName?: string; members?: string }>();
 
   const [name, setName] = useState('');
   const [location, setLocation] = useState('');
@@ -21,7 +22,15 @@ export default function DeviceDetailsScreen() {
     }
 
     // In a real app, this would send data to the backend
-    router.replace('/add-monitor/success');
+    router.replace({
+      pathname: '/add-monitor/success',
+      params: {
+        fromCircle: params.fromCircle,
+        circleId: params.circleId,
+        circleName: params.circleName,
+        members: params.members,
+      },
+    } as Href);
   };
 
   return (

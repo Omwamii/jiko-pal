@@ -1,6 +1,5 @@
 import { View, Text, StyleSheet, Image} from 'react-native';
 import React from 'react';
-import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { Circle } from '@/types';
 import { Link } from 'expo-router';
 
@@ -11,8 +10,12 @@ type CircleListItemProps = {
 const CircleListItem = ({ circle }: CircleListItemProps) => {
   return (
     <Link href={{
-        pathname: '/circle/[id]',
-        params: { id: circle.id },
+        pathname: '/my-circle/circle',
+        params: {
+          circleId: circle.id,
+          circleName: circle.name,
+          members: String(circle.members.length),
+        },
     }}>
         <View style={styles.circleContainer}>
         {/* <FontAwesome name="binoculars" size={32} /> */}

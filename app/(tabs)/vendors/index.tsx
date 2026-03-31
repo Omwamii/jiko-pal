@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, TextInput, ScrollView } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { type Href, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { AppCard } from '@/components/ui/AppCard';
 import { AppButton } from '@/components/ui/AppButton';
@@ -102,7 +102,12 @@ export default function VendorsScreen() {
               </View>
               <AppButton
                 title="View Details"
-                onPress={() => router.push({ pathname: './detail', params: { vendorId: vendor.id, vendorName: vendor.name } })}
+                onPress={() =>
+                  router.push({
+                    pathname: '/(tabs)/vendors/detail',
+                    params: { vendorId: vendor.id, vendorName: vendor.name },
+                  } as Href)
+                }
                 style={styles.detailsBtn}
                 textStyle={styles.detailsBtnText}
               />

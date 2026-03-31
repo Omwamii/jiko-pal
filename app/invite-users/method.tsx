@@ -1,13 +1,20 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, TextInput, Alert, Clipboard } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, TextInput, Alert } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 
 const PRIMARY_COLOR = '#3629B7';
 
 export default function InviteMethodScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{
+    monitorId?: string;
+    fromCircle?: string;
+    circleId?: string;
+    circleName?: string;
+    members?: string;
+  }>();
   const [showLink, setShowLink] = useState(false);
 
   const inviteLink = "https://gasmonitor.app/invite/abcde124";
@@ -55,7 +62,15 @@ export default function InviteMethodScreen() {
 
         {/* Invite Methods Container */}
         <View style={styles.methodsContainer}>
-          <TouchableOpacity style={styles.methodListCard} onPress={() => router.push('/invite-users/email')}>
+          <TouchableOpacity
+            style={styles.methodListCard}
+            onPress={() =>
+              router.push({
+                pathname: '/invite-users/email',
+                params,
+              } as Href)
+            }
+          >
             <View style={[styles.iconBadge, { backgroundColor: '#E0E7FF' }]}>
               <MaterialCommunityIcons name="email-outline" size={24} color={PRIMARY_COLOR} />
             </View>
@@ -68,7 +83,15 @@ export default function InviteMethodScreen() {
 
           <View style={styles.divider} />
 
-          <TouchableOpacity style={styles.methodListCard} onPress={() => router.push('/invite-users/sms')}>
+          <TouchableOpacity
+            style={styles.methodListCard}
+            onPress={() =>
+              router.push({
+                pathname: '/invite-users/sms',
+                params,
+              } as Href)
+            }
+          >
             <View style={[styles.iconBadge, { backgroundColor: '#D1FAE5' }]}>
               <MaterialCommunityIcons name="message-text-outline" size={24} color="#10B981" />
             </View>

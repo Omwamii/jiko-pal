@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { AppCard } from '@/components/ui/AppCard';
 import { AppButton } from '@/components/ui/AppButton';
@@ -84,9 +84,9 @@ export default function RefillDateScreen() {
           title="Confirm Order"
           onPress={() =>
             router.replace({
-              pathname: './refill-success',
+              pathname: '/(tabs)/vendors/refill-success',
               params: { vendorName, cylinderName },
-            })
+            } as Href)
           }
         />
       </ScrollView>

@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppCard } from '@/components/ui/AppCard';
@@ -42,10 +42,11 @@ const cylinders = [
 
 export default function CircleIndexScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ circleName?: string; members?: string }>();
+  const params = useLocalSearchParams<{ circleId?: string; circleName?: string; members?: string }>();
   const [activeTab, setActiveTab] = useState<'cylinders' | 'members'>('cylinders');
 
   const circleName = useMemo(() => params.circleName || 'Family Home', [params.circleName]);
+  const circleId = useMemo(() => params.circleId || 'family-home', [params.circleId]);
   const memberCount = useMemo(() => Number(params.members || members.length), [params.members]);
 
   return (
@@ -68,9 +69,35 @@ export default function CircleIndexScreen() {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         <AppButton
           title="Add Cylinder"
-          onPress={() => router.push('/add-monitor')}
+          onPress={() =>
+            router.push({
+              pathname: '/add-monitor',
+              params: {
+                fromCircle: '1',
+                circleId,
+                circleName,
+                members: String(memberCount),
+              },
+            } as Href)
+          }
           style={styles.addButton}
           textStyle={styles.addButtonText}
+        />
+        <AppButton
+          title="Invite User"
+          onPress={() =>
+            router.push({
+              pathname: '/invite-users/method',
+              params: {
+                fromCircle: '1',
+                circleId,
+                circleName,
+                members: String(memberCount),
+              },
+            } as Href)
+          }
+          style={styles.inviteButton}
+          textStyle={styles.inviteButtonText}
         />
 
         <View style={styles.tabRow}>
@@ -97,13 +124,13 @@ export default function CircleIndexScreen() {
                 style={styles.listCard}
                 onPress={() =>
                   router.push({
-                    pathname: './cylinder',
+                    pathname: '/my-circle/cylinder',
                     params: {
                       name: cylinder.name,
                       location: cylinder.location,
                       fill: String(cylinder.fill),
                     },
-                  })
+                  } as Href)
                 }
               >
                 <View style={[styles.itemIcon, { backgroundColor: cylinder.iconBg }]}>
@@ -144,7 +171,7 @@ export default function CircleIndexScreen() {
                   <TouchableOpacity
                     onPress={() =>
                       router.push({
-                        pathname: './member',
+                        pathname: '/my-circle/member',
                         params: {
                           memberId: member.id,
                           memberName: member.name,
@@ -155,7 +182,7 @@ export default function CircleIndexScreen() {
                           joined: member.joined,
                           circleName,
                         },
-                      })
+                      } as Href)
                     }
                   >
                     <MaterialCommunityIcons name="cog-outline" size={18} color="#6B7280" />
@@ -211,10 +238,22 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-end',
     borderRadius: 4,
     paddingHorizontal: 14,
-    marginBottom: 10,
+    marginBottom: 8,
   },
   addButtonText: {
     fontSize: 11,
+  },
+  inviteButton: {
+    height: 32,
+    alignSelf: 'flex-end',
+    borderRadius: 4,
+    paddingHorizontal: 14,
+    marginBottom: 10,
+    backgroundColor: '#E0E7FF',
+  },
+  inviteButtonText: {
+    fontSize: 11,
+    color: PRIMARY_COLOR,
   },
   tabRow: {
     flexDirection: 'row',

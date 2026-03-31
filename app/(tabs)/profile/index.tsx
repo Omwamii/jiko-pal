@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { type Href, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { AppCard } from '@/components/ui/AppCard';
 
@@ -38,13 +38,13 @@ export default function ProfileSettingsScreen() {
               </View>
             </View>
           </View>
-          <TouchableOpacity onPress={() => router.push('./edit')}>
+          <TouchableOpacity onPress={() => router.push('/(tabs)/profile/edit' as Href)}>
             <MaterialCommunityIcons name="pencil-outline" size={18} color="#11181C" />
           </TouchableOpacity>
         </AppCard>
 
         <Text style={styles.sectionTitle}>ACCOUNT</Text>
-        <AppCard style={styles.optionCard} onPress={() => router.push('./edit')}>
+        <AppCard style={styles.optionCard} onPress={() => router.push('/(tabs)/profile/edit' as Href)}>
           <View style={[styles.optionIconWrap, { backgroundColor: '#E0E7FF' }]}>
             <MaterialCommunityIcons name="account" size={18} color={PRIMARY_COLOR} />
           </View>
@@ -55,7 +55,7 @@ export default function ProfileSettingsScreen() {
           <MaterialCommunityIcons name="chevron-right" size={20} color="#9CA3AF" />
         </AppCard>
 
-        <AppCard style={styles.optionCard} onPress={() => router.push('./password')}>
+        <AppCard style={styles.optionCard} onPress={() => router.push('/(tabs)/profile/password' as Href)}>
           <View style={[styles.optionIconWrap, { backgroundColor: '#D1FAE5' }]}>
             <MaterialCommunityIcons name="lock" size={18} color="#10B981" />
           </View>

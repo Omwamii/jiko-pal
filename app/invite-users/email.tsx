@@ -1,13 +1,20 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, SafeAreaView, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 
 const PRIMARY_COLOR = '#3629B7';
 
 export default function InviteEmailScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{
+    monitorId?: string;
+    fromCircle?: string;
+    circleId?: string;
+    circleName?: string;
+    members?: string;
+  }>();
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -18,7 +25,10 @@ export default function InviteEmailScreen() {
     // Simulate API call
     setTimeout(() => {
       setLoading(false);
-      router.push('/invite-users/success');
+      router.push({
+        pathname: '/invite-users/success',
+        params,
+      } as Href);
     }, 1000);
   };
 
@@ -48,7 +58,7 @@ export default function InviteEmailScreen() {
         <View style={styles.content}>
           <Text style={styles.title}>Enter Email Address</Text>
           <Text style={styles.subtitle}>
-            We'll send them a link to join your circle and monitor the selected cylinder.
+            We&apos;ll send them a link to join your circle and monitor the selected cylinder.
           </Text>
 
           <View style={styles.inputContainer}>
