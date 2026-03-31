@@ -28,7 +28,7 @@ export default function SuccessScreen() {
         <View style={styles.footer}>
           <TouchableOpacity 
             style={styles.primaryButton}
-            onPress={() => router.replace('/(tabs)/index')}
+            onPress={() => router.replace('/(tabs)')}
           >
             <Text style={styles.primaryButtonText}>Go to Dashboard</Text>
           </TouchableOpacity>

@@ -34,6 +34,20 @@ export default function RootLayout() {
         <Stack.Screen name="account-type" />
         <Stack.Screen name="login" />
         <Stack.Screen name="signup" />
+        <Stack.Screen name="vendor-dashboard" />
+        <Stack.Screen name="vendor-orders" />
+        <Stack.Screen name="vendor-order-detail" />
+        <Stack.Screen name="vendor-mark-delivered" />
+        <Stack.Screen name="vendor-delivery-success" />
+        <Stack.Screen name="vendor-reviews" />
+        <Stack.Screen name="vendor-subscribers" />
+        <Stack.Screen name="vendor-customer-detail" />
+        <Stack.Screen name="vendor-monitor-detail" />
+        <Stack.Screen name="vendor-settings" />
+        <Stack.Screen name="vendor-business-information" />
+        <Stack.Screen name="vendor-password-security" />
+        <Stack.Screen name="vendor-analytics" />
+        <Stack.Screen name="vendor-help" />
         <Stack.Screen name="(tabs)" />
       </Stack>
       <StatusBar style="auto" />

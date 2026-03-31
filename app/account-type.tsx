@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { type Href, useRouter } from 'expo-router';
 
 const PRIMARY_COLOR = '#3629B7';
 
@@ -11,7 +11,12 @@ export default function AccountTypeScreen() {
 
   const handleContinue = () => {
     console.log('Selected Account Type:', selectedType);
-    router.push('/signup'); 
+    if (selectedType === 'vendor') {
+      router.push('/vendor-dashboard' as Href);
+      return;
+    }
+
+    router.push('/signup');
   };
 
   const isClient = selectedType === 'client';
