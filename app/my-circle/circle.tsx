@@ -67,38 +67,40 @@ export default function CircleIndexScreen() {
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        <AppButton
-          title="Add Cylinder"
-          onPress={() =>
-            router.push({
-              pathname: '/add-monitor',
-              params: {
-                fromCircle: '1',
-                circleId,
-                circleName,
-                members: String(memberCount),
-              },
-            } as Href)
-          }
-          style={styles.addButton}
-          textStyle={styles.addButtonText}
-        />
-        <AppButton
-          title="Invite User"
-          onPress={() =>
-            router.push({
-              pathname: '/invite-users/method',
-              params: {
-                fromCircle: '1',
-                circleId,
-                circleName,
-                members: String(memberCount),
-              },
-            } as Href)
-          }
-          style={styles.inviteButton}
-          textStyle={styles.inviteButtonText}
-        />
+        <View style={styles.actionRow}>
+          <AppButton
+            title="Add Cylinder"
+            onPress={() =>
+              router.push({
+                pathname: '/add-monitor',
+                params: {
+                  fromCircle: '1',
+                  circleId,
+                  circleName,
+                  members: String(memberCount),
+                },
+              } as Href)
+            }
+            style={styles.addButton}
+            textStyle={styles.addButtonText}
+          />
+          <AppButton
+            title="Invite User"
+            onPress={() =>
+              router.push({
+                pathname: '/invite-users/method',
+                params: {
+                  fromCircle: '1',
+                  circleId,
+                  circleName,
+                  members: String(memberCount),
+                },
+              } as Href)
+            }
+            style={styles.inviteButton}
+            textStyle={styles.inviteButtonText}
+          />
+        </View>
 
         <View style={styles.tabRow}>
           <TouchableOpacity
@@ -233,22 +235,24 @@ const styles = StyleSheet.create({
     padding: 14,
     paddingBottom: 40,
   },
+  actionRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 8,
+    marginBottom: 10,
+  },
   addButton: {
     height: 32,
-    alignSelf: 'flex-end',
     borderRadius: 4,
     paddingHorizontal: 14,
-    marginBottom: 8,
   },
   addButtonText: {
     fontSize: 11,
   },
   inviteButton: {
     height: 32,
-    alignSelf: 'flex-end',
     borderRadius: 4,
     paddingHorizontal: 14,
-    marginBottom: 10,
     backgroundColor: '#E0E7FF',
   },
   inviteButtonText: {
