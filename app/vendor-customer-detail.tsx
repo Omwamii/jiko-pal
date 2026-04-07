@@ -159,7 +159,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   avatarText: { color: '#FFFFFF', fontSize: 14, fontWeight: '700' },
-  customerName: { marginLeft: 10, color: '#151621', fontSize: 30, fontWeight: '700' },
+  customerName: { marginLeft: 10, color: '#151621', fontSize: 20, fontWeight: '700' },
   statsRow: { marginTop: 12, flexDirection: 'row', justifyContent: 'space-between' },
   statCard: {
     width: '48%',
@@ -187,7 +187,7 @@ const styles = StyleSheet.create({
   actionText: { fontSize: 12, fontWeight: '600' },
   callText: { color: '#16A34A' },
   messageText: { color: '#3629B7' },
-  sectionTitle: { marginTop: 14, color: '#1A1B24', fontSize: 23, fontWeight: '700' },
+  sectionTitle: { marginTop: 14, color: '#1A1B24', fontSize: 17, fontWeight: '700' },
   contactText: { marginTop: 4, color: '#8C8D9F', fontSize: 10 },
   cylinderCard: {
     marginTop: 8,

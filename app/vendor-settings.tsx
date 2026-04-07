@@ -40,7 +40,7 @@ export default function VendorSettingsScreen() {
           </TouchableOpacity>
         </View>
 
-        <Text style={styles.sectionTitle}>ACCOUNT</Text>
+        <Text style={styles.sectionTitle}>Account</Text>
 
         <View style={styles.groupCard}>
           <TouchableOpacity
@@ -152,7 +152,7 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
   },
   tagText: { color: '#10B981', fontSize: 8, fontWeight: '700' },
-  sectionTitle: { marginTop: 16, color: '#1F2937', fontSize: 25, fontWeight: '700', marginBottom: 8 },
+  sectionTitle: { marginTop: 16, color: '#1F2937', fontSize: 18, fontWeight: '700', marginBottom: 8 },
   groupCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 10,

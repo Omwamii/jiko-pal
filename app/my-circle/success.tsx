@@ -52,7 +52,7 @@ export default function CircleSuccessScreen() {
             </View>
           </AppCard>
 
-          <AppButton title="Add Cylinder" variant="inverted" style={styles.actionButton} onPress={() => router.push('/add-monitor')} />
+          <AppButton title="Add Cylinder" variant="inverted" style={styles.actionButton} onPress={() => router.replace('/add-monitor')} />
           <AppButton title="Go Circle" variant="ghost" style={styles.actionButton} onPress={() => router.replace('/my-circle')} />
         </View>
       </SafeAreaView>

@@ -235,7 +235,7 @@ const styles = StyleSheet.create({
   companyAvatarText: { color: '#1F2937', fontSize: 16, fontWeight: '700' },
   companyName: { color: '#11131A', fontSize: 34, fontWeight: '700' },
   companyType: { color: '#8D8EA0', fontSize: 10, marginTop: 1 },
-  sectionTitle: { marginTop: 12, marginBottom: 8, color: '#11131A', fontSize: 28, fontWeight: '700' },
+  sectionTitle: { marginTop: 12, marginBottom: 8, color: '#11131A', fontSize: 22, fontWeight: '700' },
   fieldWrap: { marginBottom: 8 },
   fieldLabel: { color: '#11131A', fontSize: 11, fontWeight: '600', marginBottom: 5 },
   input: {

@@ -26,7 +26,7 @@ export default function VendorDeliverySuccessScreen() {
         <Text style={styles.primaryText}>Go to Dashboard</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.secondaryButton} activeOpacity={0.85} onPress={() => router.push('/vendor-reviews' as Href)}>
+      <TouchableOpacity style={styles.secondaryButton} activeOpacity={0.85} onPress={() => router.replace('/vendor-reviews' as Href)}>
         <Text style={styles.secondaryText}>Continue to Customer Review</Text>
       </TouchableOpacity>
     </View>

@@ -98,7 +98,7 @@ const styles = StyleSheet.create({
   headerTitle: { color: '#FFFFFF', fontSize: 30, fontWeight: '700' },
   headerSub: { color: '#D1D5DB', fontSize: 10, marginTop: 2 },
   scrollContent: { padding: 14, paddingBottom: 30 },
-  sectionTitle: { color: '#11181C', fontSize: 14, fontWeight: '700', marginBottom: 8, marginTop: 4 },
+  sectionTitle: { color: '#11181C', fontSize: 10, fontWeight: '700', marginBottom: 8, marginTop: 4 },
   quickRow: { flexDirection: 'row', gap: 10, marginBottom: 12 },
   quickCard: {
     flex: 1,

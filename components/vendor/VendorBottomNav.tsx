@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { type Href, useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type TabKey = 'home' | 'orders' | 'monitors' | 'profile' | 'help';
 
@@ -17,6 +18,7 @@ const tabs: Array<{ key: TabKey; label: string; icon: keyof typeof MaterialCommu
 
 export function VendorBottomNav({ active }: { active: TabKey }) {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   const onPress = (key: TabKey) => {
     if (key === 'home') {
@@ -45,7 +47,7 @@ export function VendorBottomNav({ active }: { active: TabKey }) {
   };
 
   return (
-    <View style={styles.bottomNav}>
+    <View style={[styles.bottomNav, { paddingBottom: Math.max(insets.bottom, 12) }]}>
       {tabs.map((tab) => {
         const isActive = active === tab.key;
 
@@ -68,7 +70,6 @@ const styles = StyleSheet.create({
     borderTopColor: '#ECECF3',
     backgroundColor: '#FFFFFF',
     paddingTop: 8,
-    paddingBottom: 12,
     paddingHorizontal: 8,
   },
   bottomItem: {

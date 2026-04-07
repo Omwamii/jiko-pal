@@ -43,8 +43,8 @@ export default function RefillDateScreen() {
           </View>
 
           <View style={styles.daysHeader}>
-            {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d) => (
-              <Text key={d} style={styles.dayLabel}>
+            {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, idx) => (
+              <Text key={idx} style={styles.dayLabel}>
                 {d}
               </Text>
             ))}

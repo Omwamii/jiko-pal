@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -21,8 +21,62 @@ const quickActions = [
   { label: 'Analytics', icon: 'chart-line' as const },
 ];
 
+type DashboardOrderStatus = 'active' | 'pending' | 'completed';
+
+type DashboardOrder = {
+  id: string;
+  initials: string;
+  customer: string;
+  phone: string;
+  distance: string;
+  status: DashboardOrderStatus;
+  progress?: number;
+};
+
+const dashboardOrders: DashboardOrder[] = [
+  { id: 'ord-101', initials: 'SA', customer: 'Sarah Anderson', phone: '+254712345678', distance: '2.3 Km Away', status: 'active', progress: 42 },
+  { id: 'ord-102', initials: 'MJ', customer: 'Mike Johnson', phone: '+254723456789', distance: '4.1 Km Away', status: 'active', progress: 68 },
+  { id: 'ord-103', initials: 'SP', customer: 'Sam Patel', phone: '+254734567890', distance: '1.8 Km Away', status: 'pending', progress: 8 },
+  { id: 'ord-104', initials: 'AN', customer: 'Ann Njeri', phone: '+254745678901', distance: '3.0 Km Away', status: 'pending', progress: 15 },
+  { id: 'ord-105', initials: 'BK', customer: 'Brian Kimani', phone: '+254756789012', distance: '5.2 Km Away', status: 'pending' },
+  { id: 'ord-106', initials: 'JW', customer: 'Jane Wanjiku', phone: '+254767890123', distance: '2.0 Km Away', status: 'completed' },
+  { id: 'ord-107', initials: 'DO', customer: 'David Ouma', phone: '+254778901234', distance: '6.4 Km Away', status: 'completed' },
+];
+
+function getOrderStatusMeta(status: DashboardOrderStatus) {
+  if (status === 'active') {
+    return { label: 'Active', bg: '#E7E3FF', color: '#5B4DCB' };
+  }
+
+  if (status === 'pending') {
+    return { label: 'Pending', bg: '#F4E4C3', color: '#D08B17' };
+  }
+
+  return { label: 'Completed', bg: '#D1FAE5', color: '#10B981' };
+}
+
 export default function VendorDashboardScreen() {
   const router = useRouter();
+  const [activeOrderTab, setActiveOrderTab] = useState<DashboardOrderStatus>('active');
+
+  const activeCount = useMemo(() => dashboardOrders.filter((order) => order.status === 'active').length, []);
+  const pendingCount = useMemo(() => dashboardOrders.filter((order) => order.status === 'pending').length, []);
+  const completedCount = useMemo(() => dashboardOrders.filter((order) => order.status === 'completed').length, []);
+  const visibleOrders = useMemo(
+    () => dashboardOrders.filter((order) => order.status === activeOrderTab),
+    [activeOrderTab]
+  );
+  const emptyDashboardOrdersMessage = useMemo(() => {
+    if (activeOrderTab === 'active') {
+      return 'No orders in progress';
+    }
+
+    if (activeOrderTab === 'pending') {
+      return 'No pending orders';
+    }
+
+    return 'No completed orders';
+  }, [activeOrderTab]);
 
   return (
     <View style={styles.container}>
@@ -111,38 +165,78 @@ export default function VendorDashboardScreen() {
           </View>
 
           <View style={styles.filterRow}>
-            <View style={[styles.filterPill, styles.filterPillActive]}>
-              <Text style={styles.filterTextActive}>Active (2)</Text>
-            </View>
-            <View style={styles.filterPill}>
-              <Text style={styles.filterText}>Pending (5)</Text>
-            </View>
-            <View style={styles.filterPill}>
-              <Text style={styles.filterText}>Completed (2)</Text>
-            </View>
+            <TouchableOpacity
+              style={[styles.filterPill, activeOrderTab === 'active' && styles.filterPillActive]}
+              activeOpacity={0.85}
+              onPress={() => setActiveOrderTab('active')}
+            >
+              <Text style={activeOrderTab === 'active' ? styles.filterTextActive : styles.filterText}>Active ({activeCount})</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.filterPill, activeOrderTab === 'pending' && styles.filterPillActive]}
+              activeOpacity={0.85}
+              onPress={() => setActiveOrderTab('pending')}
+            >
+              <Text style={activeOrderTab === 'pending' ? styles.filterTextActive : styles.filterText}>Pending ({pendingCount})</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.filterPill, activeOrderTab === 'completed' && styles.filterPillActive]}
+              activeOpacity={0.85}
+              onPress={() => setActiveOrderTab('completed')}
+            >
+              <Text style={activeOrderTab === 'completed' ? styles.filterTextActive : styles.filterText}>
+                Completed ({completedCount})
+              </Text>
+            </TouchableOpacity>
           </View>
 
-          <View style={styles.orderCard}>
-            <View style={styles.orderTop}>
-              <View style={styles.avatar}>
-                <Text style={styles.avatarText}>SP</Text>
-              </View>
-              <View style={styles.orderInfo}>
-                <Text style={styles.customerName}>Sarah Anderson</Text>
-                <View style={styles.distanceRow}>
-                  <MaterialCommunityIcons name="map-marker-outline" size={12} color="#9CA3AF" />
-                  <Text style={styles.distanceText}>2.3 Km Away</Text>
+          {visibleOrders.length === 0 ? <Text style={styles.emptyText}>{emptyDashboardOrdersMessage}</Text> : null}
+          {visibleOrders.map((order) => {
+            const statusMeta = getOrderStatusMeta(order.status);
+
+            return (
+              <TouchableOpacity
+                key={order.id}
+                style={styles.orderCard}
+                activeOpacity={0.85}
+                onPress={() =>
+                  router.push({
+                    pathname: '/vendor-order-detail',
+                    params: {
+                      orderId: order.id,
+                      customer: order.customer,
+                      phone: order.phone,
+                    },
+                  } as Href)
+                }
+              >
+                <View style={styles.orderTop}>
+                  <View style={styles.avatar}>
+                    <Text style={styles.avatarText}>{order.initials}</Text>
+                  </View>
+                  <View style={styles.orderInfo}>
+                    <Text style={styles.customerName}>{order.customer}</Text>
+                    <View style={styles.distanceRow}>
+                      <MaterialCommunityIcons name="map-marker-outline" size={12} color="#9CA3AF" />
+                      <Text style={styles.distanceText}>{order.distance}</Text>
+                    </View>
+                  </View>
+                  <View style={[styles.statusBadge, { backgroundColor: statusMeta.bg }]}>
+                    <Text style={[styles.statusText, { color: statusMeta.color }]}>{statusMeta.label}</Text>
+                  </View>
                 </View>
-              </View>
-              <View style={styles.pendingBadge}>
-                <Text style={styles.pendingText}>Pending</Text>
-              </View>
-            </View>
-            <View style={styles.progressTrack}>
-              <View style={styles.progressFill} />
-            </View>
-            <Text style={styles.progressText}>8%</Text>
-          </View>
+
+                {typeof order.progress === 'number' ? (
+                  <>
+                    <View style={styles.progressTrack}>
+                      <View style={[styles.progressFill, { width: `${order.progress}%` }]} />
+                    </View>
+                    <Text style={styles.progressText}>{order.progress}%</Text>
+                  </>
+                ) : null}
+              </TouchableOpacity>
+            );
+          })}
         </ScrollView>
 
         <VendorBottomNav active="home" />
@@ -236,7 +330,7 @@ const styles = StyleSheet.create({
   },
   statValue: {
     color: '#101012',
-    fontSize: 34,
+    fontSize: 26,
     fontWeight: '700',
     marginTop: 5,
   },
@@ -289,7 +383,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     marginTop: 16,
     color: '#151521',
-    fontSize: 27,
+    fontSize: 18,
     fontWeight: '700',
   },
   quickRow: {
@@ -358,6 +452,13 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: '600',
   },
+  emptyText: {
+    marginTop: 12,
+    color: '#8E8FA1',
+    fontSize: 11,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
   orderCard: {
     marginTop: 9,
     backgroundColor: '#FFFFFF',
@@ -365,7 +466,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#ECECF3',
     padding: 10,
-    marginBottom: 20,
+    marginBottom: 8,
   },
   orderTop: {
     flexDirection: 'row',
@@ -403,14 +504,12 @@ const styles = StyleSheet.create({
     color: '#8E8FA1',
     fontSize: 9,
   },
-  pendingBadge: {
-    backgroundColor: '#F4E4C3',
+  statusBadge: {
     borderRadius: 10,
     paddingHorizontal: 10,
     paddingVertical: 4,
   },
-  pendingText: {
-    color: '#D08B17',
+  statusText: {
     fontSize: 9,
     fontWeight: '600',
   },
@@ -422,7 +521,6 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   progressFill: {
-    width: '8%',
     height: '100%',
     backgroundColor: '#EF4444',
   },

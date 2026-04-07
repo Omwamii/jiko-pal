@@ -13,6 +13,7 @@ type VendorOrder = {
   id: string;
   initials: string;
   customer: string;
+  phone: string;
   distance: string;
   status: OrderStatus;
   cylinderSize: string;
@@ -23,18 +24,18 @@ type VendorOrder = {
 const PRIMARY_COLOR = '#3629B7';
 
 const initialOrders: VendorOrder[] = [
-  { id: 'ord-001', initials: 'GP', customer: 'Sarah Anderson', distance: '2.3 Km Away', status: 'pending', cylinderSize: '13kg', requested: '15 min ago', progress: 8 },
-  { id: 'ord-002', initials: 'SA', customer: 'Sarah Anderson', distance: '2.3 Km Away', status: 'completed', cylinderSize: '13kg', requested: '15 min ago' },
-  { id: 'ord-003', initials: 'GP', customer: 'Sarah Anderson', distance: '2.3 Km Away', status: 'pending', cylinderSize: '13kg', requested: '15 min ago', progress: 8 },
-  { id: 'ord-004', initials: 'SA', customer: 'Sarah Anderson', distance: '2.3 Km Away', status: 'completed', cylinderSize: '13kg', requested: '15 min ago' },
-  { id: 'ord-005', initials: 'SA', customer: 'Sarah Anderson', distance: '2.3 Km Away', status: 'rejected', cylinderSize: '13kg', requested: '15 min ago' },
+  { id: 'ord-001', initials: 'GP', customer: 'Sarah Anderson', phone: '+254712345678', distance: '2.3 Km Away', status: 'pending', cylinderSize: '13kg', requested: '15 min ago', progress: 8 },
+  { id: 'ord-002', initials: 'SA', customer: 'Sarah Anderson', phone: '+254712345678', distance: '2.3 Km Away', status: 'completed', cylinderSize: '13kg', requested: '15 min ago' },
+  { id: 'ord-003', initials: 'GP', customer: 'Sarah Anderson', phone: '+254712345678', distance: '2.3 Km Away', status: 'pending', cylinderSize: '13kg', requested: '15 min ago', progress: 8 },
+  { id: 'ord-004', initials: 'SA', customer: 'Sarah Anderson', phone: '+254712345678', distance: '2.3 Km Away', status: 'completed', cylinderSize: '13kg', requested: '15 min ago' },
+  { id: 'ord-005', initials: 'SA', customer: 'Sarah Anderson', phone: '+254712345678', distance: '2.3 Km Away', status: 'rejected', cylinderSize: '13kg', requested: '15 min ago' },
 ];
 
 const filters: Array<{ key: FilterKey; label: string }> = [
-  { key: 'pending', label: 'Pending (2)' },
-  { key: 'in-progress', label: 'In progress (5)' },
-  { key: 'completed', label: 'Completed (2)' },
-  { key: 'all', label: 'All (28)' },
+  { key: 'pending', label: 'Pending' },
+  { key: 'in-progress', label: 'In progress' },
+  { key: 'completed', label: 'Completed' },
+  { key: 'all', label: 'All' },
 ];
 
 function getStatusStyle(status: OrderStatus) {
@@ -64,10 +65,6 @@ export default function VendorOrdersScreen() {
       return orders;
     }
 
-    if (filter === 'in-progress') {
-      return orders.filter((order) => order.status === 'in-progress' || order.status === 'pending');
-    }
-
     return orders.filter((order) => order.status === filter);
   }, [orders, filter]);
 
@@ -82,9 +79,26 @@ export default function VendorOrdersScreen() {
 
     setOrders((prev) => prev.map((order) => (order.id === selectedOrder.id ? { ...order, status: 'in-progress' } : order)));
     const customer = encodeURIComponent(selectedOrder.customer);
-    router.push((`/vendor-order-detail?orderId=${selectedOrder.id}&customer=${customer}`) as Href);
+    const phone = encodeURIComponent(selectedOrder.phone);
+    router.push((`/vendor-order-detail?orderId=${selectedOrder.id}&customer=${customer}&phone=${phone}&status=in-progress`) as Href);
     setSelectedOrder(null);
   };
+
+  const emptyMessage = useMemo(() => {
+    if (filter === 'all') {
+      return 'No orders';
+    }
+
+    if (filter === 'in-progress') {
+      return 'No orders in progress';
+    }
+
+    if (filter === 'pending') {
+      return 'No pending orders';
+    }
+
+    return 'No completed orders';
+  }, [filter]);
 
   return (
     <View style={styles.container}>
@@ -114,19 +128,37 @@ export default function VendorOrdersScreen() {
                 activeOpacity={0.8}
                 onPress={() => setFilter(item.key)}
               >
-                <Text style={[styles.filterText, active && styles.filterTextActive]}>{item.label}</Text>
+                <Text style={[styles.filterText, active && styles.filterTextActive]}>
+                  {item.label} ({item.key === 'all' ? orders.length : orders.filter((order) => order.status === item.key).length})
+                </Text>
               </TouchableOpacity>
             );
           })}
         </View>
 
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+          {visibleOrders.length === 0 ? <Text style={styles.emptyText}>{emptyMessage}</Text> : null}
           {visibleOrders.map((order) => {
             const statusMeta = getStatusStyle(order.status);
             const pending = order.status === 'pending';
 
             return (
-              <View key={order.id} style={styles.orderCard}>
+              <TouchableOpacity
+                key={order.id}
+                style={styles.orderCard}
+                activeOpacity={0.9}
+                onPress={() =>
+                  router.push({
+                    pathname: '/vendor-order-detail',
+                    params: {
+                      orderId: order.id,
+                      customer: order.customer,
+                      phone: order.phone,
+                      status: order.status,
+                    },
+                  } as Href)
+                }
+              >
                 <View style={styles.orderTop}>
                   <View style={[styles.avatar, { backgroundColor: order.initials === 'GP' ? '#F59E0B' : '#15B87A' }]}>
                     <Text style={styles.avatarText}>{order.initials}</Text>
@@ -165,15 +197,29 @@ export default function VendorOrdersScreen() {
 
                 {pending ? (
                   <View style={styles.actionsRow}>
-                    <TouchableOpacity style={styles.rejectButton} activeOpacity={0.85} onPress={() => declineOrder(order.id)}>
+                    <TouchableOpacity
+                      style={styles.rejectButton}
+                      activeOpacity={0.85}
+                      onPress={(event) => {
+                        event.stopPropagation();
+                        declineOrder(order.id);
+                      }}
+                    >
                       <Text style={styles.rejectText}>Reject</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.acceptButton} activeOpacity={0.85} onPress={() => setSelectedOrder(order)}>
+                    <TouchableOpacity
+                      style={styles.acceptButton}
+                      activeOpacity={0.85}
+                      onPress={(event) => {
+                        event.stopPropagation();
+                        setSelectedOrder(order);
+                      }}
+                    >
                       <Text style={styles.acceptText}>Accept Order</Text>
                     </TouchableOpacity>
                   </View>
                 ) : null}
-              </View>
+              </TouchableOpacity>
             );
           })}
         </ScrollView>
@@ -286,6 +332,14 @@ const styles = StyleSheet.create({
     padding: 12,
     paddingBottom: 24,
   },
+  emptyText: {
+    marginTop: 14,
+    marginBottom: 8,
+    color: '#8F8F9D',
+    fontSize: 11,
+    textAlign: 'center',
+    fontWeight: '600',
+  },
   orderCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 11,
@@ -316,7 +370,7 @@ const styles = StyleSheet.create({
   },
   customerName: {
     color: '#11131A',
-    fontSize: 25,
+    fontSize: 14,
     fontWeight: '600',
   },
   distanceRow: {

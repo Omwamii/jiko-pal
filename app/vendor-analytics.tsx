@@ -237,7 +237,7 @@ const styles = StyleSheet.create({
   },
   statLabel: { marginTop: 5, color: '#8E8FA1', fontSize: 8 },
   statValue: { marginTop: 3, color: '#151620', fontSize: 30, fontWeight: '700' },
-  sectionTitle: { marginTop: 14, marginBottom: 8, color: '#171923', fontSize: 30, fontWeight: '700' },
+  sectionTitle: { marginTop: 14, marginBottom: 8, color: '#171923', fontSize: 20, fontWeight: '700' },
   productCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 10,

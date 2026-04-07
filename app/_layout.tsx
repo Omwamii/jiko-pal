@@ -42,6 +42,7 @@ export default function RootLayout() {
         <Stack.Screen name="vendor-reviews" />
         <Stack.Screen name="vendor-subscribers" />
         <Stack.Screen name="vendor-customer-detail" />
+        <Stack.Screen name="vendor-customer-chat" />
         <Stack.Screen name="vendor-monitor-detail" />
         <Stack.Screen name="vendor-settings" />
         <Stack.Screen name="vendor-business-information" />

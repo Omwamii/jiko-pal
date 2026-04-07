@@ -89,9 +89,6 @@ const styles = StyleSheet.create({
   scrollContent: { padding: 14, paddingBottom: 30 },
   sectionTitle: { color: '#11181C', fontSize: 14, fontWeight: '700', marginBottom: 10 },
   listWrap: {
-    borderWidth: 1,
-    borderColor: '#3B82F6',
-    borderStyle: 'dashed',
     borderRadius: 2,
     padding: 6,
   },

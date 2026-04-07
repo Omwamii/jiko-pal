@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, TextInput, ScrollView } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { type Href, useRouter } from 'expo-router';
+import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { AppCard } from '@/components/ui/AppCard';
 import { AppButton } from '@/components/ui/AppButton';
@@ -17,8 +17,18 @@ const VENDORS = [
 
 export default function VendorsScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ preselectedCylinderName?: string; preselectedCylinderLevel?: string }>();
   const [activeTab, setActiveTab] = useState<'all' | 'mine'>('all');
   const [query, setQuery] = useState('');
+  const preselectedCylinderName = useMemo(
+    () => (Array.isArray(params.preselectedCylinderName) ? params.preselectedCylinderName[0] : params.preselectedCylinderName),
+    [params.preselectedCylinderName]
+  );
+  const preselectedCylinderLevel = useMemo(
+    () => (Array.isArray(params.preselectedCylinderLevel) ? params.preselectedCylinderLevel[0] : params.preselectedCylinderLevel),
+    [params.preselectedCylinderLevel]
+  );
+  const isRefillVendorSelection = Boolean(preselectedCylinderName);
 
   const filtered = useMemo(() => {
     return VENDORS.filter((vendor) => {
@@ -101,13 +111,29 @@ export default function VendorsScreen() {
                 <Text style={styles.priceValue}>Ksh. {vendor.price}</Text>
               </View>
               <AppButton
-                title="View Details"
-                onPress={() =>
+                title={isRefillVendorSelection ? 'Select Vendor' : 'View Details'}
+                onPress={() => {
+                  if (isRefillVendorSelection) {
+                    router.setParams({
+                      preselectedCylinderName: undefined,
+                      preselectedCylinderLevel: undefined,
+                    });
+                    router.push({
+                      pathname: '/(tabs)/vendors/refill-date',
+                      params: {
+                        vendorName: vendor.name,
+                        cylinderName: preselectedCylinderName,
+                        cylinderLevel: preselectedCylinderLevel || '65',
+                      },
+                    } as Href);
+                    return;
+                  }
+
                   router.push({
                     pathname: '/(tabs)/vendors/detail',
                     params: { vendorId: vendor.id, vendorName: vendor.name },
-                  } as Href)
-                }
+                  } as Href);
+                }}
                 style={styles.detailsBtn}
                 textStyle={styles.detailsBtnText}
               />

@@ -111,7 +111,18 @@ export default function DashboardScreen() {
             </View>
 
             {/* Action Button */}
-            <TouchableOpacity style={styles.refillButton}>
+            <TouchableOpacity
+              style={styles.refillButton}
+              onPress={() =>
+                router.push({
+                  pathname: '/(tabs)/vendors',
+                  params: {
+                    preselectedCylinderName: 'Kitchen Gas',
+                    preselectedCylinderLevel: '65',
+                  },
+                } as Href)
+              }
+            >
               <Text style={styles.refillButtonText}>Request Refill</Text>
             </TouchableOpacity>
           </View>

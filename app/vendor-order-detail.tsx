@@ -1,14 +1,53 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Linking, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
 import { VendorBottomNav } from '@/components/vendor/VendorBottomNav';
 
+type DetailOrderStatus = 'pending' | 'in-progress' | 'completed' | 'rejected';
+
 export default function VendorOrderDetailScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ customer?: string; orderId?: string }>();
+  const params = useLocalSearchParams<{ customer?: string; orderId?: string; phone?: string; status?: DetailOrderStatus }>();
+  const customer = Array.isArray(params.customer) ? params.customer[0] : params.customer;
+  const orderId = Array.isArray(params.orderId) ? params.orderId[0] : params.orderId;
+  const phone = Array.isArray(params.phone) ? params.phone[0] : params.phone;
+  const status = (Array.isArray(params.status) ? params.status[0] : params.status) || 'in-progress';
+
+  const statusMeta = (() => {
+    if (status === 'completed') {
+      return { title: 'Order Completed', label: 'Completed', bg: '#D1FAE5', color: '#10B981' };
+    }
+
+    if (status === 'rejected') {
+      return { title: 'Order Rejected', label: 'Rejected', bg: '#FEE2E2', color: '#EF4444' };
+    }
+
+    if (status === 'pending') {
+      return { title: 'Order Pending', label: 'Pending', bg: '#FEF3C7', color: '#D08B17' };
+    }
+
+    return { title: 'Order Accepted', label: 'In Progress', bg: '#E0E7FF', color: '#4F46E5' };
+  })();
+
+  const callCustomer = async () => {
+    const customerPhone = (phone || '+254712345678').trim();
+    const phoneUrl = `tel:${customerPhone}`;
+
+    try {
+      const supported = await Linking.canOpenURL(phoneUrl);
+      if (!supported) {
+        Alert.alert('Call unavailable', `Your device cannot place calls to ${customerPhone}.`);
+        return;
+      }
+
+      await Linking.openURL(phoneUrl);
+    } catch {
+      Alert.alert('Call failed', 'Unable to open phone app right now. Please try again.');
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -20,7 +59,7 @@ export default function VendorOrderDetailScreen() {
               <MaterialCommunityIcons name="arrow-left" size={18} color="#FFFFFF" />
             </TouchableOpacity>
 
-            <Text style={styles.headerTitle}>Order Accepted</Text>
+            <Text style={styles.headerTitle}>{statusMeta.title}</Text>
 
             <TouchableOpacity style={styles.notificationButton} activeOpacity={0.8}>
               <MaterialCommunityIcons name="bell-outline" size={20} color="#FFFFFF" />
@@ -38,16 +77,31 @@ export default function VendorOrderDetailScreen() {
             <Text style={styles.avatarText}>GP</Text>
           </View>
 
-          <Text style={styles.customerName}>{params.customer || 'Sarah Anderson'}</Text>
+          <Text style={styles.customerName}>{customer || 'Sarah Anderson'}</Text>
+          <View style={[styles.statusPill, { backgroundColor: statusMeta.bg }]}>
+            <Text style={[styles.statusPillText, { color: statusMeta.color }]}>{statusMeta.label}</Text>
+          </View>
         </View>
 
         <View style={styles.actionsRow}>
-          <TouchableOpacity style={[styles.actionButton, styles.callButton]} activeOpacity={0.85}>
+          <TouchableOpacity style={[styles.actionButton, styles.callButton]} activeOpacity={0.85} onPress={callCustomer}>
             <MaterialCommunityIcons name="phone-outline" size={16} color="#16A34A" />
             <Text style={[styles.actionText, styles.callText]}>Call Customer</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={[styles.actionButton, styles.messageButton]} activeOpacity={0.85}>
+          <TouchableOpacity
+            style={[styles.actionButton, styles.messageButton]}
+            activeOpacity={0.85}
+            onPress={() =>
+              router.push({
+                pathname: '/vendor-customer-chat',
+                params: {
+                  customer: customer || 'Sarah Anderson',
+                  phone: phone || '+254712345678',
+                },
+              } as Href)
+            }
+          >
             <MaterialCommunityIcons name="message-outline" size={16} color="#3629B7" />
             <Text style={[styles.actionText, styles.messageText]}>Message</Text>
           </TouchableOpacity>
@@ -90,18 +144,26 @@ export default function VendorOrderDetailScreen() {
           <Text style={styles.mapButtonText}>Open in Maps</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.markButton}
-          activeOpacity={0.85}
-          onPress={() => {
-            const orderId = encodeURIComponent(params.orderId || '');
-            const customer = encodeURIComponent(params.customer || '');
-            router.push((`/vendor-mark-delivered?orderId=${orderId}&customer=${customer}`) as Href);
-          }}
-        >
-          <MaterialCommunityIcons name="cube-outline" size={16} color="#5F4ED8" />
-          <Text style={styles.markButtonText}>Mark Delivered</Text>
-        </TouchableOpacity>
+        {status === 'in-progress' ? (
+          <TouchableOpacity
+            style={styles.markButton}
+            activeOpacity={0.85}
+            onPress={() => {
+              const encodedOrderId = encodeURIComponent(orderId || '');
+              const encodedCustomer = encodeURIComponent(customer || '');
+              router.push((`/vendor-mark-delivered?orderId=${encodedOrderId}&customer=${encodedCustomer}`) as Href);
+            }}
+          >
+            <MaterialCommunityIcons name="cube-outline" size={16} color="#5F4ED8" />
+            <Text style={styles.markButtonText}>Mark Delivered</Text>
+          </TouchableOpacity>
+        ) : (
+          <View style={styles.readOnlyState}>
+            <Text style={styles.readOnlyStateText}>
+              {status === 'completed' ? 'This order has already been delivered.' : 'This order was rejected and is read-only.'}
+            </Text>
+          </View>
+        )}
 
         <View style={styles.bottomSpacer} />
       </View>
@@ -156,7 +218,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   avatarText: { color: '#FFFFFF', fontWeight: '700', fontSize: 14 },
-  customerName: { marginLeft: 10, color: '#141417', fontSize: 30, fontWeight: '700' },
+  customerName: { marginLeft: 10, color: '#141417', fontSize: 30, fontWeight: '700', flex: 1 },
+  statusPill: { borderRadius: 10, paddingHorizontal: 10, paddingVertical: 4, marginLeft: 8 },
+  statusPillText: { fontSize: 9, fontWeight: '700' },
   actionsRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 12 },
   actionButton: {
     width: '48%',
@@ -232,5 +296,19 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   markButtonText: { color: '#5F4ED8', fontSize: 12, fontWeight: '600' },
+  readOnlyState: {
+    marginTop: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    backgroundColor: '#F9FAFB',
+    padding: 10,
+  },
+  readOnlyStateText: {
+    color: '#6B7280',
+    fontSize: 10,
+    textAlign: 'center',
+    fontWeight: '600',
+  },
   bottomSpacer: { height: 14 },
 });
