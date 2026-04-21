@@ -26,8 +26,9 @@ const conversation = [
 
 export default function VendorChatScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ vendorName?: string }>();
-  const vendorName = useMemo(() => params.vendorName || 'QuickGas Ltd', [params.vendorName]);
+  const params = useLocalSearchParams<{ vendorId?: string; vendorName?: string }>();
+  const vendorName = useMemo(() => params.vendorName || 'Vendor', [params.vendorName]);
+  const vendorId = useMemo(() => params.vendorId || '', [params.vendorId]);
   const [message, setMessage] = useState('');
 
   return (

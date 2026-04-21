@@ -1,14 +1,38 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, Alert } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { type Href, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { AppCard } from '@/components/ui/AppCard';
+import { useAuth } from '@/providers/AuthProvider';
 
 const PRIMARY_COLOR = '#3629B7';
 
 export default function ProfileSettingsScreen() {
   const router = useRouter();
+  const { user, clientProfile, vendorProfile, logout } = useAuth();
+
+  const displayName = clientProfile?.full_name || vendorProfile?.company_name || user?.username || user?.email?.split('@')[0] || 'User';
+  const displayEmail = user?.email || '';
+  const accountType = user?.role === 'vendor' ? 'Vendor Account' : 'Client Account';
+  const initials = displayName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+
+  const handleLogout = () => {
+    Alert.alert(
+      'Log Out',
+      'Are you sure you want to log out?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Log Out', 
+          style: 'destructive',
+          onPress: async () => {
+            await logout();
+          }
+        },
+      ]
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -28,13 +52,13 @@ export default function ProfileSettingsScreen() {
         <AppCard style={styles.profileCard}>
           <View style={styles.profileLeft}>
             <View style={styles.avatar}>
-              <Text style={styles.avatarText}>JD</Text>
+              <Text style={styles.avatarText}>{initials}</Text>
             </View>
             <View>
-              <Text style={styles.name}>John Doe</Text>
-              <Text style={styles.email}>john.doe@email.com</Text>
+              <Text style={styles.name}>{displayName}</Text>
+              <Text style={styles.email}>{displayEmail}</Text>
               <View style={styles.tag}>
-                <Text style={styles.tagText}>Client Account</Text>
+                <Text style={styles.tagText}>{accountType}</Text>
               </View>
             </View>
           </View>
@@ -66,7 +90,7 @@ export default function ProfileSettingsScreen() {
           <MaterialCommunityIcons name="chevron-right" size={20} color="#9CA3AF" />
         </AppCard>
 
-        <AppCard style={styles.logoutCard} onPress={() => router.replace('/login')}>
+        <AppCard style={styles.logoutCard} onPress={handleLogout}>
           <View style={[styles.optionIconWrap, { backgroundColor: '#FEE2E2' }]}>
             <MaterialCommunityIcons name="logout" size={18} color="#EF4444" />
           </View>

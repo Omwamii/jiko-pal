@@ -1,53 +1,100 @@
-import React, { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView } from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppCard } from '@/components/ui/AppCard';
+import { useCircleDetails, useDeleteCircle } from '@/hooks/circle';
+import { authService } from '@/lib/auth';
+import { deviceService } from '@/lib/device';
+import { User, IoTDevice, CircleMember } from '@/types';
 
 const PRIMARY_COLOR = '#3629B7';
-
-const members = Array.from({ length: 5 }).map((_, index) => ({
-  id: `member-${index + 1}`,
-  name: 'Sarah Johnson',
-  email: 'Sarahjones@gmail.com',
-  role: index === 0 ? 'Member' : 'Viewer',
-  status: 'Active',
-  phone: '+254 712 345 678',
-  altPhone: '+254 712 345 679',
-  joined: 'Joined 2 months ago',
-}));
-
-const cylinders = [
-  {
-    id: 'office-gas',
-    name: 'Office Gas',
-    location: 'Office - Main Floor',
-    fill: 85,
-    fillColor: '#10B981',
-    iconColor: '#10B981',
-    iconBg: '#D1FAE5',
-  },
-  {
-    id: 'backup-cylinder',
-    name: 'Backup Cylinder',
-    location: 'Home - Garage',
-    fill: 35,
-    fillColor: '#F59E0B',
-    iconColor: '#F59E0B',
-    iconBg: '#FEF3C7',
-  },
-];
 
 export default function CircleIndexScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ circleId?: string; circleName?: string; members?: string }>();
   const [activeTab, setActiveTab] = useState<'cylinders' | 'members'>('cylinders');
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [devices, setDevices] = useState<IoTDevice[]>([]);
+  const [isLoadingDevices, setIsLoadingDevices] = useState(false);
+  
+  const { circle, fetchCircle } = useCircleDetails();
+  const { deleteCircle, isLoading: isDeleting } = useDeleteCircle();
 
   const circleName = useMemo(() => params.circleName || 'Family Home', [params.circleName]);
   const circleId = useMemo(() => params.circleId || 'family-home', [params.circleId]);
-  const memberCount = useMemo(() => Number(params.members || members.length), [params.members]);
+  const memberCount = useMemo(() => circle?.member_count || Number(params.members || 0), [circle, params.members]);
+
+  const isCreator = useMemo(() => {
+    if (!currentUser) return false;
+    if (!circle) return true;
+    return circle.creator.id === currentUser.id;
+  }, [circle, currentUser]);
+
+  const showDeleteButton = isCreator || !circle;
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const user = await authService.getCurrentUser();
+        setCurrentUser(user);
+      } catch (err) {
+        console.error('Failed to load user:', err);
+      }
+    };
+    loadData();
+  }, []);
+
+  useEffect(() => {
+    if (circleId) {
+      fetchCircle(circleId);
+    }
+  }, [circleId, fetchCircle]);
+
+  useEffect(() => {
+    const loadDevices = async () => {
+      setIsLoadingDevices(true);
+      try {
+        const response = await deviceService.getDevices({ circle_id: circleId });
+        setDevices(response.results);
+      } catch (err) {
+        console.error('Failed to load devices:', err);
+        setDevices([]);
+      } finally {
+        setIsLoadingDevices(false);
+      }
+    };
+    if (circleId) {
+      loadDevices();
+    }
+  }, [circleId]);
+
+  const handleDeleteCircle = () => {
+    Alert.alert(
+      'Delete Circle',
+      `Are you sure you want to delete "${circleName}"? This action cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteCircle(circleId);
+              router.replace({
+                pathname: './delete-success',
+                params: { name: circleName },
+              });
+            } catch (err) {
+              Alert.alert('Error', 'Failed to delete circle. Please try again.');
+            }
+          },
+        },
+      ]
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -102,13 +149,20 @@ export default function CircleIndexScreen() {
           />
         </View>
 
+        {(isCreator || showDeleteButton) && (
+          <TouchableOpacity style={styles.deleteButton} onPress={handleDeleteCircle} disabled={isDeleting}>
+            <MaterialCommunityIcons name="delete-outline" size={18} color="#DC2626" />
+            <Text style={styles.deleteButtonText}>Delete Circle</Text>
+          </TouchableOpacity>
+        )}
+
         <View style={styles.tabRow}>
           <TouchableOpacity
             style={[styles.tabButton, activeTab === 'cylinders' && styles.activeTabButton]}
             onPress={() => setActiveTab('cylinders')}
           >
             <Text style={[styles.tabText, activeTab === 'cylinders' && styles.activeTabText]}>
-              Cylinders({cylinders.length})
+              Cylinders({devices.length})
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -120,81 +174,91 @@ export default function CircleIndexScreen() {
         </View>
 
         {activeTab === 'cylinders'
-          ? cylinders.map((cylinder) => (
-              <AppCard
-                key={cylinder.id}
-                style={styles.listCard}
-                onPress={() =>
-                  router.push({
-                    pathname: '/my-circle/cylinder',
-                    params: {
-                      name: cylinder.name,
-                      location: cylinder.location,
-                      fill: String(cylinder.fill),
-                    },
-                  } as Href)
-                }
-              >
-                <View style={[styles.itemIcon, { backgroundColor: cylinder.iconBg }]}>
-                  <MaterialCommunityIcons name="fire" size={18} color={cylinder.iconColor} />
-                </View>
-                <View style={styles.itemContent}>
-                  <Text style={styles.itemTitle}>{cylinder.name}</Text>
-                  <Text style={styles.itemSubtitle}>{cylinder.location}</Text>
-                  <View style={styles.progressRow}>
-                    <View style={styles.progressTrack}>
-                      <View
-                        style={[
-                          styles.progressFill,
-                          {
-                            width: `${cylinder.fill}%`,
-                            backgroundColor: cylinder.fillColor,
-                          },
-                        ]}
-                      />
+          ? isLoadingDevices ? (
+              <ActivityIndicator size="large" color={PRIMARY_COLOR} style={styles.loader} />
+            ) : devices.length === 0 ? (
+              <Text style={styles.emptyText}>No cylinders in this circle yet.</Text>
+            ) : (
+              devices.map((device) => (
+                <AppCard
+                  key={device.id}
+                  style={styles.listCard}
+                  onPress={() =>
+                    router.push({
+                      pathname: '/my-circle/cylinder',
+                      params: {
+                        name: device.device_id,
+                        location: device.owner ? device.owner.full_name : 'Unknown',
+                        fill: String(device.current_level),
+                      },
+                    } as Href)
+                  }
+                >
+                  <View style={[styles.itemIcon, { backgroundColor: '#D1FAE5' }]}>
+                    <MaterialCommunityIcons name="fire" size={18} color="#10B981" />
+                  </View>
+                  <View style={styles.itemContent}>
+                    <Text style={styles.itemTitle}>{device.device_id}</Text>
+                    <Text style={styles.itemSubtitle}>{device.owner?.full_name || 'Unassigned'}</Text>
+                    <View style={styles.progressRow}>
+                      <View style={styles.progressTrack}>
+                        <View
+                          style={[
+                            styles.progressFill,
+                            {
+                              width: `${device.current_level}%`,
+                              backgroundColor: device.current_level < 20 ? '#EF4444' : device.current_level < 50 ? '#F59E0B' : '#10B981',
+                            },
+                          ]}
+                        />
+                      </View>
+                      <Text style={styles.progressText}>{device.current_level}%</Text>
                     </View>
-                    <Text style={styles.progressText}>{cylinder.fill}%</Text>
                   </View>
-                </View>
-                <MaterialCommunityIcons name="chevron-right" size={22} color="#9CA3AF" />
-              </AppCard>
-            ))
-          : members.map((member) => (
-              <AppCard key={member.id} style={styles.listCard}>
-                <View style={styles.memberAvatar}>
-                  <Text style={styles.memberInitials}>SJ</Text>
-                </View>
-                <View style={styles.itemContent}>
-                  <Text style={styles.itemTitle}>{member.name}</Text>
-                  <Text style={styles.itemSubtitle}>{member.email}</Text>
-                  <Text style={styles.memberMeta}>Permission: {member.role === 'Member' ? 'Can edit' : 'View only'}</Text>
-                </View>
-                <View style={styles.memberRight}>
-                  <TouchableOpacity
-                    onPress={() =>
-                      router.push({
-                        pathname: '/my-circle/member',
-                        params: {
-                          memberId: member.id,
-                          memberName: member.name,
-                          memberEmail: member.email,
-                          memberRole: member.role,
-                          phone: member.phone,
-                          altPhone: member.altPhone,
-                          joined: member.joined,
-                          circleName,
-                        },
-                      } as Href)
-                    }
-                  >
-                    <MaterialCommunityIcons name="cog-outline" size={18} color="#6B7280" />
-                  </TouchableOpacity>
-                  <View style={styles.activeBadge}>
-                    <Text style={styles.activeText}>{member.status}</Text>
+                  <MaterialCommunityIcons name="chevron-right" size={22} color="#9CA3AF" />
+                </AppCard>
+              ))
+            )
+          : circle?.members?.map((member: CircleMember) => {
+              const memberUser = member.user;
+              const initials = memberUser?.username?.slice(0, 2).toUpperCase() || 'U';
+              return (
+                <AppCard key={member.id} style={styles.listCard}>
+                  <View style={styles.memberAvatar}>
+                    <Text style={styles.memberInitials}>{initials}</Text>
                   </View>
-                </View>
-              </AppCard>
-            ))}
+                  <View style={styles.itemContent}>
+                    <Text style={styles.itemTitle}>{memberUser?.username || 'Unknown'}</Text>
+                    <Text style={styles.itemSubtitle}>{memberUser?.email || ''}</Text>
+                    <Text style={styles.memberMeta}>
+                      {circle?.creator?.id === memberUser?.id ? 'Owner' : 'Member'}
+                    </Text>
+                  </View>
+                  <View style={styles.memberRight}>
+                    <TouchableOpacity
+                      onPress={() =>
+                        router.push({
+                          pathname: '/my-circle/member',
+                          params: {
+                            memberId: member.id,
+                            memberName: memberUser?.username || 'Unknown',
+                            memberEmail: memberUser?.email || '',
+                            memberRole: circle?.creator?.id === memberUser?.id ? 'Owner' : 'Member',
+                            joined: member.joined_at,
+                            circleName,
+                          },
+                        } as Href)
+                      }
+                    >
+                      <MaterialCommunityIcons name="cog-outline" size={18} color="#6B7280" />
+                    </TouchableOpacity>
+                    <View style={styles.activeBadge}>
+                      <Text style={styles.activeText}>Active</Text>
+                    </View>
+                  </View>
+                </AppCard>
+              );
+            })}
       </ScrollView>
     </View>
   );
@@ -366,5 +430,31 @@ const styles = StyleSheet.create({
     color: '#10B981',
     fontSize: 9,
     fontWeight: '700',
+  },
+  deleteButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    marginTop: 16,
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    borderRadius: 8,
+    backgroundColor: '#FEF2F2',
+  },
+  deleteButtonText: {
+    color: '#DC2626',
+    fontSize: 13,
+    fontWeight: '600',
+    marginLeft: 6,
+  },
+  loader: {
+    marginTop: 40,
+  },
+  emptyText: {
+    textAlign: 'center',
+    color: '#9CA3AF',
+    fontSize: 14,
+    marginTop: 20,
   },
 });

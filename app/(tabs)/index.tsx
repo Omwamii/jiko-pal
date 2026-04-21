@@ -1,33 +1,90 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Dimensions, ActivityIndicator, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import Svg, { Circle } from 'react-native-svg';
 import { type Href, useRouter } from 'expo-router';
+import { useAuth } from '@/providers/AuthProvider';
+import { useDevices, useRefillRequests, useUnreadNotificationCount, useCurrentUser } from '@/hooks/queries';
 
 const PRIMARY_COLOR = '#3629B7';
 const { width } = Dimensions.get('window');
 
-// SVG Circle properties
 const size = 160;
 const strokeWidth = 12;
 const radius = (size - strokeWidth) / 2;
 const circumference = 2 * Math.PI * radius;
-const progress = 0.65;
-const strokeDashoffset = circumference - (circumference * progress);
 
 export default function DashboardScreen() {
   const router = useRouter();
+  const { user, clientProfile, logout } = useAuth();
+  const { data: devicesData, isLoading: devicesLoading, refetch: refetchDevices } = useDevices();
+  const { data: refillRequestsData } = useRefillRequests({ limit: '5' });
+  const { data: notificationCount } = useUnreadNotificationCount();
+  const { data: currentUser } = useCurrentUser();
+  
+  const [refreshing, setRefreshing] = React.useState(false);
+
+  const onRefresh = React.useCallback(async () => {
+    setRefreshing(true);
+    await Promise.all([
+      refetchDevices(),
+    ]);
+    setRefreshing(false);
+  }, [refetchDevices]);
+
+  const devices = devicesData?.results || [];
+  const mainDevice = devices[0];
+  const progress = mainDevice ? mainDevice.current_level / 100 : 0.65;
+  const strokeDashoffset = circumference - (circumference * progress);
+  
+  const unreadCount = notificationCount?.unread_count || 0;
+
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good Morning';
+    if (hour < 18) return 'Good Afternoon';
+    return 'Good Evening';
+  };
+
+  const getStatusColor = (level: number) => {
+    if (level >= 50) return '#10B981';
+    if (level >= 20) return '#F59E0B';
+    return '#EF4444';
+  };
+
+  const getStatusText = (level: number) => {
+    if (level >= 50) return 'Good';
+    if (level >= 20) return 'Low';
+    return 'Critical';
+  };
+
+  const displayName = clientProfile?.full_name || user?.username || user?.email?.split('@')[0] || 'User';
+
+  if (devicesLoading) {
+    return (
+      <View style={styles.container}>
+        <StatusBar style="light" />
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={PRIMARY_COLOR} />
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
       <StatusBar style="light" />
       
-      {/* Scrollable Content */}
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+      <ScrollView 
+        showsVerticalScrollIndicator={false} 
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[PRIMARY_COLOR]} />
+        }
+      >
         
-        {/* Blue Header Section */}
         <View style={styles.headerBackground}>
           <SafeAreaView>
             <View style={styles.headerTop}>
@@ -36,98 +93,120 @@ export default function DashboardScreen() {
                   <MaterialCommunityIcons name="account" size={24} color="#FFF" />
                 </View>
                 <View style={styles.greetingContainer}>
-                  <Text style={styles.greetingText}>Good Morning</Text>
-                  <Text style={styles.nameText}>John Doe</Text>
+                  <Text style={styles.greetingText}>{getGreeting()}</Text>
+                  <Text style={styles.nameText}>{displayName}</Text>
                 </View>
               </View>
               <TouchableOpacity style={styles.notificationButton} onPress={() => router.push('./notifications')}>
                 <MaterialCommunityIcons name="bell-outline" size={24} color="#FFFFFF" />
-                <View style={styles.notificationBadge}>
-                  <Text style={styles.badgeText}>3</Text>
-                </View>
+                {unreadCount > 0 && (
+                  <View style={styles.notificationBadge}>
+                    <Text style={styles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+                  </View>
+                )}
               </TouchableOpacity>
             </View>
           </SafeAreaView>
         </View>
 
-        {/* Main Content Area (Overlapping the header) */}
         <View style={styles.mainContent}>
           
-          {/* Main Cylinder Card */}
-          <View style={styles.mainCard}>
-            <View style={styles.cardHeader}>
-              <View>
-                <Text style={styles.cylinderLabel}>Main Cylinder</Text>
-                <Text style={styles.cylinderName}>Kitchen Gas</Text>
+          {devices.length > 0 ? (
+            <View style={styles.mainCard}>
+              <View style={styles.cardHeader}>
+                <View>
+                  <Text style={styles.cylinderLabel}>Main Cylinder</Text>
+                  <Text style={styles.cylinderName}>{mainDevice?.device_id || 'Gas Monitor'}</Text>
+                </View>
+                <View style={[styles.statusBadge, { backgroundColor: getStatusColor(mainDevice?.current_level || 0) + '20' }]}>
+                  <Text style={[styles.statusText, { color: getStatusColor(mainDevice?.current_level || 0) }]}>
+                    {getStatusText(mainDevice?.current_level || 0)}
+                  </Text>
+                </View>
               </View>
-              <View style={styles.statusBadge}>
-                <Text style={styles.statusText}>Good</Text>
+
+              <View style={styles.progressContainer}>
+                <Svg width={size} height={size}>
+                  <Circle
+                    stroke="#E5E7EB"
+                    fill="none"
+                    cx={size / 2}
+                    cy={size / 2}
+                    r={radius}
+                    strokeWidth={strokeWidth}
+                  />
+                  <Circle
+                    stroke={getStatusColor(mainDevice?.current_level || 0)}
+                    fill="none"
+                    cx={size / 2}
+                    cy={size / 2}
+                    r={radius}
+                    strokeWidth={strokeWidth}
+                    strokeDasharray={`${circumference} ${circumference}`}
+                    strokeDashoffset={`${strokeDashoffset}`}
+                    strokeLinecap="round"
+                    transform={`rotate(-90 ${size / 2} ${size / 2})`}
+                  />
+                </Svg>
+                <View style={styles.progressCenter}>
+                  <MaterialCommunityIcons 
+                    name="fire" 
+                    size={36} 
+                    color={getStatusColor(mainDevice?.current_level || 0)} 
+                  />
+                  <Text style={styles.percentageText}>{mainDevice?.current_level || 0}%</Text>
+                  <Text style={styles.remainingText}>Remaining</Text>
+                </View>
+              </View>
+
+              <View style={styles.metricsRow}>
+                <View style={styles.metricItem}>
+                  <Text style={styles.metricLabel}>Battery</Text>
+                  <Text style={styles.metricValue}>{mainDevice?.battery_level || 0}%</Text>
+                </View>
+                <View style={styles.metricItemRight}>
+                  <Text style={styles.metricLabel}>Last Seen</Text>
+                  <Text style={styles.metricValue}>
+                    {mainDevice?.last_seen 
+                      ? new Date(mainDevice.last_seen).toLocaleDateString() 
+                      : 'N/A'}
+                  </Text>
+                </View>
+              </View>
+
+              <TouchableOpacity
+                style={styles.refillButton}
+                onPress={() =>
+                  router.push({
+                    pathname: '/(tabs)/vendors',
+                    params: {
+                      preselectedDeviceId: mainDevice?.id,
+                      preselectedCylinderLevel: String(mainDevice?.current_level || 0),
+                    },
+                  } as Href)
+                }
+              >
+                <Text style={styles.refillButtonText}>Request Refill</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={styles.mainCard}>
+              <View style={styles.emptyState}>
+                <MaterialCommunityIcons name="gas-cylinder" size={64} color="#E5E7EB" />
+                <Text style={styles.emptyTitle}>No Gas Monitors</Text>
+                <Text style={styles.emptyText}>
+                  Connect a gas sensor to start monitoring your gas levels
+                </Text>
+                <TouchableOpacity
+                  style={styles.addMonitorButton}
+                  onPress={() => router.push('/add-monitor')}
+                >
+                  <Text style={styles.addMonitorButtonText}>Add Monitor</Text>
+                </TouchableOpacity>
               </View>
             </View>
+          )}
 
-            {/* SVG Circular Progress */}
-            <View style={styles.progressContainer}>
-              <Svg width={size} height={size}>
-                {/* Background Track */}
-                <Circle
-                  stroke="#E5E7EB"
-                  fill="none"
-                  cx={size / 2}
-                  cy={size / 2}
-                  r={radius}
-                  strokeWidth={strokeWidth}
-                />
-                {/* Progress Track */}
-                <Circle
-                  stroke="#10B981"
-                  fill="none"
-                  cx={size / 2}
-                  cy={size / 2}
-                  r={radius}
-                  strokeWidth={strokeWidth}
-                  strokeDasharray={`${circumference} ${circumference}`}
-                  strokeDashoffset={`${strokeDashoffset}`}
-                  strokeLinecap="round"
-                  transform={`rotate(-90 ${size / 2} ${size / 2})`}
-                />
-              </Svg>
-              <View style={styles.progressCenter}>
-                <MaterialCommunityIcons name="fire" size={36} color="#F59E0B" />
-                <Text style={styles.percentageText}>65%</Text>
-                <Text style={styles.remainingText}>Remaining</Text>
-              </View>
-            </View>
-
-            {/* Metrics Row */}
-            <View style={styles.metricsRow}>
-              <View style={styles.metricItem}>
-                <Text style={styles.metricLabel}>Used Today</Text>
-                <Text style={styles.metricValue}>2.3 kg</Text>
-              </View>
-              <View style={styles.metricItemRight}>
-                <Text style={styles.metricLabel}>Est. Days Left</Text>
-                <Text style={styles.metricValue}>12 days</Text>
-              </View>
-            </View>
-
-            {/* Action Button */}
-            <TouchableOpacity
-              style={styles.refillButton}
-              onPress={() =>
-                router.push({
-                  pathname: '/(tabs)/vendors',
-                  params: {
-                    preselectedCylinderName: 'Kitchen Gas',
-                    preselectedCylinderLevel: '65',
-                  },
-                } as Href)
-              }
-            >
-              <Text style={styles.refillButtonText}>Request Refill</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Quick Actions */}
           <View style={styles.sectionContainer}>
             <Text style={styles.sectionTitle}>Quick Actions</Text>
             <View style={styles.quickActionsRow}>
@@ -154,84 +233,93 @@ export default function DashboardScreen() {
             </View>
           </View>
 
-          {/* Recent Activity */}
-          <View style={styles.sectionContainer}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Recent Activity</Text>
-              <TouchableOpacity onPress={() => router.push('./recent-activity')}>
-                <Text style={styles.viewAllText}>View all</Text>
-              </TouchableOpacity>
-            </View>
+          {refillRequestsData?.results && refillRequestsData.results.length > 0 && (
+            <View style={styles.sectionContainer}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Recent Refills</Text>
+                <TouchableOpacity onPress={() => router.push('./recent-activity')}>
+                  <Text style={styles.viewAllText}>View all</Text>
+                </TouchableOpacity>
+              </View>
 
-            <View style={styles.activityCard}>
-              {[1, 2, 3].map((item, index) => (
-                <View key={index}>
-                  <View style={styles.activityItem}>
-                    <View style={styles.activityIconContainer}>
-                      <MaterialCommunityIcons name="check-circle-outline" size={20} color="#10B981" />
+              <View style={styles.activityCard}>
+                {refillRequestsData.results.slice(0, 3).map((item, index) => (
+                  <View key={item.id}>
+                    <View style={styles.activityItem}>
+                      <View style={[styles.activityIconContainer, { 
+                        backgroundColor: item.status === 'completed' ? '#D1FAE5' : 
+                          item.status === 'pending' ? '#FEF3C7' : '#E0E7FF'
+                      }]}>
+                        <MaterialCommunityIcons 
+                          name={item.status === 'completed' ? 'check-circle-outline' : 
+                            item.status === 'pending' ? 'clock-outline' : 'truck-delivery-outline'} 
+                          size={20} 
+                          color={item.status === 'completed' ? '#10B981' : 
+                            item.status === 'pending' ? '#F59E0B' : PRIMARY_COLOR} 
+                        />
+                      </View>
+                      <View style={styles.activityDetails}>
+                        <Text style={styles.activityTitle}>
+                          {item.status === 'completed' ? 'Refill Completed' : 
+                            item.status === 'pending' ? 'Refill Pending' : 'Refill In Transit'}
+                        </Text>
+                        <Text style={styles.activitySubtitle}>
+                          {new Date(item.requested_at).toLocaleDateString()}
+                        </Text>
+                      </View>
+                      <View style={styles.activityRight}>
+                        <Text style={styles.activityDate}>
+                          {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
+                        </Text>
+                      </View>
                     </View>
-                    <View style={styles.activityDetails}>
-                      <Text style={styles.activityTitle}>Refill Completed</Text>
-                      <Text style={styles.activitySubtitle}>Kitchen Gas</Text>
-                    </View>
-                    <View style={styles.activityRight}>
-                      <Text style={styles.activityAmount}>Ksh. 1500</Text>
-                      <Text style={styles.activityDate}>Jan 15</Text>
-                    </View>
+                    {index < Math.min(refillRequestsData.results.length, 3) - 1 && <View style={styles.divider} />}
                   </View>
-                  {index < 2 && <View style={styles.divider} />}
-                </View>
+                ))}
+              </View>
+            </View>
+          )}
+
+          {devices.length > 1 && (
+            <View style={[styles.sectionContainer, styles.lastSection]}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Other Monitors</Text>
+                <TouchableOpacity onPress={() => router.push('/monitors' as Href)}>
+                  <Text style={styles.viewAllText}>View all</Text>
+                </TouchableOpacity>
+              </View>
+
+              {devices.slice(1).map((device) => (
+                <TouchableOpacity
+                  key={device.id}
+                  style={styles.otherMonitorItem}
+                  onPress={() =>
+                    router.push({
+                      pathname: '/my-circle/cylinder',
+                      params: { name: device.device_id, fill: String(device.current_level) },
+                    } as Href)
+                  }
+                >
+                  <View style={[styles.monitorIconBadge, { 
+                    backgroundColor: device.current_level >= 50 ? '#D1FAE5' : 
+                      device.current_level >= 20 ? '#FEF3C7' : '#FEE2E2'
+                  }]}> 
+                    <MaterialCommunityIcons 
+                      name="fire" 
+                      size={16} 
+                      color={device.current_level >= 50 ? '#10B981' : 
+                        device.current_level >= 20 ? '#F59E0B' : '#EF4444'} 
+                    />
+                  </View>
+                  <View style={styles.activityDetails}>
+                    <Text style={styles.activityTitle}>{device.device_id}</Text>
+                    <Text style={styles.activitySubtitle}>{device.current_level}% remaining</Text>
+                  </View>
+                  <MaterialCommunityIcons name="chevron-right" size={24} color="#9CA3AF" />
+                </TouchableOpacity>
               ))}
             </View>
-          </View>
-
-          {/* Other Monitor */}
-          <View style={[styles.sectionContainer, styles.lastSection]}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Other Monitor</Text>
-              <TouchableOpacity onPress={() => router.push('/monitors' as Href)}>
-                <Text style={styles.viewAllText}>View all</Text>
-              </TouchableOpacity>
-            </View>
-
-            <TouchableOpacity
-              style={styles.otherMonitorItem}
-              onPress={() =>
-                router.push({
-                  pathname: '/my-circle/cylinder',
-                  params: { name: 'Office Gas', location: 'Office - Main Floor', fill: '85' },
-                } as Href)
-              }
-            >
-              <View style={[styles.monitorIconBadge, { backgroundColor: '#D1FAE5' }]}> 
-                <MaterialCommunityIcons name="water" size={16} color="#10B981" />
-              </View>
-              <View style={styles.activityDetails}>
-                <Text style={styles.activityTitle}>Office Gas</Text>
-                <Text style={styles.activitySubtitle}>85% remaining</Text>
-              </View>
-              <MaterialCommunityIcons name="chevron-right" size={24} color="#9CA3AF" />
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.otherMonitorItem}
-              onPress={() =>
-                router.push({
-                  pathname: '/my-circle/cylinder',
-                  params: { name: 'Back Up Cylinder', location: 'Home - Garage', fill: '35' },
-                } as Href)
-              }
-            >
-              <View style={[styles.monitorIconBadge, { backgroundColor: '#FEF3C7' }]}> 
-                <MaterialCommunityIcons name="fire" size={16} color="#F59E0B" />
-              </View>
-              <View style={styles.activityDetails}>
-                <Text style={styles.activityTitle}>Back Up Cylinder</Text>
-                <Text style={styles.activitySubtitle}>35% remaining</Text>
-              </View>
-              <MaterialCommunityIcons name="chevron-right" size={24} color="#9CA3AF" />
-            </TouchableOpacity>
-          </View>
+          )}
 
         </View>
       </ScrollView>
@@ -244,6 +332,11 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F8FAFC',
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   scrollContent: {
     paddingBottom: 40,
   },
@@ -252,7 +345,7 @@ const styles = StyleSheet.create({
     height: 240,
     borderBottomLeftRadius: 40,
     borderBottomRightRadius: 40,
-    paddingTop: 50, // accommodate status bar roughly if SafeAreaView fails
+    paddingTop: 50,
   },
   headerTop: {
     flexDirection: 'row',
@@ -293,13 +386,14 @@ const styles = StyleSheet.create({
     top: 2,
     right: 4,
     backgroundColor: '#EF4444',
-    width: 14,
+    minWidth: 16,
     height: 14,
     borderRadius: 7,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1.5,
     borderColor: PRIMARY_COLOR,
+    paddingHorizontal: 3,
   },
   badgeText: {
     color: '#FFFFFF',
@@ -308,7 +402,7 @@ const styles = StyleSheet.create({
   },
   mainContent: {
     paddingHorizontal: 24,
-    marginTop: -100, // Brings the content up over the header curve
+    marginTop: -100,
   },
   mainCard: {
     backgroundColor: '#FFFFFF',
@@ -336,13 +430,11 @@ const styles = StyleSheet.create({
     color: '#1F2937',
   },
   statusBadge: {
-    backgroundColor: '#D1FAE5',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
   },
   statusText: {
-    color: '#10B981',
     fontSize: 10,
     fontWeight: '600',
   },
@@ -406,6 +498,34 @@ const styles = StyleSheet.create({
   refillButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
+    fontWeight: '600',
+  },
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: 20,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginTop: 16,
+  },
+  emptyText: {
+    fontSize: 14,
+    color: '#6B7280',
+    textAlign: 'center',
+    marginTop: 8,
+    marginBottom: 24,
+  },
+  addMonitorButton: {
+    backgroundColor: PRIMARY_COLOR,
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+  },
+  addMonitorButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
     fontWeight: '600',
   },
   sectionContainer: {
@@ -476,7 +596,6 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#F8FAFC',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -499,20 +618,15 @@ const styles = StyleSheet.create({
   activityRight: {
     alignItems: 'flex-end',
   },
-  activityAmount: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#1F2937',
-    marginBottom: 2,
-  },
   activityDate: {
-    fontSize: 10,
-    color: '#9CA3AF',
+    fontSize: 12,
+    color: '#6B7280',
+    fontWeight: '500',
   },
   divider: {
     height: 1,
     backgroundColor: '#F3F4F6',
-    marginLeft: 44, // Align with text
+    marginLeft: 44,
   },
   otherMonitorItem: {
     backgroundColor: '#FFFFFF',

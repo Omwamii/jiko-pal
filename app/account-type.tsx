@@ -16,7 +16,7 @@ export default function AccountTypeScreen() {
       return;
     }
 
-    router.push('/signup');
+    router.push({ pathname: '/signup', params: { accountType: 'client' } } as Href);
   };
 
   const isClient = selectedType === 'client';

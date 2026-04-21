@@ -1,10 +1,11 @@
 import React, { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, TextInput } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, TextInput, Alert } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppCard } from '@/components/ui/AppCard';
+import { useCreateCircle } from '@/hooks/circle';
 
 const PRIMARY_COLOR = '#3629B7';
 
@@ -18,20 +19,22 @@ const MEMBERS = [
 export default function InviteMembersScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ name?: string; type?: string }>();
+  const { createCircle, isLoading: isCreating } = useCreateCircle();
   const [selectedMember, setSelectedMember] = useState('sarah-3');
-  const [isCreating, setIsCreating] = useState(false);
 
   const circleName = useMemo(() => params.name || 'Kitchen Gas', [params.name]);
   const circleType = useMemo(() => params.type || 'Rental Property', [params.type]);
 
   const handleCreateCircle = async () => {
-    setIsCreating(true);
-    await new Promise((resolve) => setTimeout(resolve, 400));
-    router.replace({
-      pathname: './success',
-      params: { name: circleName, type: circleType },
-    });
-    setIsCreating(false);
+    try {
+      await createCircle({ circle_name: circleName });
+      router.replace({
+        pathname: './success',
+        params: { name: circleName, type: circleType },
+      });
+    } catch {
+      Alert.alert('Error', 'Failed to create circle. Please try again.');
+    }
   };
 
   return (

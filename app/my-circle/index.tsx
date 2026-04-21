@@ -1,19 +1,26 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, TextInput } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, TextInput, ActivityIndicator } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { type Href, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { AppCard } from '@/components/ui/AppCard';
+import { useCircleList } from '@/hooks/circle';
+import { MonitoringCircle } from '@/types';
 
 const PRIMARY_COLOR = '#3629B7';
 
 export default function MyCircleScreen() {
   const router = useRouter();
+  const { circles, isLoading, fetchCircles } = useCircleList();
+  const [searchQuery, setSearchQuery] = useState('');
 
-  const circles = [
-    { id: 'family-home', name: 'Family Home', members: 4 },
-    { id: 'backup-cylinder', name: 'Backup Cylinder', members: 2 },
-  ];
+  useEffect(() => {
+    fetchCircles();
+  }, [fetchCircles]);
+
+  const filteredCircles = circles.filter((circle: MonitoringCircle) =>
+    circle.circle_name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <View style={styles.container}>
@@ -42,6 +49,8 @@ export default function MyCircleScreen() {
             style={styles.searchInput}
             placeholder="Search by Name...."
             placeholderTextColor="#9CA3AF"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
           />
         </View>
 
@@ -59,27 +68,33 @@ export default function MyCircleScreen() {
         <Text style={styles.sectionTitle}>Active Monitors</Text>
 
         {/* Active Monitors List */}
-        {circles.map((circle) => (
-          <AppCard
-            key={circle.id}
-            style={styles.monitorCard}
-            onPress={() =>
-              router.push({
-                pathname: '/my-circle/circle',
-                params: { circleId: circle.id, circleName: circle.name, members: String(circle.members) },
-              } as Href)
-            }
-          >
-            <View style={[styles.iconBadge, { backgroundColor: '#E0E7FF' }]}>
-              <MaterialCommunityIcons name="account-group" size={24} color={PRIMARY_COLOR} />
-            </View>
-            <View style={styles.cardDetails}>
-              <Text style={styles.monitorTitle}>{circle.name}</Text>
-              <Text style={styles.monitorSubtitle}>{circle.members} members</Text>
-            </View>
-            <MaterialCommunityIcons name="chevron-right" size={24} color="#9CA3AF" />
-          </AppCard>
-        ))}
+        {isLoading ? (
+          <ActivityIndicator size="large" color={PRIMARY_COLOR} style={styles.loader} />
+        ) : filteredCircles.length === 0 ? (
+          <Text style={styles.emptyText}>No circles yet. Create one to get started!</Text>
+        ) : (
+          filteredCircles.map((circle: MonitoringCircle) => (
+            <AppCard
+              key={circle.id}
+              style={styles.monitorCard}
+              onPress={() =>
+                router.push({
+                  pathname: '/my-circle/circle',
+                  params: { circleId: circle.id, circleName: circle.circle_name, members: String(circle.member_count) },
+                } as Href)
+              }
+            >
+              <View style={[styles.iconBadge, { backgroundColor: '#E0E7FF' }]}>
+                <MaterialCommunityIcons name="account-group" size={24} color={PRIMARY_COLOR} />
+              </View>
+              <View style={styles.cardDetails}>
+                <Text style={styles.monitorTitle}>{circle.circle_name}</Text>
+                <Text style={styles.monitorSubtitle}>{circle.member_count} members</Text>
+              </View>
+              <MaterialCommunityIcons name="chevron-right" size={24} color="#9CA3AF" />
+            </AppCard>
+          ))
+        )}
 
       </ScrollView>
     </View>
@@ -174,5 +189,14 @@ const styles = StyleSheet.create({
   monitorSubtitle: {
     fontSize: 12,
     color: '#9CA3AF',
+  },
+  loader: {
+    marginTop: 40,
+  },
+  emptyText: {
+    textAlign: 'center',
+    color: '#9CA3AF',
+    fontSize: 14,
+    marginTop: 20,
   },
 });

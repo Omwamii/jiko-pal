@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, TextInput } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, TextInput, Alert } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppCard } from '@/components/ui/AppCard';
+import { authService } from '@/lib/auth';
 
 const PRIMARY_COLOR = '#3629B7';
 
@@ -13,6 +14,38 @@ export default function ChangePasswordScreen() {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleChangePassword = async () => {
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      Alert.alert('Error', 'Please fill in all fields');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      Alert.alert('Error', 'New passwords do not match');
+      return;
+    }
+    if (newPassword.length < 8) {
+      Alert.alert('Error', 'Password must be at least 8 characters');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      await authService.changePassword({
+        current_password: currentPassword,
+        new_password: newPassword,
+        new_password_confirm: confirmPassword,
+      });
+      Alert.alert('Success', 'Password changed successfully');
+      router.back();
+    } catch (err: any) {
+      const message = err?.response?.data?.detail || 'Failed to change password';
+      Alert.alert('Error', message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -68,7 +101,7 @@ export default function ChangePasswordScreen() {
 
           <View style={styles.actions}>
             <AppButton title="Cancel" variant="secondary" style={styles.actionBtn} onPress={() => router.back()} />
-            <AppButton title="Update" style={styles.actionBtn} onPress={() => router.back()} />
+            <AppButton title="Update" style={styles.actionBtn} onPress={handleChangePassword} loading={isLoading} />
           </View>
 
           <AppCard style={styles.tipCard}>

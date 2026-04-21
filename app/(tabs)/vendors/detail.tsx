@@ -1,17 +1,13 @@
-import React, { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView } from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, Alert } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppCard } from '@/components/ui/AppCard';
+import { useVendorDetails, useSubscribeVendor, useUnsubscribeVendor, useVendorSubscriptions } from '@/hooks/vendor';
 
 const PRIMARY_COLOR = '#3629B7';
-
-const reviews = [
-  { id: 'r1', author: 'John Doe', initials: 'JD', rating: 5, text: 'Great service! Fast delivery and professional staff.', age: '2 Days ago' },
-  { id: 'r2', author: 'Sarah Kim', initials: 'SK', rating: 4, text: 'Great service! Fast delivery and professional staff.', age: '1 week ago' },
-];
 
 function Stars({ rating }: { rating: number }) {
   return (
@@ -26,9 +22,40 @@ function Stars({ rating }: { rating: number }) {
 export default function VendorDetailScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ vendorId?: string; vendorName?: string }>();
-  const [subscribed, setSubscribed] = useState(true);
+  const vendorId = params.vendorId || '';
+  
+  const { vendor, fetchVendor } = useVendorDetails();
+  const { subscriptions, fetchSubscriptions } = useVendorSubscriptions();
+  const { subscribe, isLoading: isSubscribing } = useSubscribeVendor();
+  const { unsubscribe, isLoading: isUnsubscribing } = useUnsubscribeVendor();
 
-  const vendorName = useMemo(() => params.vendorName || 'QuickGas Ltd', [params.vendorName]);
+  const vendorName = useMemo(() => params.vendorName || vendor?.company_name || 'Vendor', [params.vendorName, vendor]);
+  
+  const isSubscribed = useMemo(() => {
+    return subscriptions.some(sub => sub.vendor.id === vendorId);
+  }, [subscriptions, vendorId]);
+
+  useEffect(() => {
+    if (vendorId) {
+      fetchVendor(vendorId);
+      fetchSubscriptions();
+    }
+  }, [vendorId, fetchVendor, fetchSubscriptions]);
+
+  const handleSubscribeToggle = async () => {
+    try {
+      if (isSubscribed) {
+        await unsubscribe(vendorId);
+        Alert.alert('Success', 'You have unsubscribed from this vendor.');
+      } else {
+        await subscribe(vendorId);
+        Alert.alert('Success', 'You have subscribed to this vendor!');
+      }
+      fetchSubscriptions();
+    } catch (err) {
+      Alert.alert('Error', 'Failed to update subscription. Please try again.');
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -81,16 +108,17 @@ export default function VendorDetailScreen() {
           />
           <AppButton
             title="Chat with vendor"
-            onPress={() => router.push({ pathname: '/(tabs)/vendors/chat', params: { vendorName } } as Href)}
+            onPress={() => router.push({ pathname: '/(tabs)/vendors/chat', params: { vendorId, vendorName } } as Href)}
             style={styles.chatBtn}
             textStyle={styles.chatBtnText}
           />
           <AppButton
-            title={subscribed ? 'Unsubscribe' : 'Subscribe'}
-            onPress={() => setSubscribed((value) => !value)}
+            title={isSubscribed ? 'Unsubscribe' : 'Subscribe'}
+            onPress={handleSubscribeToggle}
             variant="secondary"
             style={styles.subBtn}
-            textStyle={[styles.subText, !subscribed && styles.subTextSubscribed]}
+            textStyle={[styles.subText, !isSubscribed && styles.subTextSubscribed]}
+            loading={isSubscribing || isUnsubscribing}
           />
         </AppCard>
 
@@ -140,21 +168,7 @@ export default function VendorDetailScreen() {
           </TouchableOpacity>
         </View>
         <AppCard style={styles.sectionCard}>
-          {reviews.map((review, index) => (
-            <View key={review.id} style={[styles.reviewRow, index === reviews.length - 1 && { marginBottom: 0 }]}>
-              <View style={[styles.reviewAvatar, { backgroundColor: '#4338CA' }]}>
-                <Text style={styles.reviewAvatarText}>{review.initials}</Text>
-              </View>
-              <View style={styles.reviewBody}>
-                <View style={styles.reviewTopRow}>
-                  <Text style={styles.reviewAuthor}>{review.author}</Text>
-                  <Stars rating={review.rating} />
-                </View>
-                <Text style={styles.reviewText}>{review.text}</Text>
-                <Text style={styles.reviewAge}>{review.age}</Text>
-              </View>
-            </View>
-          ))}
+          <Text style={styles.emptyText}>No reviews yet.</Text>
         </AppCard>
       </ScrollView>
     </View>
@@ -232,4 +246,10 @@ const styles = StyleSheet.create({
   reviewAuthor: { fontSize: 13, color: '#374151', fontWeight: '700' },
   reviewText: { marginTop: 2, color: '#6B7280', fontSize: 10 },
   reviewAge: { marginTop: 3, color: '#9CA3AF', fontSize: 9 },
+  emptyText: {
+    textAlign: 'center',
+    color: '#9CA3AF',
+    fontSize: 14,
+    paddingVertical: 20,
+  },
 });

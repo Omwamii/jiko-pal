@@ -1,19 +1,53 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, TextInput } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, TextInput, Alert } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppCard } from '@/components/ui/AppCard';
+import { authService } from '@/lib/auth';
+import { useAuth } from '@/providers/AuthProvider';
 
 const PRIMARY_COLOR = '#3629B7';
 
 export default function EditProfileScreen() {
   const router = useRouter();
-  const [fullName, setFullName] = useState('John Doe');
-  const [email, setEmail] = useState('Jogn.doe@gmail.com');
-  const [phone, setPhone] = useState('+254 741734257053756');
-  const [address, setAddress] = useState('123 Main Street , Apt 4B, Nairobi, NB 10001');
+  const { user, clientProfile, vendorProfile, refreshClientProfile, refreshVendorProfile } = useAuth();
+  
+  const [fullName, setFullName] = useState(clientProfile?.full_name || vendorProfile?.company_name || '');
+  const [phone, setPhone] = useState(clientProfile?.phone_number || '');
+  const [isLoading, setIsLoading] = useState(false);
+
+  const isVendor = user?.role === 'vendor';
+
+  useEffect(() => {
+    if (clientProfile) {
+      setFullName(clientProfile.full_name || '');
+      setPhone(clientProfile.phone_number || '');
+    } else if (vendorProfile) {
+      setFullName(vendorProfile.company_name || '');
+      setPhone('');
+    }
+  }, [clientProfile, vendorProfile]);
+
+  const handleSave = async () => {
+    setIsLoading(true);
+    try {
+      if (isVendor) {
+        await authService.updateVendorProfile({ company_name: fullName });
+        refreshVendorProfile();
+      } else {
+        await authService.updateClientProfile({ full_name: fullName, phone_number: phone });
+        refreshClientProfile();
+      }
+      Alert.alert('Success', 'Profile updated successfully');
+      router.back();
+    } catch (err) {
+      Alert.alert('Error', 'Failed to update profile');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -46,29 +80,13 @@ export default function EditProfileScreen() {
           </View>
 
           <View style={styles.fieldWrap}>
-            <Text style={styles.label}>Email Address</Text>
-            <TextInput style={styles.input} value={email} onChangeText={setEmail} autoCapitalize="none" />
-          </View>
-
-          <View style={styles.fieldWrap}>
             <Text style={styles.label}>Phone Number</Text>
             <TextInput style={styles.input} value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
           </View>
 
-          <View style={styles.fieldWrap}>
-            <Text style={styles.label}>Default Address</Text>
-            <TextInput
-              style={[styles.input, styles.addressInput]}
-              value={address}
-              onChangeText={setAddress}
-              multiline
-              textAlignVertical="top"
-            />
-          </View>
-
           <View style={styles.actions}>
             <AppButton title="Cancel" variant="secondary" style={styles.actionBtn} onPress={() => router.back()} />
-            <AppButton title="Update" style={styles.actionBtn} onPress={() => router.back()} />
+            <AppButton title="Update" style={styles.actionBtn} onPress={handleSave} loading={isLoading} />
           </View>
         </AppCard>
       </ScrollView>

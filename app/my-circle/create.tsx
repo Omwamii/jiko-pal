@@ -63,7 +63,6 @@ export default function CreateCircleScreen() {
   const router = useRouter();
   const [circleName, setCircleName] = useState('');
   const [selectedType, setSelectedType] = useState<(typeof CIRCLE_TYPES)[number] | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const canContinue = circleName.trim().length > 0 && !!selectedType;
 
@@ -74,15 +73,12 @@ export default function CreateCircleScreen() {
     };
   }, [circleName, selectedType]);
 
-  const handleContinue = async () => {
+  const handleContinue = () => {
     if (!canContinue) {
       return;
     }
 
-    setIsSubmitting(true);
-    await new Promise((resolve) => setTimeout(resolve, 400));
     router.push({ pathname: './invite', params: continueParams });
-    setIsSubmitting(false);
   };
 
   return (
@@ -133,7 +129,7 @@ export default function CreateCircleScreen() {
 
         {!canContinue ? <Text style={styles.errorText}>Enter circle name and select type to continue.</Text> : null}
 
-        <AppButton title="Continue" onPress={handleContinue} disabled={!canContinue} loading={isSubmitting} />
+        <AppButton title="Continue" onPress={handleContinue} disabled={!canContinue} />
       </ScrollView>
     </View>
   );

@@ -1,20 +1,40 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, TextInput } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, TextInput, ActivityIndicator } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { type Href, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { AppCard } from '@/components/ui/AppCard';
+import { useDevices } from '@/hooks/queries';
 
 const PRIMARY_COLOR = '#3629B7';
 
-const monitors = [
-  { id: 'office-gas', name: 'Office Gas', subtitle: 'Created by you', location: 'Office - Main Floor', fill: 85, icon: 'water', iconBg: '#D1FAE5', iconColor: '#10B981' },
-  { id: 'backup-cylinder', name: 'Backup Cylinder', subtitle: 'Monitored via Family Home', location: 'Home - Garage', fill: 35, icon: 'fire', iconBg: '#FEF3C7', iconColor: '#F59E0B' },
-  { id: 'kitchen-gas', name: 'Kitchen Gas', subtitle: 'Created by you', location: 'Home - Kitchen', fill: 65, icon: 'water', iconBg: '#D1FAE5', iconColor: '#10B981' },
-];
-
 export default function MonitorsScreen() {
   const router = useRouter();
+  const { data: devicesData, isLoading } = useDevices();
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const devices = devicesData?.results || [];
+  
+  const filteredDevices = devices.filter(device => 
+    device.device_id.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const getStatusColor = (level: number) => {
+    if (level >= 50) return { bg: '#D1FAE5', color: '#10B981' };
+    if (level >= 20) return { bg: '#FEF3C7', color: '#F59E0B' };
+    return { bg: '#FEE2E2', color: '#EF4444' };
+  };
+
+  if (isLoading) {
+    return (
+      <View style={styles.container}>
+        <StatusBar style="light" />
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={PRIMARY_COLOR} />
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -33,36 +53,64 @@ export default function MonitorsScreen() {
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         <View style={styles.searchContainer}>
-          <TextInput style={styles.searchInput} placeholder="Search by monitor name...." placeholderTextColor="#9CA3AF" />
+          <TextInput 
+            style={styles.searchInput} 
+            placeholder="Search by monitor name...." 
+            placeholderTextColor="#9CA3AF"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
         </View>
 
         <Text style={styles.sectionTitle}>Active Monitors</Text>
 
-        {monitors.map((monitor) => (
-          <AppCard
-            key={monitor.id}
-            style={styles.monitorCard}
-            onPress={() =>
-              router.push({
-                pathname: '/my-circle/cylinder',
-                params: {
-                  name: monitor.name,
-                  location: monitor.location,
-                  fill: String(monitor.fill),
-                },
-              } as Href)
-            }
-          >
-            <View style={[styles.iconBadge, { backgroundColor: monitor.iconBg }]}> 
-              <MaterialCommunityIcons name={monitor.icon as any} size={18} color={monitor.iconColor} />
-            </View>
-            <View style={styles.cardDetails}>
-              <Text style={styles.monitorTitle}>{monitor.name}</Text>
-              <Text style={styles.monitorSubtitle}>{monitor.subtitle}</Text>
-            </View>
-            <MaterialCommunityIcons name="chevron-right" size={24} color="#9CA3AF" />
-          </AppCard>
-        ))}
+        {filteredDevices.length === 0 ? (
+          <View style={styles.emptyState}>
+            <MaterialCommunityIcons name="gas-cylinder" size={48} color="#E5E7EB" />
+            <Text style={styles.emptyText}>
+              {searchQuery ? 'No monitors found' : 'No monitors yet. Add one to get started!'}
+            </Text>
+            {!searchQuery && (
+              <TouchableOpacity
+                style={styles.addButton}
+                onPress={() => router.push('/add-monitor')}
+              >
+                <Text style={styles.addButtonText}>Add Monitor</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        ) : (
+          filteredDevices.map((device) => {
+            const statusColors = getStatusColor(device.current_level);
+            return (
+              <AppCard
+                key={device.id}
+                style={styles.monitorCard}
+                onPress={() =>
+                  router.push({
+                    pathname: '/my-circle/cylinder',
+                    params: {
+                      name: device.device_id,
+                      location: device.mac_address || 'Unknown location',
+                      fill: String(device.current_level),
+                    },
+                  } as Href)
+                }
+              >
+                <View style={[styles.iconBadge, { backgroundColor: statusColors.bg }]}> 
+                  <MaterialCommunityIcons name="fire" size={18} color={statusColors.color} />
+                </View>
+                <View style={styles.cardDetails}>
+                  <Text style={styles.monitorTitle}>{device.device_id}</Text>
+                  <Text style={styles.monitorSubtitle}>
+                    {device.current_level}% remaining • {device.status}
+                  </Text>
+                </View>
+                <MaterialCommunityIcons name="chevron-right" size={24} color="#9CA3AF" />
+              </AppCard>
+            );
+          })
+        )}
       </ScrollView>
     </View>
   );
@@ -72,6 +120,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F8FAFC',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   header: {
     backgroundColor: PRIMARY_COLOR,
@@ -146,5 +199,27 @@ const styles = StyleSheet.create({
   monitorSubtitle: {
     fontSize: 12,
     color: '#9CA3AF',
+  },
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  emptyText: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginTop: 16,
+    textAlign: 'center',
+  },
+  addButton: {
+    marginTop: 16,
+    backgroundColor: PRIMARY_COLOR,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  addButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });

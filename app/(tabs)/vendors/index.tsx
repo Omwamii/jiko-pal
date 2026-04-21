@@ -1,25 +1,24 @@
-import React, { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, TextInput, ScrollView } from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, TextInput, ScrollView, ActivityIndicator } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { AppCard } from '@/components/ui/AppCard';
 import { AppButton } from '@/components/ui/AppButton';
+import { useVendorList, useVendorSubscriptions } from '@/hooks/vendor';
+import { Vendor } from '@/types';
 
 const PRIMARY_COLOR = '#3629B7';
-
-const VENDORS = [
-  { id: 'quickgas', name: 'QuickGas Ltd', rating: 4.8, reviews: 234, active: 3.2, price: 1500, subscribed: true },
-  { id: 'gaspro', name: 'GasPro Services', rating: 4.3, reviews: 199, active: 2.8, price: 1500, subscribed: true },
-  { id: 'citygas', name: 'CityGas Express', rating: 4.3, reviews: 212, active: 2.9, price: 1500, subscribed: false },
-  { id: 'citygas-plus', name: 'CityGas Express', rating: 4.3, reviews: 212, active: 2.9, price: 1500, subscribed: false },
-];
 
 export default function VendorsScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ preselectedCylinderName?: string; preselectedCylinderLevel?: string }>();
   const [activeTab, setActiveTab] = useState<'all' | 'mine'>('all');
   const [query, setQuery] = useState('');
+  
+  const { vendors, isLoading: isLoadingVendors, fetchVendors } = useVendorList();
+  const { subscriptions, isLoading: isLoadingSubs, fetchSubscriptions } = useVendorSubscriptions();
+
   const preselectedCylinderName = useMemo(
     () => (Array.isArray(params.preselectedCylinderName) ? params.preselectedCylinderName[0] : params.preselectedCylinderName),
     [params.preselectedCylinderName]
@@ -30,13 +29,29 @@ export default function VendorsScreen() {
   );
   const isRefillVendorSelection = Boolean(preselectedCylinderName);
 
+  const subscribedVendorIds = useMemo(() => {
+    return new Set(subscriptions.map(sub => sub.vendor.id));
+  }, [subscriptions]);
+
+  const vendorsWithSubscription = useMemo(() => {
+    return vendors.map(vendor => ({
+      ...vendor,
+      is_subscribed: subscribedVendorIds.has(vendor.id)
+    }));
+  }, [vendors, subscribedVendorIds]);
+
   const filtered = useMemo(() => {
-    return VENDORS.filter((vendor) => {
-      const tabOk = activeTab === 'all' ? true : vendor.subscribed;
-      const queryOk = vendor.name.toLowerCase().includes(query.toLowerCase().trim());
+    return vendorsWithSubscription.filter((vendor: Vendor & { is_subscribed?: boolean }) => {
+      const tabOk = activeTab === 'all' ? true : vendor.is_subscribed;
+      const queryOk = vendor.company_name.toLowerCase().includes(query.toLowerCase().trim());
       return tabOk && queryOk;
     });
-  }, [activeTab, query]);
+  }, [activeTab, query, vendorsWithSubscription]);
+
+  useEffect(() => {
+    fetchVendors();
+    fetchSubscriptions();
+  }, [fetchVendors, fetchSubscriptions]);
 
   return (
     <View style={styles.container}>
@@ -77,26 +92,31 @@ export default function VendorsScreen() {
           onChangeText={setQuery}
         />
 
-        {filtered.map((vendor) => (
+        {isLoadingVendors || isLoadingSubs ? (
+          <ActivityIndicator size="large" color={PRIMARY_COLOR} style={styles.loader} />
+        ) : filtered.length === 0 ? (
+          <Text style={styles.emptyText}>No vendors found.</Text>
+        ) : (
+          filtered.map((vendor) => (
           <AppCard key={vendor.id} style={styles.vendorCard}>
             <View style={styles.vendorHeader}>
               <View style={styles.avatar}>
-                <Text style={styles.avatarText}>{vendor.name.slice(0, 2).toUpperCase()}</Text>
+                <Text style={styles.avatarText}>{vendor.company_name.slice(0, 2).toUpperCase()}</Text>
               </View>
               <View style={styles.vendorMeta}>
-                <Text style={styles.vendorName}>{vendor.name}</Text>
+                <Text style={styles.vendorName}>{vendor.company_name}</Text>
                 <View style={styles.ratingRow}>
                   <MaterialCommunityIcons name="star" size={12} color="#F59E0B" />
                   <Text style={styles.ratingText}>
-                    {vendor.rating} ({vendor.reviews} reviews)
+                    {vendor.is_available ? 'Available' : 'Unavailable'}
                   </Text>
                 </View>
                 <View style={styles.metaRow}>
-                  <MaterialCommunityIcons name="fire-circle" size={12} color="#9CA3AF" />
-                  <Text style={styles.metaText}>{vendor.active} km</Text>
+                  <MaterialCommunityIcons name="map-marker" size={12} color="#9CA3AF" />
+                  <Text style={styles.metaText}>{vendor.location}</Text>
                 </View>
               </View>
-              {vendor.subscribed ? (
+              {vendor.is_subscribed ? (
                 <View style={styles.subscribedBadge}>
                   <Text style={styles.subscribedText}>Subscribed</Text>
                 </View>
@@ -107,8 +127,8 @@ export default function VendorsScreen() {
 
             <View style={styles.vendorFooter}>
               <View>
-                <Text style={styles.priceLabel}>Price per cylinder</Text>
-                <Text style={styles.priceValue}>Ksh. {vendor.price}</Text>
+                <Text style={styles.priceLabel}>Location</Text>
+                <Text style={styles.priceValue}>{vendor.location}</Text>
               </View>
               <AppButton
                 title={isRefillVendorSelection ? 'Select Vendor' : 'View Details'}
@@ -121,7 +141,8 @@ export default function VendorsScreen() {
                     router.push({
                       pathname: '/(tabs)/vendors/refill-date',
                       params: {
-                        vendorName: vendor.name,
+                        vendorId: vendor.id,
+                        vendorName: vendor.company_name,
                         cylinderName: preselectedCylinderName,
                         cylinderLevel: preselectedCylinderLevel || '65',
                       },
@@ -131,7 +152,7 @@ export default function VendorsScreen() {
 
                   router.push({
                     pathname: '/(tabs)/vendors/detail',
-                    params: { vendorId: vendor.id, vendorName: vendor.name },
+                    params: { vendorId: vendor.id, vendorName: vendor.company_name },
                   } as Href);
                 }}
                 style={styles.detailsBtn}
@@ -139,7 +160,8 @@ export default function VendorsScreen() {
               />
             </View>
           </AppCard>
-        ))}
+          ))
+        )}
       </ScrollView>
     </View>
   );
@@ -214,4 +236,13 @@ const styles = StyleSheet.create({
   priceValue: { color: '#11181C', fontSize: 16, fontWeight: '700', marginTop: 2 },
   detailsBtn: { height: 28, borderRadius: 14, paddingHorizontal: 14 },
   detailsBtnText: { fontSize: 10 },
+  loader: {
+    marginTop: 40,
+  },
+  emptyText: {
+    textAlign: 'center',
+    color: '#9CA3AF',
+    fontSize: 14,
+    marginTop: 20,
+  },
 });
