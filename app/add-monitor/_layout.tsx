@@ -25,6 +25,13 @@ export default function AddMonitorLayout() {
         }} 
       />
       <Stack.Screen 
+        name="wifi-credentials" 
+        options={{ 
+          title: 'WiFi Credentials',
+          headerShown: false 
+        }} 
+      />
+      <Stack.Screen 
         name="details" 
         options={{ 
           title: 'Device Details',

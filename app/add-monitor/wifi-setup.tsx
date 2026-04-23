@@ -1,68 +1,81 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, TextInput, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
+import React, { useCallback, useEffect, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, ActivityIndicator, Alert, Platform, TextInput } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { connectToSensorNetwork, getTankIdFromSSID, scanSensorNetworks, type SensorWifi } from '@/lib/wifi';
 
 const PRIMARY_COLOR = '#3629B7';
-
-const MOCK_NETWORKS = [
-  { id: '1', ssid: 'Omwami_5G', signal: 'excellent' },
-  { id: '2', ssid: 'Nairobi_Guest_WiFi', signal: 'good' },
-  { id: '3', ssid: 'JikoPal_Sensor_A1B2', signal: 'excellent', isDevice: true },
-  { id: '4', ssid: 'HUAWEI-E5573-8AF2', signal: 'fair' }
-];
 
 export default function WifiSetupScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ fromCircle?: string; circleId?: string; circleName?: string; members?: string }>();
+
   const [isScanning, setIsScanning] = useState(true);
-  const [selectedNetwork, setSelectedNetwork] = useState<typeof MOCK_NETWORKS[0] | null>(null);
-  const [password, setPassword] = useState('');
+  const [networks, setNetworks] = useState<SensorWifi[]>([]);
+  const [selectedNetwork, setSelectedNetwork] = useState<SensorWifi | null>(null);
+  const [manualSensorSSID, setManualSensorSSID] = useState('');
   const [isConnecting, setIsConnecting] = useState(false);
 
-  useEffect(() => {
-    // Simulate initial scan down for available networks
-    const timer = setTimeout(() => {
+  const handleScan = useCallback(async () => {
+    setIsScanning(true);
+
+    try {
+      const foundNetworks = await scanSensorNetworks();
+      setNetworks(foundNetworks);
+
+      if (foundNetworks.length === 0 && Platform.OS === 'android') {
+        Alert.alert('No sensor networks found', 'Turn on your sensor and confirm it is broadcasting LPG-Tank-{TANK_ID}, then refresh.');
+      }
+    } catch (error) {
+      console.error('Failed to scan Wi-Fi networks:', error);
+      Alert.alert('Unable to scan Wi-Fi', 'Allow location permission and make sure Wi-Fi is enabled, then try again.');
+    } finally {
       setIsScanning(false);
-    }, 2000);
-    return () => clearTimeout(timer);
+    }
   }, []);
 
-  const handleConnect = () => {
+  useEffect(() => {
+    handleScan();
+  }, [handleScan]);
+
+  const handleContinueToCredentials = async () => {
+    const fallbackSsid = manualSensorSSID.trim();
+    const sensorSSID = selectedNetwork?.ssid || fallbackSsid;
+
+    if (!sensorSSID || !sensorSSID.startsWith('LPG-Tank-')) {
+      Alert.alert('Select sensor hotspot', 'Choose or enter a valid sensor SSID that starts with LPG-Tank-.');
+      return;
+    }
+
     setIsConnecting(true);
-    // Simulate connection delay
-    setTimeout(() => {
-      setIsConnecting(false);
+
+    try {
+      await connectToSensorNetwork(sensorSSID);
+
       router.push({
-        pathname: '/add-monitor/details',
+        pathname: '/add-monitor/wifi-credentials',
         params: {
           fromCircle: params.fromCircle,
           circleId: params.circleId,
           circleName: params.circleName,
           members: params.members,
+          tankSSID: sensorSSID,
+          tankId: getTankIdFromSSID(sensorSSID),
         },
-      } as Href);
-    }, 1500);
-  };
-
-  const renderSignalIcon = (signal: string) => {
-    switch (signal) {
-      case 'excellent': return 'wifi-strength-4';
-      case 'good': return 'wifi-strength-3';
-      case 'fair': return 'wifi-strength-2';
-      default: return 'wifi-strength-1';
+      } as unknown as Href);
+    } catch (error) {
+      console.error('Failed to connect to sensor hotspot:', error);
+      Alert.alert('Could not connect', 'Ensure you selected the correct sensor hotspot and try again.');
+    } finally {
+      setIsConnecting(false);
     }
   };
 
   return (
-    <KeyboardAvoidingView 
-      style={styles.container} 
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
+    <View style={styles.container}>
       <StatusBar style="light" />
 
-      {/* Header */}
       <View style={styles.header}>
         <SafeAreaView>
           <View style={styles.headerContent}>
@@ -70,115 +83,87 @@ export default function WifiSetupScreen() {
               <MaterialCommunityIcons name="arrow-left" size={24} color="#FFF" />
             </TouchableOpacity>
             <View>
-              <Text style={styles.headerTitle}>WiFi Provisioning</Text>
-              <Text style={styles.headerSubtitle}>Step 2 of 3: Connect to sensor</Text>
+              <Text style={styles.headerTitle}>Connect to Sensor Wi-Fi</Text>
+              <Text style={styles.headerSubtitle}>Step 2 of 4: Select sensor network</Text>
             </View>
           </View>
         </SafeAreaView>
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        
         <View style={styles.infoBox}>
           <Text style={styles.infoText}>
-            Connect your sensor to your local Wi-Fi network so it can send data to your phone automatically.
+            Pick the sensor network starting with LPG-Tank. The sensor hotspot has no password.
           </Text>
+        </View>
+
+        <View style={styles.warningBox}>
+          <MaterialCommunityIcons name="alert-circle-outline" size={18} color="#92400E" />
+          <Text style={styles.warningText}>
+            Turn off mobile data temporarily while connecting to the sensor hotspot. You can turn it back on after setup.
+          </Text>
+        </View>
+
+        <View style={styles.networkListHeader}>
+          <Text style={styles.sectionTitle}>Sensor Hotspots</Text>
+          <TouchableOpacity onPress={handleScan} disabled={isScanning}>
+            {isScanning ? (
+              <ActivityIndicator size="small" color={PRIMARY_COLOR} />
+            ) : (
+              <MaterialCommunityIcons name="refresh" size={24} color={PRIMARY_COLOR} />
+            )}
+          </TouchableOpacity>
         </View>
 
         {isScanning ? (
           <View style={styles.scanningContainer}>
             <ActivityIndicator size="large" color={PRIMARY_COLOR} />
-            <Text style={styles.scanningText}>Scanning for nearby networks...</Text>
+            <Text style={styles.scanningText}>Scanning for LPG-Tank hotspots...</Text>
           </View>
         ) : (
           <>
-            <View style={styles.networkListHeader}>
-              <Text style={styles.sectionTitle}>Available Networks</Text>
-              <TouchableOpacity onPress={() => { setIsScanning(true); setTimeout(() => setIsScanning(false), 1500); }}>
-                <MaterialCommunityIcons name="refresh" size={24} color={PRIMARY_COLOR} />
+            {networks.map((network) => (
+              <TouchableOpacity
+                key={`${network.ssid}-${network.bssid}`}
+                style={[styles.networkCard, selectedNetwork?.ssid === network.ssid && styles.networkCardSelected]}
+                onPress={() => setSelectedNetwork(network)}
+              >
+                <View style={styles.iconBadge}>
+                  <MaterialCommunityIcons name="access-point" size={20} color={PRIMARY_COLOR} />
+                </View>
+                <View style={styles.networkDetails}>
+                  <Text style={styles.networkSsid}>{network.ssid}</Text>
+                  <Text style={styles.deviceLabel}>Open sensor hotspot</Text>
+                </View>
+                <MaterialCommunityIcons name="chevron-right" size={24} color="#9CA3AF" />
               </TouchableOpacity>
-            </View>
-
-            {MOCK_NETWORKS.map((network) => (
-              <View key={network.id} style={styles.networkCardWrapper}>
-                <TouchableOpacity
-                  style={[
-                    styles.networkCard,
-                    selectedNetwork?.id === network.id && styles.networkCardSelected
-                  ]}
-                  onPress={() => setSelectedNetwork(selectedNetwork?.id === network.id ? null : network)}
-                >
-                  <View style={[styles.iconBadge, network.isDevice && { backgroundColor: '#D1FAE5' }]}>
-                    <MaterialCommunityIcons 
-                      name={network.isDevice ? "cube-scan" : "wifi"} 
-                      size={20} 
-                      color={network.isDevice ? "#10B981" : "#6B7280"} 
-                    />
-                  </View>
-                  <View style={styles.networkDetails}>
-                    <Text style={[styles.networkSsid, selectedNetwork?.id === network.id && { color: PRIMARY_COLOR }]}>
-                      {network.ssid}
-                    </Text>
-                    {network.isDevice && <Text style={styles.deviceLabel}>JikoPal Device Hotspot</Text>}
-                  </View>
-                  <MaterialCommunityIcons name={renderSignalIcon(network.signal)} size={20} color="#9CA3AF" />
-                </TouchableOpacity>
-
-                {/* Password Input Expanding Area */}
-                {selectedNetwork?.id === network.id && (
-                  <View style={styles.passwordContainer}>
-                    <Text style={styles.inputLabel}>Enter Password for {network.ssid}</Text>
-                    <TextInput
-                      style={styles.passwordInput}
-                      placeholder="Wi-Fi Password"
-                      secureTextEntry
-                      value={password}
-                      onChangeText={setPassword}
-                      placeholderTextColor="#9CA3AF"
-                    />
-                    <TouchableOpacity 
-                      style={[styles.connectButton, (!password && !network.isDevice) && styles.connectButtonDisabled]}
-                      disabled={!password && !network.isDevice}
-                      onPress={handleConnect}
-                    >
-                      {isConnecting ? (
-                        <ActivityIndicator size="small" color="#FFF" />
-                      ) : (
-                        <Text style={styles.connectButtonText}>Connect to Network</Text>
-                      )}
-                    </TouchableOpacity>
-                  </View>
-                )}
-              </View>
             ))}
+
+            {(Platform.OS !== 'android' || networks.length === 0) && (
+              <View style={styles.manualContainer}>
+                <Text style={styles.manualTitle}>Enter sensor SSID manually</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="LPG-Tank-XXXX"
+                  value={manualSensorSSID}
+                  onChangeText={setManualSensorSSID}
+                  autoCapitalize="characters"
+                  placeholderTextColor="#9CA3AF"
+                />
+              </View>
+            )}
           </>
         )}
 
-        {/* Scan Fallback */}
-        {!isScanning && (
-          <View style={styles.fallbackContainer}>
-            <Text style={styles.fallbackText}>Don't want to use Wi-Fi matching?</Text>
-            <TouchableOpacity
-              style={styles.fallbackButton}
-              onPress={() =>
-                router.push({
-                  pathname: '/add-monitor/scan',
-                  params: {
-                    fromCircle: params.fromCircle,
-                    circleId: params.circleId,
-                    circleName: params.circleName,
-                    members: params.members,
-                  },
-                } as Href)
-              }
-            >
-              <MaterialCommunityIcons name="qrcode-scan" size={20} color={PRIMARY_COLOR} />
-              <Text style={styles.fallbackButtonText}>Scan QR Code instead</Text>
-            </TouchableOpacity>
-          </View>
-        )}
+        <TouchableOpacity
+          style={[styles.primaryButton, isConnecting && styles.primaryButtonDisabled]}
+          onPress={handleContinueToCredentials}
+          disabled={isConnecting}
+        >
+          {isConnecting ? <ActivityIndicator size="small" color="#FFF" /> : <Text style={styles.primaryButtonText}>Connect and Continue</Text>}
+        </TouchableOpacity>
       </ScrollView>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 
@@ -227,22 +212,26 @@ const styles = StyleSheet.create({
     backgroundColor: '#E0E7FF',
     padding: 16,
     borderRadius: 12,
-    marginBottom: 24,
+    marginBottom: 12,
   },
   infoText: {
     color: PRIMARY_COLOR,
     fontSize: 13,
     lineHeight: 20,
   },
-  scanningContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 60,
+  warningBox: {
+    flexDirection: 'row',
+    backgroundColor: '#FEF3C7',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 24,
   },
-  scanningText: {
-    marginTop: 16,
-    color: '#4B5563',
-    fontSize: 14,
+  warningText: {
+    flex: 1,
+    marginLeft: 8,
+    color: '#92400E',
+    fontSize: 12,
+    lineHeight: 18,
     fontWeight: '500',
   },
   networkListHeader: {
@@ -256,30 +245,40 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#1F2937',
   },
-  networkCardWrapper: {
-    marginBottom: 12,
+  scanningContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 50,
+  },
+  scanningText: {
+    marginTop: 14,
+    color: '#4B5563',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  networkCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: '#FFF',
     borderRadius: 16,
-    overflow: 'hidden',
+    padding: 16,
+    marginBottom: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 8,
     elevation: 2,
   },
-  networkCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-  },
   networkCardSelected: {
+    borderWidth: 1.5,
+    borderColor: PRIMARY_COLOR,
     backgroundColor: '#F5F3FF',
   },
   iconBadge: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: '#ECEBFA',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -289,76 +288,50 @@ const styles = StyleSheet.create({
   },
   networkSsid: {
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: '700',
     color: '#1F2937',
   },
   deviceLabel: {
-    fontSize: 11,
+    fontSize: 12,
     color: '#10B981',
     marginTop: 2,
     fontWeight: '600',
   },
-  passwordContainer: {
-    padding: 16,
-    paddingTop: 0,
-    backgroundColor: '#F5F3FF',
-    borderBottomLeftRadius: 16,
-    borderBottomRightRadius: 16,
+  manualContainer: {
+    backgroundColor: '#FFF',
+    borderRadius: 14,
+    padding: 14,
+    marginTop: 8,
   },
-  inputLabel: {
+  manualTitle: {
     fontSize: 13,
-    fontWeight: '500',
-    color: '#4B5563',
+    fontWeight: '600',
+    color: '#374151',
     marginBottom: 8,
   },
-  passwordInput: {
-    backgroundColor: '#FFF',
-    borderRadius: 12,
-    paddingHorizontal: 16,
+  input: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 10,
     height: 48,
+    paddingHorizontal: 14,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    marginBottom: 16,
+    borderColor: '#E5E7EB',
+    color: '#111827',
   },
-  connectButton: {
+  primaryButton: {
     backgroundColor: PRIMARY_COLOR,
-    height: 48,
-    borderRadius: 12,
+    height: 52,
+    borderRadius: 26,
     justifyContent: 'center',
     alignItems: 'center',
+    marginTop: 24,
   },
-  connectButtonDisabled: {
-    backgroundColor: '#9CA3AF',
+  primaryButtonDisabled: {
+    opacity: 0.7,
   },
-  connectButtonText: {
+  primaryButtonText: {
     color: '#FFF',
-    fontSize: 15,
-    fontWeight: 'bold',
-  },
-  fallbackContainer: {
-    marginTop: 32,
-    alignItems: 'center',
-    paddingTop: 24,
-    borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
-  },
-  fallbackText: {
-    fontSize: 13,
-    color: '#6B7280',
-    marginBottom: 12,
-  },
-  fallbackButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#ECEBFA',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 20,
-  },
-  fallbackButtonText: {
-    color: PRIMARY_COLOR,
-    fontWeight: '600',
-    marginLeft: 8,
-    fontSize: 14,
+    fontSize: 16,
+    fontWeight: '700',
   },
 });

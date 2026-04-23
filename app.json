@@ -8,13 +8,25 @@
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSLocalNetworkUsageDescription": "Jiko Pal needs local network access to configure your LPG tank sensor.",
+        "NSLocationWhenInUseUsageDescription": "Jiko Pal uses location access to discover nearby Wi-Fi networks for sensor setup."
+      },
+      "bundleIdentifier": "com.anonymous.jikopal"
     },
     "android": {
+      "usesCleartextTraffic": true,
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "NEARBY_WIFI_DEVICES"
+      ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.anonymous.jikopal"
     },
     "web": {
       "bundler": "metro",
@@ -23,10 +35,11 @@
     },
     "plugins": [
       "expo-router",
+      "react-native-wifi-reborn",
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-logo.svg",
+          "image": "./assets/images/splash-icon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#5E60CE"

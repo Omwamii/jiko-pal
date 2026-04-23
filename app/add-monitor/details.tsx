@@ -1,36 +1,75 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, TextInput, KeyboardAvoidingView, Platform, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, TextInput, KeyboardAvoidingView, Platform, Alert, ActivityIndicator } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { useAuth } from '@/providers/AuthProvider';
+import { clientService } from '@/lib/client';
+import { deviceService } from '@/lib/device';
 
 const PRIMARY_COLOR = '#3629B7';
 
 export default function DeviceDetailsScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ fromCircle?: string; circleId?: string; circleName?: string; members?: string }>();
+  const { clientProfile } = useAuth();
+  const params = useLocalSearchParams<{
+    fromCircle?: string;
+    circleId?: string;
+    circleName?: string;
+    members?: string;
+    provisioned?: string;
+    tankId?: string;
+    tankSSID?: string;
+  }>();
 
   const [name, setName] = useState('');
   const [location, setLocation] = useState('');
   const [cylinderSize, setCylinderSize] = useState('');
   const [notes, setNotes] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleAddMonitor = () => {
+  const isProvisioned = params.provisioned === '1';
+
+  const buildDeviceId = () => {
+    if (params.tankId?.trim()) {
+      const trimmedTankId = params.tankId.trim();
+      return trimmedTankId.startsWith('LPG-Tank-') ? trimmedTankId : `LPG-Tank-${trimmedTankId}`;
+    }
+    return `LPG-Tank-${Date.now().toString(36).toUpperCase()}`;
+  };
+
+  const handleAddMonitor = async () => {
     if (!name || !location) {
       Alert.alert('Required Fields', 'Please fill in the monitor name and location.');
       return;
     }
 
-    // In a real app, this would send data to the backend
-    router.replace({
-      pathname: '/add-monitor/success',
-      params: {
-        fromCircle: params.fromCircle,
-        circleId: params.circleId,
-        circleName: params.circleName,
-        members: params.members,
-      },
-    } as Href);
+    setIsSubmitting(true);
+
+    try {
+      const clientId = clientProfile?.id || (await clientService.getMyClient()).id;
+      const deviceId = buildDeviceId();
+
+      await deviceService.createDevice({
+        device_id: deviceId,
+        owner_id: clientId,
+      });
+
+      router.replace({
+        pathname: '/add-monitor/success',
+        params: {
+          fromCircle: params.fromCircle,
+          circleId: params.circleId,
+          circleName: params.circleName,
+          members: params.members,
+        },
+      } as Href);
+    } catch (error) {
+      console.error('Failed to attach monitor:', error);
+      Alert.alert('Could not add cylinder', 'The sensor was configured, but attaching to your account failed. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -48,18 +87,29 @@ export default function DeviceDetailsScreen() {
               <MaterialCommunityIcons name="arrow-left" size={24} color="#FFF" />
             </TouchableOpacity>
             <View>
-              <Text style={styles.headerTitle}>Scan Device</Text>
-              <Text style={styles.headerSubtitle}>Step 3 of 3: Name your Monitor</Text>
+              <Text style={styles.headerTitle}>Cylinder Details</Text>
+              <Text style={styles.headerSubtitle}>Step 4 of 4: Attach to account</Text>
             </View>
           </View>
         </SafeAreaView>
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {isProvisioned && (
+          <View style={styles.provisionedBox}>
+            <MaterialCommunityIcons name="check-circle-outline" size={18} color="#10B981" />
+            <View style={styles.provisionedTextWrap}>
+              <Text style={styles.provisionedTitle}>Sensor Wi-Fi setup complete</Text>
+              <Text style={styles.provisionedText}>
+                Connected hotspot: {params.tankSSID || 'LPG-TANK'}
+              </Text>
+            </View>
+          </View>
+        )}
         
         {/* Name Input */}
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Monitor Name *</Text>
+          <Text style={styles.label}>Cylinder Name *</Text>
           <TextInput
             style={styles.input}
             placeholder="e.g. Kitchen Gas, Office Gas"
@@ -113,22 +163,22 @@ export default function DeviceDetailsScreen() {
         <View style={styles.deviceInfoContainer}>
           <Text style={styles.deviceInfoTitle}>Device Information</Text>
           <View style={styles.deviceInfoRow}>
-            <Text style={styles.deviceInfoLabel}>Model:</Text>
-            <Text style={styles.deviceInfoValue}>GasMonitor Pro</Text>
+            <Text style={styles.deviceInfoLabel}>Sensor:</Text>
+            <Text style={styles.deviceInfoValue}>{params.tankSSID || 'Unspecified sensor'}</Text>
           </View>
           <View style={styles.deviceInfoRow}>
-            <Text style={styles.deviceInfoLabel}>Serial:</Text>
-            <Text style={styles.deviceInfoValue}>GM-2026-A1BC3</Text>
+            <Text style={styles.deviceInfoLabel}>Tank ID:</Text>
+            <Text style={styles.deviceInfoValue}>{params.tankId || 'Will auto-generate'}</Text>
           </View>
           <View style={styles.deviceInfoRow}>
-            <Text style={styles.deviceInfoLabel}>Firmware:</Text>
-            <Text style={styles.deviceInfoValue}>v2.1.4</Text>
+            <Text style={styles.deviceInfoLabel}>Status:</Text>
+            <Text style={styles.deviceInfoValue}>{isProvisioned ? 'Provisioned over Wi-Fi' : 'Manual attach'}</Text>
           </View>
         </View>
 
         {/* Submit Button */}
-        <TouchableOpacity style={styles.primaryButton} onPress={handleAddMonitor}>
-          <Text style={styles.primaryButtonText}>Add Monitor</Text>
+        <TouchableOpacity style={[styles.primaryButton, isSubmitting && styles.primaryButtonDisabled]} onPress={handleAddMonitor} disabled={isSubmitting}>
+          {isSubmitting ? <ActivityIndicator size="small" color="#FFF" /> : <Text style={styles.primaryButtonText}>Add Cylinder</Text>}
         </TouchableOpacity>
 
       </ScrollView>
@@ -176,6 +226,28 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 24,
     paddingBottom: 40,
+  },
+  provisionedBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#D1FAE5',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 18,
+  },
+  provisionedTextWrap: {
+    marginLeft: 8,
+    flex: 1,
+  },
+  provisionedTitle: {
+    fontSize: 13,
+    color: '#065F46',
+    fontWeight: '700',
+  },
+  provisionedText: {
+    fontSize: 12,
+    color: '#065F46',
+    marginTop: 2,
   },
   inputGroup: {
     marginBottom: 20,
@@ -234,6 +306,9 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  primaryButtonDisabled: {
+    opacity: 0.7,
   },
   primaryButtonText: {
     color: '#FFF',

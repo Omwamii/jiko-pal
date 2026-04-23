@@ -30,7 +30,7 @@ export default function SelectDeviceTypeScreen() {
             </TouchableOpacity>
             <View>
               <Text style={styles.headerTitle}>Add Monitor</Text>
-              <Text style={styles.headerSubtitle}>Step 1 of 2: Choose device type</Text>
+              <Text style={styles.headerSubtitle}>Step 1: Choose device type</Text>
             </View>
           </View>
         </SafeAreaView>
