@@ -40,8 +40,10 @@ export type VendorSubscription = {
 export type IoTDevice = {
   id: string;
   device_id: string;
-  owner: Client | null;
-  circle: MonitoringCircle | null;
+  owner_id: string | null;
+  owner_name?: string;
+  circle_id: string | null;
+  circle_name?: string;
   mac_address: string | null;
   last_seen: string | null;
   current_level: number;

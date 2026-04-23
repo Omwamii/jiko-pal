@@ -188,7 +188,7 @@ export default function CircleIndexScreen() {
                       pathname: '/my-circle/cylinder',
                       params: {
                         name: device.device_id,
-                        location: device.owner ? device.owner.full_name : 'Unknown',
+                        location: device.owner_name ? device.owner_name : 'Unknown',
                         fill: String(device.current_level),
                       },
                     } as Href)
@@ -199,7 +199,7 @@ export default function CircleIndexScreen() {
                   </View>
                   <View style={styles.itemContent}>
                     <Text style={styles.itemTitle}>{device.device_id}</Text>
-                    <Text style={styles.itemSubtitle}>{device.owner?.full_name || 'Unassigned'}</Text>
+                    <Text style={styles.itemSubtitle}>{device.owner_name || 'Unassigned'}</Text>
                     <View style={styles.progressRow}>
                       <View style={styles.progressTrack}>
                         <View

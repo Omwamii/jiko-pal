@@ -33,9 +33,9 @@ export default function DeviceDetailsScreen() {
   const buildDeviceId = () => {
     if (params.tankId?.trim()) {
       const trimmedTankId = params.tankId.trim();
-      return trimmedTankId.startsWith('LPG-Tank-') ? trimmedTankId : `LPG-Tank-${trimmedTankId}`;
+      return trimmedTankId.startsWith('LPG-Tank-') ? trimmedTankId.split('-')[2] : trimmedTankId;
     }
-    return `LPG-Tank-${Date.now().toString(36).toUpperCase()}`;
+    throw new Error('Tank ID is undefined.')
   };
 
   const handleAddMonitor = async () => {
@@ -49,9 +49,8 @@ export default function DeviceDetailsScreen() {
     try {
       const clientId = clientProfile?.id || (await clientService.getMyClient()).id;
       const deviceId = buildDeviceId();
-
-      await deviceService.createDevice({
-        device_id: deviceId,
+      
+      await deviceService.updateDevice(deviceId, {
         owner_id: clientId,
       });
 
