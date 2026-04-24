@@ -1,5 +1,5 @@
 import api from './api';
-import { MonitoringCircle, PaginatedResponse } from '../types';
+import { IoTDevice, MonitoringCircle, PaginatedResponse } from '../types';
 
 export interface CreateCircleData {
   circle_name: string;
@@ -37,6 +37,11 @@ export const circleService = {
 
   async leaveCircle(id: string): Promise<{ detail: string }> {
     const response = await api.post<{ detail: string }>(`/circles/${id}/leave/`);
+    return response.data;
+  },
+
+  async getCircleDevices(id: string, params?: Record<string, string>): Promise<PaginatedResponse<IoTDevice>> {
+    const response = await api.get<PaginatedResponse<IoTDevice>>(`/circles/${id}/devices/`, { params });
     return response.data;
   },
 };

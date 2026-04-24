@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, TextInput, ScrollView, ActivityIndicator } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
+import { useFocusEffect } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { AppCard } from '@/components/ui/AppCard';
 import { AppButton } from '@/components/ui/AppButton';
@@ -48,10 +49,12 @@ export default function VendorsScreen() {
     });
   }, [activeTab, query, vendorsWithSubscription]);
 
-  useEffect(() => {
-    fetchVendors();
-    fetchSubscriptions();
-  }, [fetchVendors, fetchSubscriptions]);
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchVendors();
+      fetchSubscriptions();
+    }, [fetchVendors, fetchSubscriptions])
+  );
 
   return (
     <View style={styles.container}>
@@ -69,13 +72,19 @@ export default function VendorsScreen() {
           <View style={styles.tabSwitch}>
             <TouchableOpacity
               style={[styles.switchBtn, activeTab === 'all' && styles.switchBtnActive]}
-              onPress={() => setActiveTab('all')}
+              onPress={() => {
+                setActiveTab('all');
+                fetchSubscriptions();
+              }}
             >
               <Text style={[styles.switchText, activeTab === 'all' && styles.switchTextActive]}>All Vendors</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.switchBtn, activeTab === 'mine' && styles.switchBtnActive]}
-              onPress={() => setActiveTab('mine')}
+              onPress={() => {
+                setActiveTab('mine');
+                fetchSubscriptions();
+              }}
             >
               <Text style={[styles.switchText, activeTab === 'mine' && styles.switchTextActive]}>My Vendors</Text>
             </TouchableOpacity>

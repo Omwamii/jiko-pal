@@ -4,6 +4,7 @@ import { IoTDevice, DeviceReading, DeviceStats, PaginatedResponse } from '../typ
 export interface CreateDeviceData {
   device_id: string;
   owner_id: string;
+  circle_id?: string | null;
   mac_address?: string;
   current_level?: number;
   battery_level?: number;

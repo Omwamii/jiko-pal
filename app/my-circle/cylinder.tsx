@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import Svg, { Circle } from 'react-native-svg';
 import { AppButton } from '@/components/ui/AppButton';
@@ -94,7 +94,15 @@ export default function CircleCylinderScreen() {
             </View>
           </View>
 
-          <AppButton title="Request Refill" onPress={() => {}} style={styles.refillButton} />
+          <AppButton title="Request Refill" onPress={() => {
+            router.push({
+              pathname: '/(tabs)/vendors',
+              params: {
+                preselectedCylinderName: cylinderName,
+                preselectedCylinderLevel: String(status),
+              },
+            } as Href);
+          }} style={styles.refillButton} />
         </AppCard>
       </View>
     </View>

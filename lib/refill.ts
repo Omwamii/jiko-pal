@@ -28,6 +28,26 @@ export const refillRequestService = {
     return response.data;
   },
 
+  async acceptRefillRequest(id: string): Promise<RefillRequest> {
+    const response = await api.patch<RefillRequest>(`/refill-requests/${id}/status/`, { status: 'accepted' });
+    return response.data;
+  },
+
+  async startRefillRequest(id: string): Promise<RefillRequest> {
+    const response = await api.patch<RefillRequest>(`/refill-requests/${id}/status/`, { status: 'in_transit' });
+    return response.data;
+  },
+
+  async completeRefillRequest(id: string): Promise<RefillRequest> {
+    const response = await api.patch<RefillRequest>(`/refill-requests/${id}/status/`, { status: 'completed' });
+    return response.data;
+  },
+
+  async rejectRefillRequest(id: string): Promise<RefillRequest> {
+    const response = await api.patch<RefillRequest>(`/refill-requests/${id}/status/`, { status: 'cancelled' });
+    return response.data;
+  },
+
   async updateRefillStatus(id: string, data: UpdateRefillStatusData): Promise<RefillRequest> {
     const response = await api.patch<RefillRequest>(`/refill-requests/${id}/status/`, data);
     return response.data;

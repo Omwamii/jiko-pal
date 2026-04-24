@@ -1,102 +1,102 @@
-import React, { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal } from 'react-native';
+import React, { useMemo, useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import { type Href, useRouter } from 'expo-router';
 import { VendorBottomNav } from '@/components/vendor/VendorBottomNav';
-
-type OrderStatus = 'pending' | 'in-progress' | 'completed' | 'rejected';
-type FilterKey = 'pending' | 'in-progress' | 'completed' | 'all';
-
-type VendorOrder = {
-  id: string;
-  initials: string;
-  customer: string;
-  phone: string;
-  distance: string;
-  status: OrderStatus;
-  cylinderSize: string;
-  requested: string;
-  progress?: number;
-};
+import { useVendorOrders, useAcceptRefillRequest } from '@/hooks/refill';
 
 const PRIMARY_COLOR = '#3629B7';
+const SECONDARY_COLOR = '#14B27A';
 
-const initialOrders: VendorOrder[] = [
-  { id: 'ord-001', initials: 'GP', customer: 'Sarah Anderson', phone: '+254712345678', distance: '2.3 Km Away', status: 'pending', cylinderSize: '13kg', requested: '15 min ago', progress: 8 },
-  { id: 'ord-002', initials: 'SA', customer: 'Sarah Anderson', phone: '+254712345678', distance: '2.3 Km Away', status: 'completed', cylinderSize: '13kg', requested: '15 min ago' },
-  { id: 'ord-003', initials: 'GP', customer: 'Sarah Anderson', phone: '+254712345678', distance: '2.3 Km Away', status: 'pending', cylinderSize: '13kg', requested: '15 min ago', progress: 8 },
-  { id: 'ord-004', initials: 'SA', customer: 'Sarah Anderson', phone: '+254712345678', distance: '2.3 Km Away', status: 'completed', cylinderSize: '13kg', requested: '15 min ago' },
-  { id: 'ord-005', initials: 'SA', customer: 'Sarah Anderson', phone: '+254712345678', distance: '2.3 Km Away', status: 'rejected', cylinderSize: '13kg', requested: '15 min ago' },
-];
+type FilterKey = 'pending' | 'active' | 'completed' | 'all';
 
 const filters: Array<{ key: FilterKey; label: string }> = [
   { key: 'pending', label: 'Pending' },
-  { key: 'in-progress', label: 'In progress' },
+  { key: 'active', label: 'In progress' },
   { key: 'completed', label: 'Completed' },
   { key: 'all', label: 'All' },
 ];
 
-function getStatusStyle(status: OrderStatus) {
+function getStatusStyle(status: string) {
   if (status === 'pending') {
     return { backgroundColor: '#F6E6C9', color: '#D48C18', label: 'Pending' };
   }
 
-  if (status === 'completed') {
-    return { backgroundColor: '#CFF2E4', color: '#18A875', label: 'Completed' };
-  }
-
-  if (status === 'rejected') {
-    return { backgroundColor: '#F9CDD4', color: '#E44A69', label: 'Rejected' };
+  if (status === 'completed' || status === 'cancelled') {
+    return { backgroundColor: '#F9CDD4', color: '#E44A69', label: status === 'cancelled' ? 'Cancelled' : 'Completed' };
   }
 
   return { backgroundColor: '#E9E6FF', color: '#6B5DD9', label: 'In Progress' };
 }
 
+function getInitials(name: string) {
+  const parts = name.split(' ');
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts[1][0]).toUpperCase();
+  }
+  return name.slice(0, 2).toUpperCase();
+}
+
+function formatRelativeTime(dateStr: string) {
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffMins < 1) return 'Just now';
+  if (diffMins < 60) return `${diffMins} min ago`;
+  if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+  if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+  return date.toLocaleDateString();
+}
+
 export default function VendorOrdersScreen() {
   const router = useRouter();
-  const [orders, setOrders] = useState<VendorOrder[]>(initialOrders);
+  const { orders, isLoading, fetchOrders } = useVendorOrders();
+  const { acceptOrder, isLoading: isAccepting } = useAcceptRefillRequest();
   const [filter, setFilter] = useState<FilterKey>('pending');
-  const [selectedOrder, setSelectedOrder] = useState<VendorOrder | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<any>(null);
+
+  useEffect(() => {
+    fetchOrders();
+  }, [fetchOrders]);
 
   const visibleOrders = useMemo(() => {
     if (filter === 'all') {
       return orders;
     }
-
+    if (filter === 'active') {
+      return orders.filter((o) => o.status === 'in_transit' || o.status === 'accepted');
+    }
     return orders.filter((order) => order.status === filter);
   }, [orders, filter]);
 
-  const declineOrder = (id: string) => {
-    setOrders((prev) => prev.map((order) => (order.id === id ? { ...order, status: 'rejected' } : order)));
-  };
-
-  const confirmAccept = () => {
+  const handleAcceptOrder = async () => {
     if (!selectedOrder) {
       return;
     }
 
-    setOrders((prev) => prev.map((order) => (order.id === selectedOrder.id ? { ...order, status: 'in-progress' } : order)));
-    const customer = encodeURIComponent(selectedOrder.customer);
-    const phone = encodeURIComponent(selectedOrder.phone);
-    router.push((`/vendor-order-detail?orderId=${selectedOrder.id}&customer=${customer}&phone=${phone}&status=in-progress`) as Href);
-    setSelectedOrder(null);
+    try {
+      await acceptOrder(selectedOrder.id);
+      await fetchOrders();
+      const customer = encodeURIComponent(selectedOrder.client?.full_name || 'Customer');
+      const phone = encodeURIComponent(selectedOrder.client?.phone_number || '');
+      router.push((`/vendor-order-detail?orderId=${selectedOrder.id}&customer=${customer}&phone=${phone}&status=in-progress`) as Href);
+    } catch (err) {
+      Alert.alert('Error', 'Failed to accept order. Please try again.');
+    } finally {
+      setSelectedOrder(null);
+    }
   };
 
   const emptyMessage = useMemo(() => {
-    if (filter === 'all') {
-      return 'No orders';
-    }
-
-    if (filter === 'in-progress') {
-      return 'No orders in progress';
-    }
-
-    if (filter === 'pending') {
-      return 'No pending orders';
-    }
-
+    if (filter === 'all') return 'No orders';
+    if (filter === 'active') return 'No orders in progress';
+    if (filter === 'pending') return 'No pending orders';
     return 'No completed orders';
   }, [filter]);
 
@@ -152,22 +152,22 @@ export default function VendorOrdersScreen() {
                     pathname: '/vendor-order-detail',
                     params: {
                       orderId: order.id,
-                      customer: order.customer,
-                      phone: order.phone,
+                      customer: order.client?.full_name || 'Customer',
+                      phone: order.client?.phone_number || '',
                       status: order.status,
                     },
                   } as Href)
                 }
               >
                 <View style={styles.orderTop}>
-                  <View style={[styles.avatar, { backgroundColor: order.initials === 'GP' ? '#F59E0B' : '#15B87A' }]}>
-                    <Text style={styles.avatarText}>{order.initials}</Text>
+                  <View style={[styles.avatar, { backgroundColor: order.status === 'pending' ? '#F59E0B' : '#15B87A' }]}>
+                    <Text style={styles.avatarText}>{getInitials(order.client?.full_name || 'CU')}</Text>
                   </View>
                   <View style={styles.orderInfo}>
-                    <Text style={styles.customerName}>{order.customer}</Text>
+                    <Text style={styles.customerName}>{order.client?.full_name || 'Customer'}</Text>
                     <View style={styles.distanceRow}>
-                      <MaterialCommunityIcons name="map-marker-outline" size={12} color="#8E8FA1" />
-                      <Text style={styles.distanceText}>{order.distance}</Text>
+                      <MaterialCommunityIcons name="clock-outline" size={12} color="#8E8FA1" />
+                      <Text style={styles.distanceText}>{formatRelativeTime(order.requested_at)}</Text>
                     </View>
                   </View>
                   <View style={[styles.statusPill, { backgroundColor: statusMeta.backgroundColor }]}>
@@ -175,38 +175,26 @@ export default function VendorOrdersScreen() {
                   </View>
                 </View>
 
-                {pending ? (
-                  <>
-                    <View style={styles.progressTrack}>
-                      <View style={[styles.progressFill, { width: `${order.progress || 0}%` }]} />
+                {order.scheduled_date ? (
+                  <View style={styles.detailsRow}>
+                    <View>
+                      <Text style={styles.metaLabel}>Scheduled</Text>
+                      <Text style={styles.metaValue}>{new Date(order.scheduled_date).toLocaleDateString()}</Text>
                     </View>
-                    <Text style={styles.progressText}>{order.progress || 0}%</Text>
-                  </>
+                  </View>
                 ) : null}
 
-                <View style={styles.detailsRow}>
-                  <View>
-                    <Text style={styles.metaLabel}>Cylinder Size</Text>
-                    <Text style={styles.metaValue}>{order.cylinderSize}</Text>
+                {order.notes ? (
+                  <View style={styles.detailsRow}>
+                    <View>
+                      <Text style={styles.metaLabel}>Notes</Text>
+                      <Text style={styles.metaValue}>{order.notes}</Text>
+                    </View>
                   </View>
-                  <View>
-                    <Text style={styles.metaLabel}>Requested</Text>
-                    <Text style={styles.metaValue}>{order.requested}</Text>
-                  </View>
-                </View>
+                ) : null}
 
-                {pending ? (
+                {order.status === 'pending' ? (
                   <View style={styles.actionsRow}>
-                    <TouchableOpacity
-                      style={styles.rejectButton}
-                      activeOpacity={0.85}
-                      onPress={(event) => {
-                        event.stopPropagation();
-                        declineOrder(order.id);
-                      }}
-                    >
-                      <Text style={styles.rejectText}>Reject</Text>
-                    </TouchableOpacity>
                     <TouchableOpacity
                       style={styles.acceptButton}
                       activeOpacity={0.85}
@@ -239,8 +227,8 @@ export default function VendorOrdersScreen() {
               <TouchableOpacity style={styles.modalCancel} activeOpacity={0.85} onPress={() => setSelectedOrder(null)}>
                 <Text style={styles.modalCancelText}>Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.modalAccept} activeOpacity={0.85} onPress={confirmAccept}>
-                <Text style={styles.modalAcceptText}>Accept Order</Text>
+              <TouchableOpacity style={styles.modalAccept} activeOpacity={0.85} onPress={handleAcceptOrder} disabled={isAccepting}>
+                <Text style={styles.modalAcceptText}>{isAccepting ? 'Accepting...' : 'Accept Order'}</Text>
               </TouchableOpacity>
             </View>
           </View>

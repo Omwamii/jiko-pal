@@ -6,3 +6,4 @@ export * from './circle';
 export * from './notification';
 export * from './refill';
 export * from './device';
+export * from './activity';

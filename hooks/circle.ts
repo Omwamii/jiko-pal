@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import { circleService, CreateCircleData } from '@/lib/circle';
-import { MonitoringCircle } from '../types';
+import { IoTDevice, MonitoringCircle } from '../types';
 
 export const useCircleList = () => {
   const [circles, setCircles] = useState<MonitoringCircle[]>([]);
@@ -157,4 +157,28 @@ export const useLeaveCircle = () => {
   }, []);
 
   return { leaveCircle, isLoading, error };
+};
+
+export const useCircleDevices = () => {
+  const [devices, setDevices] = useState<IoTDevice[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchCircleDevices = useCallback(async (circleId: string, params?: Record<string, string>) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await circleService.getCircleDevices(circleId, params);
+      setDevices(response.results);
+      return response;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to fetch circle devices';
+      setError(message);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  return { devices, isLoading, error, fetchCircleDevices };
 };

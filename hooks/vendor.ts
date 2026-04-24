@@ -74,6 +74,30 @@ export const useVendorSubscriptions = () => {
   return { subscriptions, isLoading, error, fetchSubscriptions };
 };
 
+export const useVendorSubscribers = () => {
+  const [subscribers, setSubscribers] = useState<VendorSubscription[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchSubscribers = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const data = await vendorService.getSubscribers();
+      setSubscribers(data);
+      return data;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to fetch subscribers';
+      setError(message);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  return { subscribers, isLoading, error, fetchSubscribers };
+};
+
 export const useSubscribeVendor = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

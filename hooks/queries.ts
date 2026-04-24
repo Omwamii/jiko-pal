@@ -6,6 +6,8 @@ import { notificationService } from '../lib/notification';
 import { refillRequestService, CreateRefillRequestData } from '../lib/refill';
 import { deviceService } from '../lib/device';
 import { authService } from '../lib/auth';
+import { activityLogService } from '../lib/activity';
+import { ActivityLog } from '../types';
 
 export const useClient = (id?: string) => {
   return useQuery({
@@ -230,5 +232,13 @@ export const useCurrentUser = () => {
     queryKey: ['currentUser'],
     queryFn: () => authService.getCurrentUser(),
     staleTime: 5 * 60 * 1000,
+  });
+};
+
+export const useActivityLogs = (limit: number = 10) => {
+  return useQuery({
+    queryKey: ['activityLogs', limit],
+    queryFn: () => activityLogService.getRecentActivityLogs(limit),
+    staleTime: 60 * 1000,
   });
 };

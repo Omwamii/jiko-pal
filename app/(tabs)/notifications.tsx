@@ -1,124 +1,77 @@
 import React, { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, ActivityIndicator } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { AppCard } from '@/components/ui/AppCard';
+import { useNotifications, useMarkAllNotificationsRead, useMarkNotificationRead, useUnreadNotificationCount } from '@/hooks/queries';
+import { Notification } from '@/types';
 
 const PRIMARY_COLOR = '#3629B7';
 
-type NotificationItem = {
-  id: string;
-  title: string;
-  description: string;
-  time: string;
-  day: 'today' | 'earlier';
-  read: boolean;
-  icon: 'alert' | 'check' | 'bell';
-  accent: string;
-  bg: string;
-};
-
-const INITIAL_NOTIFICATIONS: NotificationItem[] = [
-  {
-    id: 'n1',
-    title: 'Low Gas Alert',
-    description: 'Kitchen Gas is at 35%. Consider ordering a refill soon',
-    time: '10 minutes ago',
-    day: 'today',
-    read: false,
-    icon: 'alert',
-    accent: '#F59E0B',
-    bg: '#FEF3C7',
-  },
-  {
-    id: 'n2',
-    title: 'Delivery Completed',
-    description: 'Kitchen Gas is at 35%. Consider ordering a refill soon',
-    time: '10 minutes ago',
-    day: 'today',
-    read: false,
-    icon: 'check',
-    accent: '#10B981',
-    bg: '#D1FAE5',
-  },
-  {
-    id: 'n3',
-    title: 'Order Confirmed',
-    description: 'Kitchen Gas is at 35%. Consider ordering a refill soon',
-    time: '10 minutes ago',
-    day: 'today',
-    read: true,
-    icon: 'bell',
-    accent: '#6D5DD3',
-    bg: '#EDE9FE',
-  },
-  {
-    id: 'n4',
-    title: 'Order Confirmed',
-    description: 'Kitchen Gas is at 35%. Consider ordering a refill soon',
-    time: '10 minutes ago',
-    day: 'today',
-    read: true,
-    icon: 'bell',
-    accent: '#6D5DD3',
-    bg: '#EDE9FE',
-  },
-  {
-    id: 'n5',
-    title: 'Critical Gas Level',
-    description: 'Backup Cylinder is at 15%. Immediate refill recommended!',
-    time: '1 day ago',
-    day: 'earlier',
-    read: false,
-    icon: 'alert',
-    accent: '#EF4444',
-    bg: '#FEE2E2',
-  },
-  {
-    id: 'n6',
-    title: 'Order Confirmed',
-    description: 'Kitchen Gas is at 35%. Consider ordering a refill soon',
-    time: '10 minutes ago',
-    day: 'earlier',
-    read: true,
-    icon: 'bell',
-    accent: '#6D5DD3',
-    bg: '#EDE9FE',
-  },
-  {
-    id: 'n7',
-    title: 'Order Confirmed',
-    description: 'Kitchen Gas is at 35%. Consider ordering a refill soon',
-    time: '10 minutes ago',
-    day: 'earlier',
-    read: true,
-    icon: 'bell',
-    accent: '#6D5DD3',
-    bg: '#EDE9FE',
-  },
-];
-
-function NotificationIcon({ type, color }: { type: NotificationItem['icon']; color: string }) {
-  if (type === 'alert') {
-    return <MaterialCommunityIcons name="alert-circle-outline" size={14} color={color} />;
+function getNotificationIcon(type: Notification['type']) {
+  switch (type) {
+    case 'alert':
+      return 'alert-circle-outline';
+    case 'warning':
+      return 'alert-outline';
+    case 'info':
+    default:
+      return 'bell-outline';
   }
-  if (type === 'check') {
-    return <MaterialCommunityIcons name="check-circle-outline" size={14} color={color} />;
-  }
-  return <MaterialCommunityIcons name="bell-outline" size={14} color={color} />;
 }
+
+function getIconColors(type: Notification['type'], isRead: boolean) {
+  if (type === 'alert') return { accent: '#EF4444', bg: '#FEE2E2' };
+  if (type === 'warning') return { accent: '#F59E0B', bg: '#FEF3C7' };
+  return { accent: PRIMARY_COLOR, bg: isRead ? '#F3F4F6' : '#E0E7FF' };
+}
+
+const formatRelativeTime = (dateStr: string) => {
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffMins < 1) return 'Just now';
+  if (diffMins < 60) return `${diffMins} minutes ago`;
+  if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+  if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+  return date.toLocaleDateString();
+};
 
 export default function NotificationsScreen() {
   const router = useRouter();
-  const [notifications, setNotifications] = useState(INITIAL_NOTIFICATIONS);
+  const { data: notificationsData, isLoading, refetch } = useNotifications({ limit: '20' });
+  const { data: unreadCountData } = useUnreadNotificationCount();
+  const markAllReadMutation = useMarkAllNotificationsRead();
+  const markReadMutation = useMarkNotificationRead();
 
-  const unreadCount = useMemo(() => notifications.filter((item) => !item.read).length, [notifications]);
-  const todayItems = useMemo(() => notifications.filter((item) => item.day === 'today'), [notifications]);
-  const earlierItems = useMemo(() => notifications.filter((item) => item.day === 'earlier'), [notifications]);
+  const notifications = notificationsData?.results || [];
+  const unreadCount = unreadCountData?.unread_count || 0;
 
-  const markAllRead = () => {
-    setNotifications((items) => items.map((item) => ({ ...item, read: true })));
+  const todayItems = useMemo(() => {
+    const today = new Date().toDateString();
+    return notifications.filter(n => new Date(n.created_at).toDateString() === today);
+  }, [notifications]);
+
+  const earlierItems = useMemo(() => {
+    const today = new Date().toDateString();
+    return notifications.filter(n => new Date(n.created_at).toDateString() !== today);
+  }, [notifications]);
+
+  const handleMarkAllRead = async () => {
+    await markAllReadMutation.mutateAsync();
+    refetch();
+  };
+
+  const handleNotificationPress = async (id: string, isRead: boolean) => {
+    if (!isRead) {
+      await markReadMutation.mutateAsync(id);
+      refetch();
+    }
   };
 
   return (
@@ -132,8 +85,14 @@ export default function NotificationsScreen() {
               <MaterialCommunityIcons name="arrow-left" size={22} color="#FFF" />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Notifications</Text>
-            <TouchableOpacity style={styles.markBtn} onPress={markAllRead}>
-              <Text style={styles.markBtnText}>Mark All read</Text>
+            <TouchableOpacity 
+              style={styles.markBtn} 
+              onPress={handleMarkAllRead}
+              disabled={unreadCount === 0 || markAllReadMutation.isPending}
+            >
+              <Text style={styles.markBtnText}>
+                {markAllReadMutation.isPending ? '...' : 'Mark All read'}
+              </Text>
             </TouchableOpacity>
           </View>
           <Text style={styles.unreadText}>{unreadCount} unread</Text>
@@ -141,42 +100,79 @@ export default function NotificationsScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        <Text style={styles.sectionTitle}>TODAY</Text>
-        {todayItems.map((item) => (
-          <AppCard key={item.id} style={styles.notificationCard}>
-            <View style={[styles.iconWrap, { backgroundColor: item.bg }]}>
-              <NotificationIcon type={item.icon} color={item.accent} />
-            </View>
-            <View style={styles.cardBody}>
-              <View style={styles.titleRow}>
-                <Text style={styles.cardTitle}>{item.title}</Text>
-                {!item.read ? <View style={styles.unreadDot} /> : null}
-              </View>
-              <Text style={styles.cardDescription}>{item.description}</Text>
-              <View style={styles.metaRow}>
-                <Text style={styles.cardTime}>{item.time}</Text>
-                <Text style={styles.orderNow}>Order now</Text>
-              </View>
-            </View>
-          </AppCard>
-        ))}
+        {isLoading ? (
+          <ActivityIndicator size="large" color={PRIMARY_COLOR} style={styles.loader} />
+        ) : notifications.length === 0 ? (
+          <Text style={styles.emptyText}>No notifications</Text>
+        ) : (
+          <>
+            {todayItems.length > 0 && (
+              <>
+                <Text style={styles.sectionTitle}>TODAY</Text>
+                {todayItems.map((item) => {
+                  const colors = getIconColors(item.type, item.is_read);
+                  return (
+                    <AppCard 
+                      key={item.id} 
+                      style={styles.notificationCard}
+                      onPress={() => handleNotificationPress(item.id, item.is_read)}
+                    >
+                      <View style={[styles.iconWrap, { backgroundColor: colors.bg }]}>
+                        <MaterialCommunityIcons 
+                          name={getNotificationIcon(item.type) as any} 
+                          size={14} 
+                          color={colors.accent} 
+                        />
+                      </View>
+                      <View style={styles.cardBody}>
+                        <View style={styles.titleRow}>
+                          <Text style={styles.cardTitle}>{item.title}</Text>
+                          {!item.is_read ? <View style={styles.unreadDot} /> : null}
+                        </View>
+                        <Text style={styles.cardDescription}>{item.body}</Text>
+                        <View style={styles.metaRow}>
+                          <Text style={styles.cardTime}>{formatRelativeTime(item.created_at)}</Text>
+                        </View>
+                      </View>
+                    </AppCard>
+                  );
+                })}
+              </>
+            )}
 
-        <Text style={styles.sectionTitle}>EARLIER</Text>
-        {earlierItems.map((item) => (
-          <AppCard key={item.id} style={styles.notificationCard}>
-            <View style={[styles.iconWrap, { backgroundColor: item.bg }]}>
-              <NotificationIcon type={item.icon} color={item.accent} />
-            </View>
-            <View style={styles.cardBody}>
-              <View style={styles.titleRow}>
-                <Text style={styles.cardTitle}>{item.title}</Text>
-                {!item.read ? <View style={styles.unreadDot} /> : null}
-              </View>
-              <Text style={styles.cardDescription}>{item.description}</Text>
-              <Text style={styles.cardTime}>{item.time}</Text>
-            </View>
-          </AppCard>
-        ))}
+            {earlierItems.length > 0 && (
+              <>
+                <Text style={styles.sectionTitle}>EARLIER</Text>
+                {earlierItems.map((item) => {
+                  const colors = getIconColors(item.type, item.is_read);
+                  return (
+                    <AppCard 
+                      key={item.id} 
+                      style={styles.notificationCard}
+                      onPress={() => handleNotificationPress(item.id, item.is_read)}
+                    >
+                      <View style={[styles.iconWrap, { backgroundColor: colors.bg }]}>
+                        <MaterialCommunityIcons 
+                          name={getNotificationIcon(item.type) as any} 
+                          size={14} 
+                          color={colors.accent} 
+                        />
+                      </View>
+                      <View style={styles.cardBody}>
+                        <View style={styles.titleRow}>
+                          <Text style={styles.cardTitle}>{item.title}</Text>
+                          {!item.is_read ? <View style={styles.unreadDot} /> : null}
+                        </View>
+                        <Text style={styles.cardDescription}>{item.body}</Text>
+                        <Text style={styles.cardTime}>{formatRelativeTime(item.created_at)}</Text>
+                      </View>
+                    </AppCard>
+                  );
+                })}
+              </>
+            )}
+          </>
+        )}
       </ScrollView>
     </View>
   );
@@ -237,4 +233,6 @@ const styles = StyleSheet.create({
   metaRow: { marginTop: 4, flexDirection: 'row', justifyContent: 'space-between' },
   cardTime: { color: '#9CA3AF', fontSize: 9 },
   orderNow: { color: PRIMARY_COLOR, fontSize: 9, fontWeight: '700' },
+  loader: { marginTop: 40 },
+  emptyText: { textAlign: 'center', color: '#9CA3AF', fontSize: 14, marginTop: 20 },
 });

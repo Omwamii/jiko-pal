@@ -25,8 +25,12 @@ export default function LoginScreen() {
     setLoading(true);
 
     try {
-      await login({ email: email.trim(), password });
-      router.replace('/(tabs)');
+      const response = await login({ email: email.trim(), password });
+      if (response.user.role === 'vendor') {
+        router.replace('/vendor-dashboard');
+      } else {
+        router.replace('/(tabs)');
+      }
     } catch (err: any) {
       console.error('Login error:', err);
       if (err.response?.data?.detail) {
@@ -109,7 +113,7 @@ export default function LoginScreen() {
 
           <View style={styles.footerContainer}>
             <Text style={styles.footerText}>Don't have an account? </Text>
-            <TouchableOpacity onPress={() => router.push('/signup')}>
+            <TouchableOpacity onPress={() => router.push('/account-type')}>
               <Text style={styles.footerLink}>Sign Up</Text>
             </TouchableOpacity>
           </View>

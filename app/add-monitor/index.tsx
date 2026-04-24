@@ -1,14 +1,16 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, ActivityIndicator } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { useDevices } from '@/hooks/queries';
 
 const PRIMARY_COLOR = '#3629B7';
 
 export default function SelectDeviceTypeScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ fromCircle?: string; circleId?: string; circleName?: string; members?: string }>();
+  const { data: devicesData, isLoading: isLoadingDevices } = useDevices();
 
   const nextParams = {
     fromCircle: params.fromCircle,
@@ -16,6 +18,13 @@ export default function SelectDeviceTypeScreen() {
     circleName: params.circleName,
     members: params.members,
   };
+
+  const eligibleExistingCount = React.useMemo(() => {
+    const devices = devicesData?.results || [];
+    return devices.filter((d) => !d.circle && !d.circle_name).length;
+  }, [devicesData]);
+
+  const existingDisabled = isLoadingDevices || eligibleExistingCount === 0;
 
   return (
     <View style={styles.container}>
@@ -66,20 +75,30 @@ export default function SelectDeviceTypeScreen() {
           <MaterialCommunityIcons name="chevron-right" size={24} color="#9CA3AF" />
         </TouchableOpacity>
 
-        {/* Option: Manual Entry */}
+        {/* Option: Add Existing Cylinder */}
         <TouchableOpacity
-          style={styles.optionCard}
-          onPress={() => router.push({ pathname: '/add-monitor/details', params: nextParams } as Href)}
+          style={[styles.optionCard, existingDisabled && { opacity: 0.55 }]}
+          onPress={() =>
+            existingDisabled
+              ? null
+              : router.push({ pathname: '/add-monitor/existing', params: nextParams } as unknown as Href)
+          }
         >
-          <View style={[styles.iconContainer, { backgroundColor: '#8B5CF6' }]}>
-            <MaterialCommunityIcons name="pencil" size={24} color="#FFF" />
+          <View style={[styles.iconContainer, { backgroundColor: '#9CA3AF' }]}>
+            <MaterialCommunityIcons name="gas-cylinder" size={24} color="#FFF" />
           </View>
           <View style={styles.optionDetails}>
-            <Text style={styles.optionTitle}>Manual Entry</Text>
-            <Text style={styles.optionDescription}>Track cylinder IoT Device</Text>
-            <Text style={styles.optionBadgeText}>Real-Time Monitoring</Text>
+            <Text style={styles.optionTitle}>Existing Cylinder</Text>
+            <Text style={styles.optionDescription}>
+              {existingDisabled ? 'No connected cylinders available' : 'Add a cylinder already connected to your account'}
+            </Text>
+            <Text style={styles.optionBadgeText}>{existingDisabled ? 'Unavailable' : 'Quick Add'}</Text>
           </View>
-          <MaterialCommunityIcons name="chevron-right" size={24} color="#9CA3AF" />
+          {isLoadingDevices ? (
+            <ActivityIndicator size="small" color={PRIMARY_COLOR} />
+          ) : (
+            <MaterialCommunityIcons name="chevron-right" size={24} color="#9CA3AF" />
+          )}
         </TouchableOpacity>
 
         {/* Option: NFC Tag */}

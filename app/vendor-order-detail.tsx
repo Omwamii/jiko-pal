@@ -1,52 +1,71 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Linking, Alert } from 'react-native';
+import React, { useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Linking, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
 import { VendorBottomNav } from '@/components/vendor/VendorBottomNav';
+import { useRefillRequestDetails } from '@/hooks/refill';
 
-type DetailOrderStatus = 'pending' | 'in-progress' | 'completed' | 'rejected';
+const PRIMARY_COLOR = '#3629B7';
 
 export default function VendorOrderDetailScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ customer?: string; orderId?: string; phone?: string; status?: DetailOrderStatus }>();
-  const customer = Array.isArray(params.customer) ? params.customer[0] : params.customer;
+  const params = useLocalSearchParams<{ customer?: string; orderId?: string; phone?: string; status?: string }>();
   const orderId = Array.isArray(params.orderId) ? params.orderId[0] : params.orderId;
-  const phone = Array.isArray(params.phone) ? params.phone[0] : params.phone;
-  const status = (Array.isArray(params.status) ? params.status[0] : params.status) || 'in-progress';
-
-  const statusMeta = (() => {
-    if (status === 'completed') {
-      return { title: 'Order Completed', label: 'Completed', bg: '#D1FAE5', color: '#10B981' };
+  
+  const { fetchRequest, refillRequest, isLoading } = useRefillRequestDetails();
+  
+  useEffect(() => {
+    if (orderId) {
+      fetchRequest(orderId);
     }
+  }, [orderId, fetchRequest]);
 
-    if (status === 'rejected') {
-      return { title: 'Order Rejected', label: 'Rejected', bg: '#FEE2E2', color: '#EF4444' };
+  const status = refillRequest?.status || 'pending';
+  const customerName = params.customer || refillRequest?.client?.full_name || 'Customer';
+  const customerPhone = params.phone || refillRequest?.client?.phone_number || '';
+
+  const getInitials = (name: string) => {
+    if (!name) return 'CU';
+    const parts = name.split(' ');
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
     }
+    return name.slice(0, 2).toUpperCase();
+  };
 
-    if (status === 'pending') {
-      return { title: 'Order Pending', label: 'Pending', bg: '#FEF3C7', color: '#D08B17' };
-    }
-
-    return { title: 'Order Accepted', label: 'In Progress', bg: '#E0E7FF', color: '#4F46E5' };
-  })();
+  const statusMeta = {
+    title: status === 'completed' ? 'Order Completed' :
+           status === 'cancelled' ? 'Order Cancelled' :
+           status === 'accepted' || status === 'in_transit' ? 'Order Accepted' : 'Order Pending',
+    label: status === 'completed' ? 'Completed' :
+           status === 'cancelled' ? 'Cancelled' :
+           status === 'accepted' || status === 'in_transit' ? 'In Progress' : 'Pending',
+    bg: status === 'accepted' || status === 'in_transit' ? '#E0E7FF' : 
+        status === 'completed' ? '#D1FAE5' :
+        status === 'cancelled' ? '#FEE2E2' : '#FEF3C7',
+    color: status === 'accepted' || status === 'in_transit' ? '#4F46E5' :
+        status === 'completed' ? '#10B981' :
+        status === 'cancelled' ? '#EF4444' : '#D08B17',
+  };
 
   const callCustomer = async () => {
-    const customerPhone = (phone || '+254712345678').trim();
     const phoneUrl = `tel:${customerPhone}`;
-
     try {
       const supported = await Linking.canOpenURL(phoneUrl);
       if (!supported) {
         Alert.alert('Call unavailable', `Your device cannot place calls to ${customerPhone}.`);
         return;
       }
-
       await Linking.openURL(phoneUrl);
     } catch {
       Alert.alert('Call failed', 'Unable to open phone app right now. Please try again.');
     }
+  };
+
+  const handleMarkDelivered = () => {
+    router.push((`/vendor-mark-delivered?orderId=${orderId || ''}&customer=${customerName}`) as Href);
   };
 
   return (
@@ -58,114 +77,100 @@ export default function VendorOrderDetailScreen() {
             <TouchableOpacity style={styles.backButton} onPress={() => router.back()} activeOpacity={0.8}>
               <MaterialCommunityIcons name="arrow-left" size={18} color="#FFFFFF" />
             </TouchableOpacity>
-
             <Text style={styles.headerTitle}>{statusMeta.title}</Text>
-
             <TouchableOpacity style={styles.notificationButton} activeOpacity={0.8}>
               <MaterialCommunityIcons name="bell-outline" size={20} color="#FFFFFF" />
-              <View style={styles.notificationBadge}>
-                <Text style={styles.badgeText}>3</Text>
-              </View>
             </TouchableOpacity>
           </View>
         </SafeAreaView>
       </View>
 
       <View style={styles.sheet}>
-        <View style={styles.customerRow}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>GP</Text>
-          </View>
-
-          <Text style={styles.customerName}>{customer || 'Sarah Anderson'}</Text>
-          <View style={[styles.statusPill, { backgroundColor: statusMeta.bg }]}>
-            <Text style={[styles.statusPillText, { color: statusMeta.color }]}>{statusMeta.label}</Text>
-          </View>
-        </View>
-
-        <View style={styles.actionsRow}>
-          <TouchableOpacity style={[styles.actionButton, styles.callButton]} activeOpacity={0.85} onPress={callCustomer}>
-            <MaterialCommunityIcons name="phone-outline" size={16} color="#16A34A" />
-            <Text style={[styles.actionText, styles.callText]}>Call Customer</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.actionButton, styles.messageButton]}
-            activeOpacity={0.85}
-            onPress={() =>
-              router.push({
-                pathname: '/vendor-customer-chat',
-                params: {
-                  customer: customer || 'Sarah Anderson',
-                  phone: phone || '+254712345678',
-                },
-              } as Href)
-            }
-          >
-            <MaterialCommunityIcons name="message-outline" size={16} color="#3629B7" />
-            <Text style={[styles.actionText, styles.messageText]}>Message</Text>
-          </TouchableOpacity>
-        </View>
-
-        <Text style={styles.sectionTitle}>Order Items</Text>
-        <View style={styles.card}>
-          <View style={styles.itemRow}>
-            <View style={styles.itemIconWrap}>
-              <MaterialCommunityIcons name="gas-cylinder" size={16} color="#18A875" />
-            </View>
-            <View style={styles.itemMeta}>
-              <Text style={styles.itemName}>Main Cylinder - 13kg</Text>
-              <Text style={styles.itemSub}>Refill</Text>
-            </View>
-            <Text style={styles.itemQty}>x1</Text>
-          </View>
-        </View>
-
-        <Text style={styles.sectionTitle}>Delivery Location</Text>
-        <Text style={styles.locationText}>123 Kimathi Street, Nairobi</Text>
-        <Text style={styles.landmarkText}>Landmark: Near Java House</Text>
-
-        <View style={styles.metaRow}>
-          <Text style={styles.metaText}>3.2 km away</Text>
-          <Text style={styles.metaDot}>•</Text>
-          <Text style={styles.metaText}>15 mins</Text>
-        </View>
-
-        <View style={styles.instructionsCard}>
-          <View style={styles.instructionsTitleRow}>
-            <MaterialCommunityIcons name="note-text-outline" size={13} color="#D48C18" />
-            <Text style={styles.instructionsTitle}>Special Instructions</Text>
-          </View>
-          <Text style={styles.instructionsText}>Please call when you arrive. Gate code is 1224</Text>
-        </View>
-
-        <TouchableOpacity style={styles.mapButton} activeOpacity={0.85}>
-          <MaterialCommunityIcons name="send-outline" size={16} color="#FFFFFF" />
-          <Text style={styles.mapButtonText}>Open in Maps</Text>
-        </TouchableOpacity>
-
-        {status === 'in-progress' ? (
-          <TouchableOpacity
-            style={styles.markButton}
-            activeOpacity={0.85}
-            onPress={() => {
-              const encodedOrderId = encodeURIComponent(orderId || '');
-              const encodedCustomer = encodeURIComponent(customer || '');
-              router.push((`/vendor-mark-delivered?orderId=${encodedOrderId}&customer=${encodedCustomer}`) as Href);
-            }}
-          >
-            <MaterialCommunityIcons name="cube-outline" size={16} color="#5F4ED8" />
-            <Text style={styles.markButtonText}>Mark Delivered</Text>
-          </TouchableOpacity>
+        {isLoading ? (
+          <ActivityIndicator size="large" color={PRIMARY_COLOR} style={styles.loader} />
         ) : (
-          <View style={styles.readOnlyState}>
-            <Text style={styles.readOnlyStateText}>
-              {status === 'completed' ? 'This order has already been delivered.' : 'This order was rejected and is read-only.'}
-            </Text>
-          </View>
-        )}
+          <>
+            <View style={styles.customerRow}>
+              <View style={styles.avatar}>
+                <Text style={styles.avatarText}>{getInitials(customerName)}</Text>
+              </View>
+              <Text style={styles.customerName}>{customerName}</Text>
+              <View style={[styles.statusPill, { backgroundColor: statusMeta.bg }]}>
+                <Text style={[styles.statusPillText, { color: statusMeta.color }]}>{statusMeta.label}</Text>
+              </View>
+            </View>
 
-        <View style={styles.bottomSpacer} />
+            <View style={styles.actionsRow}>
+              <TouchableOpacity style={[styles.actionButton, styles.callButton]} activeOpacity={0.85} onPress={callCustomer}>
+                <MaterialCommunityIcons name="phone-outline" size={16} color="#16A34A" />
+                <Text style={[styles.actionText, styles.callText]}>Call Customer</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.actionButton, styles.directionsButton]} activeOpacity={0.85}>
+                <MaterialCommunityIcons name="directions" size={16} color="#FFFFFF" />
+                <Text style={[styles.actionText, styles.directionsText]}>Directions</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.scheduleCard}>
+              <View style={styles.scheduleTitleRow}>
+                <MaterialCommunityIcons name="clock-outline" size={14} color="#D48C18" />
+                <Text style={styles.scheduleTitle}>Scheduled for</Text>
+              </View>
+              <Text style={styles.scheduleTime}>
+                {refillRequest?.scheduled_date 
+                  ? new Date(refillRequest.scheduled_date).toLocaleDateString() 
+                  : 'Not scheduled'}
+              </Text>
+            </View>
+
+            <View style={styles.locationCard}>
+              <MaterialCommunityIcons name="map-marker" size={14} color="#EF4444" />
+              <View style={styles.locationInfo}>
+                <Text style={styles.locationText}>123 Kimathi Street, Nairobi</Text>
+                <Text style={styles.landmarkText}>Landmark: Near Java House</Text>
+                <View style={styles.metaRow}>
+                  <Text style={styles.metaText}>3.2 km away</Text>
+                  <Text style={styles.metaDot}>•</Text>
+                  <Text style={styles.metaText}>15 mins</Text>
+                </View>
+              </View>
+            </View>
+
+            {refillRequest?.notes && (
+              <View style={styles.instructionsCard}>
+                <View style={styles.instructionsTitleRow}>
+                  <MaterialCommunityIcons name="note-text-outline" size={13} color="#D48C18" />
+                  <Text style={styles.instructionsTitle}>Special Instructions</Text>
+                </View>
+                <Text style={styles.instructionsText}>{refillRequest.notes}</Text>
+              </View>
+            )}
+
+            <TouchableOpacity style={styles.mapButton} activeOpacity={0.85}>
+              <MaterialCommunityIcons name="send-outline" size={16} color="#FFFFFF" />
+              <Text style={styles.mapButtonText}>Open in Maps</Text>
+            </TouchableOpacity>
+
+            {status === 'accepted' || status === 'in_transit' ? (
+              <TouchableOpacity style={styles.markButton} activeOpacity={0.85} onPress={handleMarkDelivered}>
+                <MaterialCommunityIcons name="cube-outline" size={16} color="#5F4ED8" />
+                <Text style={styles.markButtonText}>Mark Delivered</Text>
+              </TouchableOpacity>
+            ) : (
+              <View style={styles.readOnlyState}>
+                <Text style={styles.readOnlyStateText}>
+                  {status === 'completed' 
+                    ? 'This order has already been delivered.' 
+                    : status === 'cancelled'
+                      ? 'This order was cancelled and is read-only.'
+                      : 'This order is pending acceptance.'}
+                </Text>
+              </View>
+            )}
+
+            <View style={styles.bottomSpacer} />
+          </>
+        )}
       </View>
 
       <VendorBottomNav active="orders" />
@@ -199,116 +204,43 @@ const styles = StyleSheet.create({
     backgroundColor: '#F04438',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 2,
   },
   badgeText: { color: '#FFFFFF', fontSize: 8, fontWeight: '700' },
-  sheet: {
-    flex: 1,
-    backgroundColor: '#F3F3F7',
-    paddingHorizontal: 14,
-    paddingTop: 12,
-  },
+  sheet: { flex: 1, backgroundColor: '#FFFFFF', borderTopLeftRadius: 22, borderTopRightRadius: 22, padding: 16 },
+  loader: { marginTop: 40 },
   customerRow: { flexDirection: 'row', alignItems: 'center' },
-  avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#F59E0B',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarText: { color: '#FFFFFF', fontWeight: '700', fontSize: 14 },
-  customerName: { marginLeft: 10, color: '#141417', fontSize: 30, fontWeight: '700', flex: 1 },
-  statusPill: { borderRadius: 10, paddingHorizontal: 10, paddingVertical: 4, marginLeft: 8 },
-  statusPillText: { fontSize: 9, fontWeight: '700' },
-  actionsRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 12 },
-  actionButton: {
-    width: '48%',
-    borderRadius: 10,
-    height: 38,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-  },
-  callButton: { backgroundColor: '#CDF2E4' },
-  messageButton: { backgroundColor: '#D6D3F5' },
+  avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#F59E0B', alignItems: 'center', justifyContent: 'center' },
+  avatarText: { color: '#FFFFFF', fontSize: 14, fontWeight: '700' },
+  customerName: { flex: 1, marginLeft: 10, fontSize: 18, fontWeight: '600', color: '#111827' },
+  statusPill: { borderRadius: 12, paddingHorizontal: 12, paddingVertical: 4 },
+  statusPillText: { fontSize: 11, fontWeight: '600' },
+  actionsRow: { flexDirection: 'row', marginTop: 20, gap: 10 },
+  actionButton: { flex: 1, height: 44, borderRadius: 22, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  callButton: { backgroundColor: '#DCFCE7', borderWidth: 1, borderColor: '#86EFAC' },
+  directionsButton: { backgroundColor: '#14B27A' },
   actionText: { fontSize: 12, fontWeight: '600' },
   callText: { color: '#16A34A' },
-  messageText: { color: '#3629B7' },
-  sectionTitle: { marginTop: 16, color: '#1B1D25', fontSize: 26, fontWeight: '700' },
-  card: {
-    marginTop: 8,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#ECECF3',
-    padding: 10,
-  },
-  itemRow: { flexDirection: 'row', alignItems: 'center' },
-  itemIconWrap: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    backgroundColor: '#E5F7EF',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  itemMeta: { flex: 1, marginLeft: 8 },
-  itemName: { color: '#11131A', fontSize: 11, fontWeight: '600' },
-  itemSub: { color: '#8D8EA0', fontSize: 9, marginTop: 1 },
-  itemQty: { color: '#424354', fontSize: 11, fontWeight: '700' },
-  locationText: { marginTop: 7, color: '#11131A', fontSize: 22, fontWeight: '600' },
-  landmarkText: { marginTop: 2, color: '#8D8EA0', fontSize: 10 },
-  metaRow: { marginTop: 5, flexDirection: 'row', alignItems: 'center', gap: 5 },
-  metaText: { color: '#8D8EA0', fontSize: 9 },
-  metaDot: { color: '#8D8EA0', fontSize: 10 },
-  instructionsCard: {
-    marginTop: 10,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#E9D6BA',
-    backgroundColor: '#F6E9D6',
-    padding: 10,
-  },
-  instructionsTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  instructionsTitle: { color: '#D48C18', fontSize: 10, fontWeight: '600' },
-  instructionsText: { marginTop: 4, color: '#C18421', fontSize: 9 },
-  mapButton: {
-    marginTop: 12,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#3629B7',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-  },
+  directionsText: { color: '#FFFFFF' },
+  scheduleCard: { marginTop: 20, backgroundColor: '#FFFBEB', padding: 14, borderRadius: 12 },
+  scheduleTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  scheduleTitle: { color: '#92400E', fontSize: 11, fontWeight: '600', marginBottom: 4 },
+  scheduleTime: { color: '#78350F', fontSize: 16, fontWeight: '700' },
+  locationCard: { marginTop: 10, flexDirection: 'row', backgroundColor: '#FEF2F2', padding: 14, borderRadius: 12 },
+  locationInfo: { marginLeft: 8, flex: 1 },
+  locationText: { color: '#111827', fontSize: 14, fontWeight: '600' },
+  landmarkText: { color: '#6B7280', fontSize: 11, marginTop: 2 },
+  metaRow: { flexDirection: 'row', marginTop: 4 },
+  metaText: { color: '#9CA3AF', fontSize: 10 },
+  metaDot: { color: '#9CA3AF', fontSize: 10, marginHorizontal: 6 },
+  instructionsCard: { marginTop: 10, backgroundColor: '#FFFBEB', padding: 14, borderRadius: 12 },
+  instructionsTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  instructionsTitle: { color: '#92400E', fontSize: 11, fontWeight: '600', marginBottom: 4 },
+  instructionsText: { color: '#78350F', fontSize: 12 },
+  mapButton: { marginTop: 16, height: 44, borderRadius: 22, backgroundColor: '#14B27A', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
   mapButtonText: { color: '#FFFFFF', fontSize: 12, fontWeight: '600' },
-  markButton: {
-    marginTop: 10,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#D0CDEB',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-  },
+  markButton: { marginTop: 10, height: 44, borderRadius: 22, backgroundColor: '#D0CDEB', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
   markButtonText: { color: '#5F4ED8', fontSize: 12, fontWeight: '600' },
-  readOnlyState: {
-    marginTop: 10,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    backgroundColor: '#F9FAFB',
-    padding: 10,
-  },
-  readOnlyStateText: {
-    color: '#6B7280',
-    fontSize: 10,
-    textAlign: 'center',
-    fontWeight: '600',
-  },
+  readOnlyState: { marginTop: 10, borderRadius: 10, borderWidth: 1, borderColor: '#E5E7EB', backgroundColor: '#F9FAFB', padding: 10 },
+  readOnlyStateText: { color: '#6B7280', fontSize: 10, textAlign: 'center', fontWeight: '600' },
   bottomSpacer: { height: 14 },
 });

@@ -1,14 +1,44 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
 import { VendorBottomNav } from '@/components/vendor/VendorBottomNav';
+import { useCompleteRefillRequest } from '@/hooks/refill';
+
+const SECONDARY_COLOR = '#14B27A';
 
 export default function VendorMarkDeliveredScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ customer?: string; orderId?: string }>();
+  const orderId = Array.isArray(params.orderId) ? params.orderId[0] : params.orderId;
+  const customerName = Array.isArray(params.customer) ? params.customer[0] : params.customer;
+  
+  const { completeOrder, isLoading } = useCompleteRefillRequest();
+
+  const getInitials = (name: string) => {
+    if (!name) return 'CU';
+    const parts = name.split(' ');
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return name.slice(0, 2).toUpperCase();
+  };
+
+  const handleMarkDelivered = async () => {
+    if (!orderId) {
+      Alert.alert('Error', 'Order ID is missing');
+      return;
+    }
+
+    try {
+      await completeOrder(orderId);
+      router.replace('/vendor-delivery-success' as Href);
+    } catch (err) {
+      Alert.alert('Error', 'Failed to mark as delivered. Please try again.');
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -23,9 +53,6 @@ export default function VendorMarkDeliveredScreen() {
             <Text style={styles.headerTitle}>Mark Delivered</Text>
             <TouchableOpacity style={styles.notificationButton} activeOpacity={0.8}>
               <MaterialCommunityIcons name="bell-outline" size={20} color="#FFFFFF" />
-              <View style={styles.notificationBadge}>
-                <Text style={styles.badgeText}>3</Text>
-              </View>
             </TouchableOpacity>
           </View>
         </SafeAreaView>
@@ -33,14 +60,14 @@ export default function VendorMarkDeliveredScreen() {
 
       <View style={styles.sheet}>
         <Text style={styles.title}>Complete Delivery</Text>
-        <Text style={styles.orderId}>Order #{params.orderId || 'ORD-2647'}</Text>
+        <Text style={styles.orderId}>Order #{orderId || 'N/A'}</Text>
 
         <Text style={styles.sectionTitle}>Order Summary</Text>
         <View style={styles.summaryCard}>
           <View style={styles.summaryTop}>
-            <View style={styles.avatar}><Text style={styles.avatarText}>SA</Text></View>
+            <View style={styles.avatar}><Text style={styles.avatarText}>{getInitials(customerName)}</Text></View>
             <View style={styles.summaryMeta}>
-              <Text style={styles.customerName}>{params.customer || 'Sarah Anderson'}</Text>
+              <Text style={styles.customerName}>{customerName || 'Customer'}</Text>
               <Text style={styles.address}>123 Kimathi Street, Nairobi</Text>
             </View>
           </View>
@@ -51,8 +78,8 @@ export default function VendorMarkDeliveredScreen() {
               <Text style={styles.metaValue}>13kg</Text>
             </View>
             <View>
-              <Text style={styles.metaLabel}>Requested</Text>
-              <Text style={styles.metaValue}>15 min ago</Text>
+              <Text style={styles.metaLabel}>Status</Text>
+              <Text style={styles.metaValue}>In Transit</Text>
             </View>
           </View>
         </View>
@@ -64,18 +91,20 @@ export default function VendorMarkDeliveredScreen() {
           <Text style={styles.uploadText}>Tap to upload photos</Text>
         </TouchableOpacity>
 
-        <Text style={styles.sectionTitle}>Rate Client</Text>
-        <View style={styles.reviewBox}>
-          <Text style={styles.reviewPlaceholder}>Write your review here ..</Text>
-        </View>
-
         <TouchableOpacity
           style={styles.markDeliveredButton}
           activeOpacity={0.85}
-          onPress={() => router.push('/vendor-delivery-success' as Href)}
+          onPress={handleMarkDelivered}
+          disabled={isLoading}
         >
-          <MaterialCommunityIcons name="cube-outline" size={16} color="#FFFFFF" />
-          <Text style={styles.markDeliveredText}>Mark as Delivered</Text>
+          {isLoading ? (
+            <ActivityIndicator size="small" color="#FFFFFF" />
+          ) : (
+            <>
+              <MaterialCommunityIcons name="cube-outline" size={16} color="#FFFFFF" />
+              <Text style={styles.markDeliveredText}>Mark as Delivered</Text>
+            </>
+          )}
         </TouchableOpacity>
       </View>
 

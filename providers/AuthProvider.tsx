@@ -13,7 +13,7 @@ interface AuthContextType {
   vendorProfile: Vendor | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  login: (data: LoginData) => Promise<void>;
+  login: (data: LoginData) => Promise<LoginResponse>;
   registerClient: (data: RegisterClientData) => Promise<void>;
   registerVendor: (data: RegisterVendorData) => Promise<void>;
   logout: () => Promise<void>;
@@ -78,7 +78,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     loadStoredAuth();
   }, [loadStoredAuth]);
 
-  const login = async (data: LoginData) => {
+const login = async (data: LoginData) => {
     const response = await authService.login(data);
     
     await Promise.all([
@@ -98,14 +98,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     } else if (response.user.role === 'vendor') {
       try {
-        const vendors = await vendorService.getVendors();
-        if (vendors.results.length > 0) {
-          setVendorProfile(vendors.results[0]);
-        }
+        const vendor = await authService.getMyVendorProfile();
+        setVendorProfile(vendor);
       } catch (e) {
         console.log('No vendor profile found');
       }
     }
+    
+    return response;
   };
 
   const registerClient = async (data: RegisterClientData) => {
@@ -130,6 +130,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     setTokens(response.tokens.access, response.tokens.refresh);
     setUser(response.user);
+    
+    try {
+      const vendor = await authService.getMyVendorProfile();
+      setVendorProfile(vendor);
+    } catch (e) {
+      console.log('No vendor profile found');
+    }
   };
 
   const logout = async () => {

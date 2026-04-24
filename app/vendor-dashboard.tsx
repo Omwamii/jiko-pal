@@ -1,10 +1,12 @@
-import React, { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useMemo, useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import { type Href, useRouter } from 'expo-router';
 import { VendorBottomNav } from '@/components/vendor/VendorBottomNav';
+import { useVendorOrders } from '@/hooks/refill';
+import { useAuth } from '@/providers/AuthProvider';
 
 const PRIMARY_COLOR = '#3629B7';
 
@@ -21,30 +23,8 @@ const quickActions = [
   { label: 'Analytics', icon: 'chart-line' as const },
 ];
 
-type DashboardOrderStatus = 'active' | 'pending' | 'completed';
-
-type DashboardOrder = {
-  id: string;
-  initials: string;
-  customer: string;
-  phone: string;
-  distance: string;
-  status: DashboardOrderStatus;
-  progress?: number;
-};
-
-const dashboardOrders: DashboardOrder[] = [
-  { id: 'ord-101', initials: 'SA', customer: 'Sarah Anderson', phone: '+254712345678', distance: '2.3 Km Away', status: 'active', progress: 42 },
-  { id: 'ord-102', initials: 'MJ', customer: 'Mike Johnson', phone: '+254723456789', distance: '4.1 Km Away', status: 'active', progress: 68 },
-  { id: 'ord-103', initials: 'SP', customer: 'Sam Patel', phone: '+254734567890', distance: '1.8 Km Away', status: 'pending', progress: 8 },
-  { id: 'ord-104', initials: 'AN', customer: 'Ann Njeri', phone: '+254745678901', distance: '3.0 Km Away', status: 'pending', progress: 15 },
-  { id: 'ord-105', initials: 'BK', customer: 'Brian Kimani', phone: '+254756789012', distance: '5.2 Km Away', status: 'pending' },
-  { id: 'ord-106', initials: 'JW', customer: 'Jane Wanjiku', phone: '+254767890123', distance: '2.0 Km Away', status: 'completed' },
-  { id: 'ord-107', initials: 'DO', customer: 'David Ouma', phone: '+254778901234', distance: '6.4 Km Away', status: 'completed' },
-];
-
-function getOrderStatusMeta(status: DashboardOrderStatus) {
-  if (status === 'active') {
+function getOrderStatusMeta(status: string) {
+  if (status === 'in_transit' || status === 'accepted') {
     return { label: 'Active', bg: '#E7E3FF', color: '#5B4DCB' };
   }
 
@@ -52,29 +32,73 @@ function getOrderStatusMeta(status: DashboardOrderStatus) {
     return { label: 'Pending', bg: '#F4E4C3', color: '#D08B17' };
   }
 
-  return { label: 'Completed', bg: '#D1FAE5', color: '#10B981' };
+  if (status === 'completed') {
+    return { label: 'Completed', bg: '#D1FAE5', color: '#10B981' };
+  }
+
+  return { label: status.charAt(0).toUpperCase() + status.slice(1), bg: '#F3F4F6', color: '#6B7280' };
+}
+
+function getInitials(name: string) {
+  const parts = name.split(' ');
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts[1][0]).toUpperCase();
+  }
+  return name.slice(0, 2).toUpperCase();
 }
 
 export default function VendorDashboardScreen() {
   const router = useRouter();
-  const [activeOrderTab, setActiveOrderTab] = useState<DashboardOrderStatus>('active');
+  const { vendorProfile } = useAuth();
+  const { orders, isLoading, fetchOrders } = useVendorOrders();
+  const [activeOrderTab, setActiveOrderTab] = useState<string>('active');
 
-  const activeCount = useMemo(() => dashboardOrders.filter((order) => order.status === 'active').length, []);
-  const pendingCount = useMemo(() => dashboardOrders.filter((order) => order.status === 'pending').length, []);
-  const completedCount = useMemo(() => dashboardOrders.filter((order) => order.status === 'completed').length, []);
-  const visibleOrders = useMemo(
-    () => dashboardOrders.filter((order) => order.status === activeOrderTab),
-    [activeOrderTab]
+  useEffect(() => {
+    fetchOrders();
+  }, [fetchOrders]);
+
+  useEffect(() => {
+    if (vendorProfile?.company_name) {
+      fetchOrders();
+    }
+  }, [vendorProfile, fetchOrders]);
+
+  const activeOrders = useMemo(() => 
+    orders.filter((order) => order.status === 'in_transit' || order.status === 'accepted'),
+    [orders]
   );
+  const pendingOrders = useMemo(() => 
+    orders.filter((order) => order.status === 'pending'),
+    [orders]
+  );
+  const completedOrders = useMemo(() => 
+    orders.filter((order) => order.status === 'completed'),
+    [orders]
+  );
+
+  const visibleOrders = useMemo(() => {
+    if (activeOrderTab === 'active') return activeOrders;
+    if (activeOrderTab === 'pending') return pendingOrders;
+    return completedOrders;
+  }, [activeOrderTab, activeOrders, pendingOrders, completedOrders]);
+
+  const activeCount = activeOrders.length;
+  const pendingCount = pendingOrders.length;
+  const completedCount = completedOrders.length;
+
+  const vendorName = vendorProfile?.company_name || 'Vendor';
+  const pendingOffersCount = pendingOrders.length;
+
+  const stats = useMemo(() => [
+    { label: 'Orders', value: String(orders.length), hint: 'Total orders' },
+    { label: 'Pending', value: String(pendingCount), hint: 'Awaiting response' },
+    { label: 'Completed', value: String(completedCount), hint: 'This month' },
+    { label: '4.3 Rating', value: '4.8', hint: 'From reviews', icon: 'star' as const },
+  ], [orders.length, pendingCount, completedCount]);
+
   const emptyDashboardOrdersMessage = useMemo(() => {
-    if (activeOrderTab === 'active') {
-      return 'No orders in progress';
-    }
-
-    if (activeOrderTab === 'pending') {
-      return 'No pending orders';
-    }
-
+    if (activeOrderTab === 'active') return 'No orders in progress';
+    if (activeOrderTab === 'pending') return 'No pending orders';
     return 'No completed orders';
   }, [activeOrderTab]);
 
@@ -190,9 +214,19 @@ export default function VendorDashboardScreen() {
             </TouchableOpacity>
           </View>
 
-          {visibleOrders.length === 0 ? <Text style={styles.emptyText}>{emptyDashboardOrdersMessage}</Text> : null}
+          {visibleOrders.length === 0 ? (
+            isLoading ? (
+              <ActivityIndicator size="large" color={PRIMARY_COLOR} style={styles.loader} />
+            ) : (
+              <Text style={styles.emptyText}>{emptyDashboardOrdersMessage}</Text>
+            )
+          ) : null}
           {visibleOrders.map((order) => {
             const statusMeta = getOrderStatusMeta(order.status);
+            const customerName = order.client?.full_name || 'Customer';
+            const phone = order.client?.phone_number || '';
+            const initials = getInitials(customerName);
+            const scheduledDate = order.scheduled_date ? new Date(order.scheduled_date).toLocaleDateString() : '';
 
             return (
               <TouchableOpacity
@@ -204,35 +238,32 @@ export default function VendorDashboardScreen() {
                     pathname: '/vendor-order-detail',
                     params: {
                       orderId: order.id,
-                      customer: order.customer,
-                      phone: order.phone,
+                      customer: customerName,
+                      phone: phone,
                     },
                   } as Href)
                 }
               >
                 <View style={styles.orderTop}>
                   <View style={styles.avatar}>
-                    <Text style={styles.avatarText}>{order.initials}</Text>
+                    <Text style={styles.avatarText}>{initials}</Text>
                   </View>
                   <View style={styles.orderInfo}>
-                    <Text style={styles.customerName}>{order.customer}</Text>
-                    <View style={styles.distanceRow}>
-                      <MaterialCommunityIcons name="map-marker-outline" size={12} color="#9CA3AF" />
-                      <Text style={styles.distanceText}>{order.distance}</Text>
-                    </View>
+                    <Text style={styles.customerName}>{customerName}</Text>
+                    {scheduledDate ? (
+                      <View style={styles.distanceRow}>
+                        <MaterialCommunityIcons name="calendar-outline" size={12} color="#9CA3AF" />
+                        <Text style={styles.distanceText}>{scheduledDate}</Text>
+                      </View>
+                    ) : null}
                   </View>
                   <View style={[styles.statusBadge, { backgroundColor: statusMeta.bg }]}>
                     <Text style={[styles.statusText, { color: statusMeta.color }]}>{statusMeta.label}</Text>
                   </View>
                 </View>
 
-                {typeof order.progress === 'number' ? (
-                  <>
-                    <View style={styles.progressTrack}>
-                      <View style={[styles.progressFill, { width: `${order.progress}%` }]} />
-                    </View>
-                    <Text style={styles.progressText}>{order.progress}%</Text>
-                  </>
+                {order.notes ? (
+                  <Text style={styles.orderNotes} numberOfLines={2}>{order.notes}</Text>
                 ) : null}
               </TouchableOpacity>
             );
@@ -529,5 +560,13 @@ const styles = StyleSheet.create({
     color: '#71717F',
     fontSize: 9,
     textAlign: 'right',
+  },
+  loader: {
+    marginTop: 20,
+  },
+  orderNotes: {
+    marginTop: 8,
+    color: '#6B7280',
+    fontSize: 12,
   },
 });

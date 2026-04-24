@@ -5,10 +5,9 @@ import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppCard } from '@/components/ui/AppCard';
-import { useCircleDetails, useDeleteCircle } from '@/hooks/circle';
+import { useCircleDetails, useCircleDevices, useDeleteCircle } from '@/hooks/circle';
 import { authService } from '@/lib/auth';
-import { deviceService } from '@/lib/device';
-import { User, IoTDevice, CircleMember } from '@/types';
+import { User, CircleMember } from '@/types';
 
 const PRIMARY_COLOR = '#3629B7';
 
@@ -17,11 +16,10 @@ export default function CircleIndexScreen() {
   const params = useLocalSearchParams<{ circleId?: string; circleName?: string; members?: string }>();
   const [activeTab, setActiveTab] = useState<'cylinders' | 'members'>('cylinders');
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [devices, setDevices] = useState<IoTDevice[]>([]);
-  const [isLoadingDevices, setIsLoadingDevices] = useState(false);
   
   const { circle, fetchCircle } = useCircleDetails();
-  const { deleteCircle, isLoading: isDeleting } = useDeleteCircle();
+  const { deleteCircle } = useDeleteCircle();
+  const { devices, isLoading: isLoadingDevices, fetchCircleDevices } = useCircleDevices();
 
   const circleName = useMemo(() => params.circleName || 'Family Home', [params.circleName]);
   const circleId = useMemo(() => params.circleId || 'family-home', [params.circleId]);
@@ -54,22 +52,12 @@ export default function CircleIndexScreen() {
   }, [circleId, fetchCircle]);
 
   useEffect(() => {
-    const loadDevices = async () => {
-      setIsLoadingDevices(true);
-      try {
-        const response = await deviceService.getDevices({ circle_id: circleId });
-        setDevices(response.results);
-      } catch (err) {
-        console.error('Failed to load devices:', err);
-        setDevices([]);
-      } finally {
-        setIsLoadingDevices(false);
-      }
-    };
     if (circleId) {
-      loadDevices();
+      fetchCircleDevices(circleId).catch((err) => {
+        console.error('Failed to load circle devices:', err);
+      });
     }
-  }, [circleId]);
+  }, [circleId, fetchCircleDevices]);
 
   const handleDeleteCircle = () => {
     Alert.alert(
@@ -87,7 +75,7 @@ export default function CircleIndexScreen() {
                 pathname: './delete-success',
                 params: { name: circleName },
               });
-            } catch (err) {
+            } catch {
               Alert.alert('Error', 'Failed to delete circle. Please try again.');
             }
           },
@@ -147,14 +135,16 @@ export default function CircleIndexScreen() {
             style={styles.inviteButton}
             textStyle={styles.inviteButtonText}
           />
+          {(isCreator || showDeleteButton) && (
+            <AppButton
+            title="Delete Circle"
+            onPress={handleDeleteCircle}
+            style={styles.deleteButton}
+            textStyle={styles.deleteButtonText}
+          />
+          )}
+          
         </View>
-
-        {(isCreator || showDeleteButton) && (
-          <TouchableOpacity style={styles.deleteButton} onPress={handleDeleteCircle} disabled={isDeleting}>
-            <MaterialCommunityIcons name="delete-outline" size={18} color="#DC2626" />
-            <Text style={styles.deleteButtonText}>Delete Circle</Text>
-          </TouchableOpacity>
-        )}
 
         <View style={styles.tabRow}>
           <TouchableOpacity
@@ -306,17 +296,27 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   addButton: {
-    height: 32,
-    borderRadius: 4,
-    paddingHorizontal: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: '#a6b6d4',
+    borderRadius: 8,
+    backgroundColor: '#E0E7FF',
   },
   addButtonText: {
     fontSize: 11,
+    color: PRIMARY_COLOR,
   },
   inviteButton: {
-    height: 32,
-    borderRadius: 4,
-    paddingHorizontal: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: '#a6b6d4',
+    borderRadius: 8,
     backgroundColor: '#E0E7FF',
   },
   inviteButtonText: {
@@ -436,7 +436,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 12,
-    marginTop: 16,
     borderWidth: 1,
     borderColor: '#FECACA',
     borderRadius: 8,
@@ -444,9 +443,7 @@ const styles = StyleSheet.create({
   },
   deleteButtonText: {
     color: '#DC2626',
-    fontSize: 13,
-    fontWeight: '600',
-    marginLeft: 6,
+    fontSize: 11,
   },
   loader: {
     marginTop: 40,

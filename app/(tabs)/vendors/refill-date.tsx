@@ -1,10 +1,11 @@
 import React, { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { AppCard } from '@/components/ui/AppCard';
 import { AppButton } from '@/components/ui/AppButton';
+import { useCreateRefillRequest } from '@/hooks/refill';
 
 const PRIMARY_COLOR = '#3629B7';
 
@@ -12,10 +13,38 @@ const days = [27, 28, 29, 30, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
 
 export default function RefillDateScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ vendorName?: string; cylinderName?: string; cylinderLevel?: string }>();
+  const params = useLocalSearchParams<{ vendorId?: string; vendorName?: string; cylinderName?: string; cylinderLevel?: string }>();
   const vendorName = useMemo(() => params.vendorName || 'Quick Gas', [params.vendorName]);
   const cylinderName = useMemo(() => params.cylinderName || 'Kitchen Gas', [params.cylinderName]);
+  const vendorId = params.vendorId;
   const [selectedDay, setSelectedDay] = useState(6);
+  
+  const { createRequest, isLoading, error } = useCreateRefillRequest();
+
+  const handleConfirmOrder = async () => {
+    if (!vendorId) {
+      Alert.alert('Error', 'Missing vendor information');
+      return;
+    }
+
+    try {
+      const scheduledDate = new Date(2026, 0, selectedDay).toISOString().split('T')[0];
+      
+      await createRequest({
+        provider_id: vendorId,
+        device_id: undefined,
+        scheduled_date: scheduledDate,
+        notes: `Refill for ${cylinderName}`,
+      });
+
+      router.replace({
+        pathname: '/(tabs)/vendors/refill-success',
+        params: { vendorName, cylinderName },
+      } as Href);
+    } catch (err) {
+      Alert.alert('Error', error || 'Failed to create refill request');
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -81,14 +110,13 @@ export default function RefillDateScreen() {
         </AppCard>
 
         <AppButton
-          title="Confirm Order"
-          onPress={() =>
-            router.replace({
-              pathname: '/(tabs)/vendors/refill-success',
-              params: { vendorName, cylinderName },
-            } as Href)
-          }
+          title={isLoading ? 'Confirming...' : 'Confirm Order'}
+          onPress={handleConfirmOrder}
+          disabled={isLoading}
         />
+        {isLoading && (
+          <ActivityIndicator size="small" color={PRIMARY_COLOR} style={styles.loader} />
+        )}
       </ScrollView>
     </View>
   );
@@ -127,4 +155,5 @@ const styles = StyleSheet.create({
   summaryRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
   summaryLabel: { color: '#6B7280', fontSize: 12 },
   summaryValue: { color: '#374151', fontSize: 12, fontWeight: '600' },
+  loader: { marginTop: 10 },
 });

@@ -6,7 +6,7 @@ import { StatusBar } from 'expo-status-bar';
 import Svg, { Circle } from 'react-native-svg';
 import { type Href, useRouter } from 'expo-router';
 import { useAuth } from '@/providers/AuthProvider';
-import { useDevices, useRefillRequests, useUnreadNotificationCount, useCurrentUser } from '@/hooks/queries';
+import { useDevices, useRefillRequests, useUnreadNotificationCount, useCurrentUser, useActivityLogs } from '@/hooks/queries';
 
 const PRIMARY_COLOR = '#3629B7';
 const { width } = Dimensions.get('window');
@@ -23,6 +23,7 @@ export default function DashboardScreen() {
   const { data: refillRequestsData } = useRefillRequests({ limit: '5' });
   const { data: notificationCount } = useUnreadNotificationCount();
   const { data: currentUser } = useCurrentUser();
+  const { data: activityLogs } = useActivityLogs(10);
   
   const [refreshing, setRefreshing] = React.useState(false);
 
@@ -180,7 +181,7 @@ export default function DashboardScreen() {
                   router.push({
                     pathname: '/(tabs)/vendors',
                     params: {
-                      preselectedDeviceId: mainDevice?.id,
+                      preselectedCylinderName: mainDevice?.device_id,
                       preselectedCylinderLevel: String(mainDevice?.current_level || 0),
                     },
                   } as Href)
@@ -233,49 +234,84 @@ export default function DashboardScreen() {
             </View>
           </View>
 
-          {refillRequestsData?.results && refillRequestsData.results.length > 0 && (
+          {activityLogs && activityLogs.length > 0 && (
             <View style={styles.sectionContainer}>
               <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Recent Refills</Text>
+                <Text style={styles.sectionTitle}>Recent Activity</Text>
                 <TouchableOpacity onPress={() => router.push('./recent-activity')}>
                   <Text style={styles.viewAllText}>View all</Text>
                 </TouchableOpacity>
               </View>
 
               <View style={styles.activityCard}>
-                {refillRequestsData.results.slice(0, 3).map((item, index) => (
-                  <View key={item.id}>
-                    <View style={styles.activityItem}>
-                      <View style={[styles.activityIconContainer, { 
-                        backgroundColor: item.status === 'completed' ? '#D1FAE5' : 
-                          item.status === 'pending' ? '#FEF3C7' : '#E0E7FF'
-                      }]}>
-                        <MaterialCommunityIcons 
-                          name={item.status === 'completed' ? 'check-circle-outline' : 
-                            item.status === 'pending' ? 'clock-outline' : 'truck-delivery-outline'} 
-                          size={20} 
-                          color={item.status === 'completed' ? '#10B981' : 
-                            item.status === 'pending' ? '#F59E0B' : PRIMARY_COLOR} 
-                        />
+                {activityLogs.slice(0, 3).map((item, index) => {
+                  const getActivityIcon = (action: string) => {
+                    switch (action) {
+                      case 'refill_requested':
+                        return <MaterialCommunityIcons name="truck-delivery-outline" size={20} color={PRIMARY_COLOR} />;
+                      case 'refill_status_changed':
+                        return <MaterialCommunityIcons name="swap-horizontal-circle-outline" size={20} color="#10B981" />;
+                      case 'cylinder_connected':
+                        return <MaterialCommunityIcons name="link-variant-plus" size={20} color="#10B981" />;
+                      case 'cylinder_disconnected':
+                        return <MaterialCommunityIcons name="link-variant-remove" size={20} color="#EF4444" />;
+                      case 'circle_created':
+                        return <MaterialCommunityIcons name="account-group" size={20} color="#F59E0B" />;
+                      case 'circle_joined':
+                        return <MaterialCommunityIcons name="account-plus" size={20} color="#F59E0B" />;
+                      case 'vendor_subscribed':
+                        return <MaterialCommunityIcons name="store" size={20} color="#10B981" />;
+                      case 'password_changed':
+                        return <MaterialCommunityIcons name="lock-reset" size={20} color="#6B7280" />;
+                      case 'profile_updated':
+                        return <MaterialCommunityIcons name="account-edit" size={20} color="#6B7280" />;
+                      default:
+                        return <MaterialCommunityIcons name="information-outline" size={20} color="#9CA3AF" />;
+                    }
+                  };
+                  
+                  const getActivityColor = (action: string) => {
+                    switch (action) {
+                      case 'refill_requested':
+                        return '#E0E7FF';
+                      case 'refill_status_changed':
+                        return '#D1FAE5';
+                      case 'cylinder_connected':
+                        return '#D1FAE5';
+                      case 'cylinder_disconnected':
+                        return '#FEE2E2';
+                      case 'circle_created':
+                      case 'circle_joined':
+                        return '#FEF3C7';
+                      case 'vendor_subscribed':
+                        return '#D1FAE5';
+                      default:
+                        return '#F3F4F6';
+                    }
+                  };
+                  
+                  return (
+                    <View key={item.id}>
+                      <View style={styles.activityItem}>
+                        <View style={[styles.activityIconContainer, { backgroundColor: getActivityColor(item.action) }]}>
+                          {getActivityIcon(item.action)}
+                        </View>
+                        <View style={styles.activityDetails}>
+                          <Text style={styles.activityTitle}>{item.title}</Text>
+                          <Text style={styles.activitySubtitle}>
+                            {item.subtitle || item.description || new Date(item.created_at).toLocaleDateString()}
+                          </Text>
+                        </View>
+                        <View style={styles.activityRight}>
+                          <Text style={styles.activityDate}>
+                            {new Date(item.created_at).toLocaleDateString()}
+                          </Text>
+                        </View>
                       </View>
-                      <View style={styles.activityDetails}>
-                        <Text style={styles.activityTitle}>
-                          {item.status === 'completed' ? 'Refill Completed' : 
-                            item.status === 'pending' ? 'Refill Pending' : 'Refill In Transit'}
-                        </Text>
-                        <Text style={styles.activitySubtitle}>
-                          {new Date(item.requested_at).toLocaleDateString()}
-                        </Text>
-                      </View>
-                      <View style={styles.activityRight}>
-                        <Text style={styles.activityDate}>
-                          {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
-                        </Text>
-                      </View>
+                      {index < Math.min(activityLogs.length, 3) - 1 && <View style={styles.divider} />}
                     </View>
-                    {index < Math.min(refillRequestsData.results.length, 3) - 1 && <View style={styles.divider} />}
-                  </View>
-                ))}
+                  );
+                })}
               </View>
             </View>
           )}

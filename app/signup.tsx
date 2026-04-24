@@ -9,7 +9,7 @@ const PRIMARY_COLOR = '#3629B7';
 export default function SignupScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ accountType?: string }>();
-  const { registerClient, registerVendor } = useAuth();
+  const { registerClient, registerVendor, user } = useAuth();
   
   const accountType = useMemo(() => params.accountType as 'client' | 'vendor' | undefined, [params.accountType]);
   const [fullName, setFullName] = useState('');
@@ -66,8 +66,6 @@ export default function SignupScreen() {
           email: email.trim(),
           username: username.trim() || email.split('@')[0],
           password,
-          password_confirm: confirmPassword,
-          role: 'client',
           full_name: fullName.trim(),
           phone_number: phone.trim(),
         });
@@ -82,8 +80,6 @@ export default function SignupScreen() {
           email: email.trim(),
           username: username.trim() || email.split('@')[0],
           password,
-          password_confirm: confirmPassword,
-          role: 'vendor',
           company_name: companyName.trim(),
           location: location.trim(),
         });

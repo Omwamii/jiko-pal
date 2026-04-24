@@ -38,6 +38,13 @@ export default function AddMonitorLayout() {
           headerShown: false 
         }} 
       />
+      <Stack.Screen
+        name="existing"
+        options={{
+          title: 'Existing Cylinder',
+          headerShown: false,
+        }}
+      />
       <Stack.Screen 
         name="success" 
         options={{ 

@@ -1,118 +1,124 @@
-import React, { useRef, useState } from 'react';
-import { View, Text, StyleSheet, Dimensions, FlatList, TouchableOpacity, SafeAreaView, StatusBar } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, SafeAreaView, KeyboardAvoidingView, Platform, Dimensions, ActivityIndicator } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { useAuth } from '@/providers/AuthProvider';
 
-const { width, height } = Dimensions.get('window');
 const PRIMARY_COLOR = '#3629B7';
+const { height } = Dimensions.get('window');
 
-const ONBOARDING_DATA = [
-  {
-    id: '1',
-    title: 'Monitor Your Gas',
-    description: 'Track your gas cylinder levels in real-time\nand never run out unexpectedly',
-    icon: 'fire',
-    iconColor: '#F59E0B',
-  },
-  {
-    id: '2',
-    title: 'Add Multiple Monitors',
-    description: 'Connect and manage multiple gas cylinders\nfrom one convenient dashboard',
-    icon: 'speedometer',
-    iconColor: '#10B981',
-  },
-  {
-    id: '3',
-    title: 'Order & Rate Vendors',
-    description: 'Request refills easily and rate your gas\nvendors for quality service',
-    icon: 'account-group',
-    iconColor: '#F59E0B',
-  },
-];
-
-export default function OnboardingScreen() {
+export default function LoginScreen() {
   const router = useRouter();
-  const flatListRef = useRef<FlatList>(null);
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const { login } = useAuth();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const onViewableItemsChanged = useRef(({ viewableItems }: any) => {
-    console.log(viewableItems);
-    
-    if (viewableItems[0]) {
-      setCurrentIndex(viewableItems[0].index);
+  const handleLogin = async () => {
+    if (!email.trim() || !password.trim()) {
+      setError('Please enter both email and password');
+      return;
     }
-  }).current;
 
-  const viewConfig = useRef({ viewAreaCoveragePercentThreshold: 50 }).current;
+    setError('');
+    setLoading(true);
 
-  const handleNext = () => {
-    console.log(currentIndex);
-    console.log(ONBOARDING_DATA);
-
-    if (currentIndex < ONBOARDING_DATA.length - 1) {
-      flatListRef.current?.scrollToIndex({ index: currentIndex + 1, animated: true });
-    } else {
-      router.push('/account-type');
+    try {
+      const response = await login({ email: email.trim(), password });
+      if (response.user.role === 'vendor') {
+        router.replace('/vendor-dashboard');
+      } else {
+        router.replace('/(tabs)');
+      }
+    } catch (err: any) {
+      console.error('Login error:', err);
+      if (err.response?.data?.detail) {
+        setError(err.response.data.detail);
+      } else if (err.message) {
+        setError(err.message);
+      } else {
+        setError('Login failed. Please try again.');
+      }
+    } finally {
+      setLoading(false);
     }
-  };
-
-  const handleSkip = () => {
-    router.push('/account-type');
-  };
-
-  const renderItem = ({ item }: { item: typeof ONBOARDING_DATA[0] }) => {
-    return (
-      <View style={styles.pageContainer}>
-        <View style={styles.iconContainer}>
-          <MaterialCommunityIcons name={item.icon as any} size={80} color={item.iconColor} />
-        </View>
-        <Text style={styles.title}>{item.title}</Text>
-        <Text style={styles.description}>{item.description}</Text>
-      </View>
-    );
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" />
-      <View style={styles.scrollContainer}>
-        <FlatList
-          ref={flatListRef}
-          data={ONBOARDING_DATA}
-          renderItem={renderItem}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          pagingEnabled
-          bounces={false}
-          keyExtractor={(item) => item.id}
-          onViewableItemsChanged={onViewableItemsChanged}
-          viewabilityConfig={viewConfig}
-          scrollEventThrottle={32}
-        />
+      <View style={styles.header}>
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <MaterialCommunityIcons name="chevron-left" size={28} color="#FFFFFF" />
+          <Text style={styles.backButtonText}>Log in</Text>
+        </TouchableOpacity>
       </View>
 
-      <View style={styles.footer}>
-        <View style={styles.dotContainer}>
-          {ONBOARDING_DATA.map((_, index) => (
-            <View
-              key={index}
-              style={[
-                styles.dot,
-                { opacity: currentIndex === index ? 1 : 0.4 },
-                currentIndex === index && styles.activeDot,
-              ]}
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
+        style={styles.contentContainer}
+      >
+        <View style={styles.formContainer}>
+          <Text style={styles.welcomeText}>Welcome Back</Text>
+          <Text style={styles.subtitleText}>Hello there, sign in to continue</Text>
+
+          {error ? (
+            <View style={styles.errorContainer}>
+              <Text style={styles.errorText}>{error}</Text>
+            </View>
+          ) : null}
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Email</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="your.email@example.com"
+              placeholderTextColor="#9CA3AF"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              value={email}
+              onChangeText={setEmail}
+              autoComplete="email"
             />
-          ))}
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Password</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter Password"
+              placeholderTextColor="#9CA3AF"
+              secureTextEntry
+              value={password}
+              onChangeText={setPassword}
+              autoComplete="password"
+            />
+          </View>
+
+          <TouchableOpacity style={styles.forgotPasswordButton}>
+            <Text style={styles.forgotPasswordText}>Forgot Password</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={[styles.loginButton, loading && styles.loginButtonDisabled]} 
+            onPress={handleLogin}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <Text style={styles.loginButtonText}>Log in</Text>
+            )}
+          </TouchableOpacity>
+
+          <View style={styles.footerContainer}>
+            <Text style={styles.footerText}>Don't have an account? </Text>
+            <TouchableOpacity onPress={() => router.push('/account-type')}>
+              <Text style={styles.footerLink}>Sign Up</Text>
+            </TouchableOpacity>
+          </View>
         </View>
-
-        <TouchableOpacity style={styles.nextButton} onPress={handleNext}>
-          <Text style={styles.nextButtonText}>Next</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.skipButton} onPress={handleSkip}>
-          <Text style={styles.skipButtonText}>Skip</Text>
-        </TouchableOpacity>
-      </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -122,79 +128,113 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: PRIMARY_COLOR,
   },
-  scrollContainer: {
-    flex: 3,
-  },
-  pageContainer: {
-    width,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 40,
-  },
-  iconContainer: {
-    width: 140,
-    height: 140,
-    borderRadius: 70,
-    backgroundColor: '#E2E8F0',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 40,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  description: {
-    fontSize: 14,
-    color: '#E2E8F0',
-    textAlign: 'center',
-    lineHeight: 22,
-  },
-  footer: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    paddingHorizontal: 24,
+  header: {
+    paddingHorizontal: 20,
+    paddingTop: 20,
     paddingBottom: 40,
-  },
-  dotContainer: {
     flexDirection: 'row',
-    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  backButtonText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '600',
+    marginLeft: 4,
+  },
+  contentContainer: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    overflow: 'hidden',
+  },
+  formContainer: {
+    flex: 1,
+    padding: 30,
+    paddingTop: 40,
+  },
+  welcomeText: {
+    fontSize: 26,
+    fontWeight: 'bold',
+    color: PRIMARY_COLOR,
+    marginBottom: 8,
+  },
+  subtitleText: {
+    fontSize: 14,
+    color: '#6B7280',
     marginBottom: 32,
   },
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#FFFFFF',
-    marginHorizontal: 4,
+  errorContainer: {
+    backgroundColor: '#FEE2E2',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 20,
   },
-  activeDot: {
-    width: 16,
+  errorText: {
+    color: '#DC2626',
+    fontSize: 14,
   },
-  nextButton: {
+  inputGroup: {
+    marginBottom: 20,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginBottom: 8,
+  },
+  input: {
+    height: 52,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    fontSize: 15,
+    color: '#1F2937',
     backgroundColor: '#FFFFFF',
+  },
+  forgotPasswordButton: {
+    alignSelf: 'flex-end',
+    marginBottom: 32,
+  },
+  forgotPasswordText: {
+    color: '#6B7280',
+    fontSize: 13,
+  },
+  loginButton: {
+    backgroundColor: PRIMARY_COLOR,
     height: 56,
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 24,
   },
-  nextButtonText: {
-    color: PRIMARY_COLOR,
+  loginButtonDisabled: {
+    opacity: 0.7,
+  },
+  loginButtonText: {
+    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
   },
-  skipButton: {
-    height: 48,
+  footerContainer: {
+    flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
+    marginTop: 'auto',
+    marginBottom: 20,
   },
-  skipButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    opacity: 0.8,
+  footerText: {
+    color: '#6B7280',
+    fontSize: 14,
+  },
+  footerLink: {
+    color: PRIMARY_COLOR,
+    fontSize: 14,
+    fontWeight: '600',
   },
 });

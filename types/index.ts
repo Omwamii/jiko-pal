@@ -42,8 +42,10 @@ export type IoTDevice = {
   device_id: string;
   owner_id: string | null;
   owner_name?: string;
-  circle_id: string | null;
-  circle_name?: string;
+  owner?: Client | null;
+  circle?: string | null;
+  circle_id?: string | null;
+  circle_name?: string | null;
   mac_address: string | null;
   last_seen: string | null;
   current_level: number;
@@ -106,6 +108,18 @@ export type Review = {
   request: RefillRequest;
   rating: number;
   comment: string | null;
+  created_at: string;
+};
+
+export type ActivityLog = {
+  id: string;
+  action: string;
+  title: string;
+  subtitle: string;
+  description: string;
+  entity_type: string;
+  entity_id: string | null;
+  metadata: Record<string, unknown>;
   created_at: string;
 };
 
