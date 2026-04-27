@@ -52,6 +52,9 @@ export default function RootLayout() {
             <Stack.Screen name="vendor-password-security" />
             <Stack.Screen name="vendor-analytics" />
             <Stack.Screen name="vendor-help" />
+            <Stack.Screen name="vendor-notifications" />
+            <Stack.Screen name="client-orders" />
+            <Stack.Screen name="client-order-detail" />
             <Stack.Screen name="monitors" />
             <Stack.Screen name="(tabs)" />
           </Stack>
