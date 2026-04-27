@@ -7,15 +7,9 @@ import { type Href, useRouter } from 'expo-router';
 import { VendorBottomNav } from '@/components/vendor/VendorBottomNav';
 import { useVendorOrders } from '@/hooks/refill';
 import { useAuth } from '@/providers/AuthProvider';
+import { useUnreadNotificationCount } from '@/hooks/queries';
 
 const PRIMARY_COLOR = '#3629B7';
-
-const stats = [
-  { label: 'Revenue', value: 'KSh 45,800', hint: '+ 3 from yesterday' },
-  { label: 'Orders', value: '12', hint: '+ 3 from yesterday' },
-  { label: 'Avg. Time', value: '32 min', hint: 'Delivery time' },
-  { label: '4.3 Rating', value: '4.8', hint: 'From 389 reviews', icon: 'star' as const },
-];
 
 const quickActions = [
   { label: 'Orders', icon: 'clipboard-text-outline' as const },
@@ -51,7 +45,10 @@ export default function VendorDashboardScreen() {
   const router = useRouter();
   const { vendorProfile } = useAuth();
   const { orders, isLoading, fetchOrders } = useVendorOrders();
+  const { data: unreadCountData } = useUnreadNotificationCount();
   const [activeOrderTab, setActiveOrderTab] = useState<string>('active');
+
+  const unreadCount = unreadCountData?.unread_count || 0;
 
   useEffect(() => {
     fetchOrders();
@@ -76,25 +73,20 @@ export default function VendorDashboardScreen() {
     [orders]
   );
 
+  const stats = useMemo(() => [
+    { label: 'Orders', value: String(orders.length), hint: 'Total orders' },
+    { label: 'Active', value: String(activeOrders.length), hint: 'In progress' },
+    { label: 'Pending', value: String(pendingOrders.length), hint: 'Waiting' },
+    { label: 'Completed', value: String(completedOrders.length), hint: 'Delivered' },
+  ], [orders, activeOrders, pendingOrders, completedOrders]);
+ 
   const visibleOrders = useMemo(() => {
     if (activeOrderTab === 'active') return activeOrders;
     if (activeOrderTab === 'pending') return pendingOrders;
     return completedOrders;
   }, [activeOrderTab, activeOrders, pendingOrders, completedOrders]);
 
-  const activeCount = activeOrders.length;
-  const pendingCount = pendingOrders.length;
-  const completedCount = completedOrders.length;
-
   const vendorName = vendorProfile?.company_name || 'Vendor';
-  const pendingOffersCount = pendingOrders.length;
-
-  const stats = useMemo(() => [
-    { label: 'Orders', value: String(orders.length), hint: 'Total orders' },
-    { label: 'Pending', value: String(pendingCount), hint: 'Awaiting response' },
-    { label: 'Completed', value: String(completedCount), hint: 'This month' },
-    { label: '4.3 Rating', value: '4.8', hint: 'From reviews', icon: 'star' as const },
-  ], [orders.length, pendingCount, completedCount]);
 
   const emptyDashboardOrdersMessage = useMemo(() => {
     if (activeOrderTab === 'active') return 'No orders in progress';
@@ -110,11 +102,17 @@ export default function VendorDashboardScreen() {
           <Text style={styles.welcomeText}>Welcome back, vendor!</Text>
           <View style={styles.headerRow}>
             <Text style={styles.brandTitle}>QuickGas Distributors</Text>
-            <TouchableOpacity style={styles.notificationButton} activeOpacity={0.8}>
+            <TouchableOpacity 
+              style={styles.notificationButton} 
+              activeOpacity={0.8}
+              onPress={() => router.push('/vendor-notifications' as Href)}
+            >
               <MaterialCommunityIcons name="bell-outline" size={20} color="#FFFFFF" />
-              <View style={styles.notificationBadge}>
-                <Text style={styles.badgeText}>3</Text>
-              </View>
+              {unreadCount > 0 && (
+                <View style={styles.notificationBadge}>
+                  <Text style={styles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+                </View>
+              )}
             </TouchableOpacity>
           </View>
         </SafeAreaView>
@@ -125,10 +123,7 @@ export default function VendorDashboardScreen() {
           <View style={styles.statsGrid}>
             {stats.map((item) => (
               <View key={item.label} style={styles.statCard}>
-                <View style={styles.statLabelRow}>
-                  {item.icon ? <MaterialCommunityIcons name={item.icon} size={12} color="#F59E0B" /> : null}
-                  <Text style={styles.statLabel}>{item.label}</Text>
-                </View>
+                <Text style={styles.statLabel}>{item.label}</Text>
                 <Text style={styles.statValue}>{item.value}</Text>
                 <Text style={styles.statHint}>{item.hint}</Text>
               </View>
@@ -139,8 +134,12 @@ export default function VendorDashboardScreen() {
             <View style={styles.offerIcon}>
               <MaterialCommunityIcons name="tag-outline" size={12} color="#E19B0B" />
             </View>
-            <Text style={styles.offerTitle}>2 Pending Offers</Text>
-            <Text style={styles.offerSubtitle}>You have new delivery requests waiting for your response</Text>
+            <Text style={styles.offerTitle}>{pendingOrders.length} Pending Offer{pendingOrders.length !== 1 ? 's' : ''}</Text>
+            <Text style={styles.offerSubtitle}>
+              {pendingOrders.length === 0 
+                ? 'No new delivery requests' 
+                : 'You have new delivery requests waiting for your response'}
+            </Text>
             <TouchableOpacity
               style={styles.offerButton}
               activeOpacity={0.8}
@@ -194,14 +193,14 @@ export default function VendorDashboardScreen() {
               activeOpacity={0.85}
               onPress={() => setActiveOrderTab('active')}
             >
-              <Text style={activeOrderTab === 'active' ? styles.filterTextActive : styles.filterText}>Active ({activeCount})</Text>
+              <Text style={activeOrderTab === 'active' ? styles.filterTextActive : styles.filterText}>Active ({activeOrders.length})</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.filterPill, activeOrderTab === 'pending' && styles.filterPillActive]}
               activeOpacity={0.85}
               onPress={() => setActiveOrderTab('pending')}
             >
-              <Text style={activeOrderTab === 'pending' ? styles.filterTextActive : styles.filterText}>Pending ({pendingCount})</Text>
+              <Text style={activeOrderTab === 'pending' ? styles.filterTextActive : styles.filterText}>Pending ({pendingOrders.length})</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.filterPill, activeOrderTab === 'completed' && styles.filterPillActive]}
@@ -209,7 +208,7 @@ export default function VendorDashboardScreen() {
               onPress={() => setActiveOrderTab('completed')}
             >
               <Text style={activeOrderTab === 'completed' ? styles.filterTextActive : styles.filterText}>
-                Completed ({completedCount})
+                Completed ({completedOrders.length})
               </Text>
             </TouchableOpacity>
           </View>

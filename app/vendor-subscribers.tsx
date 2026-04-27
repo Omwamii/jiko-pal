@@ -5,46 +5,61 @@ import { StatusBar } from 'expo-status-bar';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { type Href, useRouter } from 'expo-router';
 import { VendorBottomNav } from '@/components/vendor/VendorBottomNav';
-import { useVendorSubscribers } from '@/hooks/vendor';
-import { useDevices } from '@/hooks/queries';
+import { useVendorSubscribers, useSubscribersDevices } from '@/hooks/vendor';
 
 type FilterKey = 'all' | 'active' | 'low' | 'critical';
 
 export default function VendorSubscribersScreen() {
   const router = useRouter();
-  const { subscribers, isLoading, fetchSubscribers } = useVendorSubscribers();
-  const { data: devicesData } = useDevices();
+  const { subscribers, isLoading: isLoadingSubs, fetchSubscribers } = useVendorSubscribers();
+  const { devicesByClient, isLoading: isLoadingDevices, fetchSubscribersDevices } = useSubscribersDevices();
   const [filter, setFilter] = useState<FilterKey>('all');
 
   useEffect(() => {
     fetchSubscribers();
-  }, [fetchSubscribers]);
+    fetchSubscribersDevices();
+  }, [fetchSubscribers, fetchSubscribersDevices]);
 
 const subscribersWithStatus = useMemo(() => {
-    if (!subscribers || !devicesData) return [];
+    if (!subscribers) return [];
+    
+    if (!devicesByClient || Object.keys(devicesByClient).length === 0) {
+      return subscribers.map(sub => ({
+        id: sub.id,
+        clientId: sub.client?.id || '',
+        name: sub.client?.full_name || 'Unknown',
+        email: (sub.client as any)?.email || (sub.client as any)?.phone_number || '',
+        status: 'active' as const,
+        subscribedAt: sub.subscribed_at || '',
+        deviceCount: 0,
+      }));
+    }
     
     return subscribers.map(sub => {
       const clientId = sub.client?.id || '';
-      const clientDevices = devicesData.results.filter(d => d.owner_id === clientId);
-      const avgLevel = clientDevices.length > 0 
-        ? clientDevices.reduce((sum, d) => sum + (d.current_level || 0), 0) / clientDevices.length
-        : 0;
+      const clientDevices = devicesByClient[clientId] || [];
+      
+      let totalLevel = 0;
+      for (const d of clientDevices) {
+        totalLevel += Number(d.current_level) || 0;
+      }
+      const avgLevel = clientDevices.length > 0 ? totalLevel / clientDevices.length : 0;
       
       let status: 'active' | 'low' | 'critical' = 'active';
-      if (avgLevel < 20) status = 'critical';
-      else if (avgLevel < 40) status = 'low';
+      if (avgLevel > 0 && avgLevel < 20) status = 'critical';
+      else if (avgLevel > 0 && avgLevel < 40) status = 'low';
       
       return {
         id: sub.id,
         clientId,
         name: sub.client?.full_name || 'Unknown',
-        email: (sub.client as any).email || (sub.client as any)?.phone_number || '',
+        email: (sub.client as any)?.email || (sub.client as any)?.phone_number || '',
         status,
         subscribedAt: sub.subscribed_at || '',
         deviceCount: clientDevices.length,
       };
     });
-  }, [subscribers, devicesData]);
+  }, [subscribers, devicesByClient]);
 
   const visible = useMemo(() => {
     if (filter === 'all') return subscribersWithStatus;
@@ -98,7 +113,7 @@ const subscribersWithStatus = useMemo(() => {
       </View>
 
       <View style={styles.sheet}>
-        {isLoading ? (
+        {isLoadingSubs || isLoadingDevices ? (
           <ActivityIndicator size="large" color="#3629B7" style={styles.loader} />
         ) : (
           <>
@@ -154,7 +169,7 @@ const subscribersWithStatus = useMemo(() => {
                     key={subscriber.id}
                     style={styles.subscriberCard}
                     activeOpacity={0.85}
-                    onPress={() => router.push((`/vendor-customer-detail?name=${encodeURIComponent(subscriber.name)}&email=${encodeURIComponent(subscriber.email)}`) as Href)}
+                    onPress={() => router.push((`/vendor-customer-detail?subscriptionId=${encodeURIComponent(subscriber.id)}&name=${encodeURIComponent(subscriber.name)}&email=${encodeURIComponent(subscriber.email)}`) as Href)}
                   >
                     <View style={styles.subscriberTop}>
                       <View style={styles.avatar}><Text style={styles.avatarText}>{getInitials(subscriber.name)}</Text></View>

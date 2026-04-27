@@ -105,9 +105,13 @@ export default function VendorOrderDetailScreen() {
                 <MaterialCommunityIcons name="phone-outline" size={16} color="#16A34A" />
                 <Text style={[styles.actionText, styles.callText]}>Call Customer</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.actionButton, styles.directionsButton]} activeOpacity={0.85}>
-                <MaterialCommunityIcons name="directions" size={16} color="#FFFFFF" />
-                <Text style={[styles.actionText, styles.directionsText]}>Directions</Text>
+              <TouchableOpacity 
+                style={[styles.actionButton, styles.directionsButton]} 
+                activeOpacity={0.85}
+                onPress={() => router.push(`/vendor-customer-chat?customer=${encodeURIComponent(customerName)}&phone=${encodeURIComponent(customerPhone)}`)}
+              >
+                <MaterialCommunityIcons name="message-outline" size={16} color="#FFFFFF" />
+                <Text style={[styles.actionText, styles.directionsText]}>Message</Text>
               </TouchableOpacity>
             </View>
 

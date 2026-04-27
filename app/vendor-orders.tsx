@@ -24,7 +24,11 @@ function getStatusStyle(status: string) {
     return { backgroundColor: '#F6E6C9', color: '#D48C18', label: 'Pending' };
   }
 
-  if (status === 'completed' || status === 'cancelled') {
+  if (status === 'completed') {
+    return { backgroundColor: '#D1FAE5', color: '#10B981', label: 'Completed'}
+  }
+
+  if (status === 'cancelled') {
     return { backgroundColor: '#F9CDD4', color: '#E44A69', label: status === 'cancelled' ? 'Cancelled' : 'Completed' };
   }
 

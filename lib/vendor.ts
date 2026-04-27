@@ -54,4 +54,19 @@ export const vendorService = {
     const response = await api.get<VendorSubscription[]>('/vendors/subscribers/');
     return response.data;
   },
+
+  async getSubscriberDetail(subscriptionId: string): Promise<any> {
+    const response = await api.get(`/vendors/${subscriptionId}/subscriber_detail/`);
+    return response.data;
+  },
+
+  async getSubscriberDevices(subscriptionId: string): Promise<any> {
+    const response = await api.get(`/vendors/${subscriptionId}/subscriber_devices/`);
+    return response.data;
+  },
+
+  async getSubscribersDevices(): Promise<any> {
+    const response = await api.get('/vendors/subscribers_devices/');
+    return response.data;
+  },
 };

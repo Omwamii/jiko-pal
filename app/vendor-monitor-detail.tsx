@@ -112,9 +112,6 @@ const styles = StyleSheet.create({
   sheet: { flex: 1, backgroundColor: '#F3F3F7', paddingHorizontal: 14, paddingTop: 16 },
   card: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 2,
-    borderWidth: 2,
-    borderColor: '#2596FF',
     padding: 12,
   },
   cardSub: { color: '#99A0AD', fontSize: 8 },

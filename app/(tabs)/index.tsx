@@ -9,6 +9,7 @@ import { useAuth } from '@/providers/AuthProvider';
 import { useDevices, useRefillRequests, useUnreadNotificationCount, useCurrentUser, useActivityLogs } from '@/hooks/queries';
 
 const PRIMARY_COLOR = '#3629B7';
+const SECONDARY_COLOR = '#14B27A';
 const { width } = Dimensions.get('window');
 
 const size = 160;
@@ -233,6 +234,62 @@ export default function DashboardScreen() {
               </TouchableOpacity>
             </View>
           </View>
+
+          {refillRequestsData?.results && refillRequestsData.results.length > 0 && (
+            <View style={styles.sectionContainer}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Recent Orders</Text>
+                <TouchableOpacity onPress={() => router.push('/client-orders')}>
+                  <Text style={styles.viewAllText}>View all</Text>
+                </TouchableOpacity>
+              </View>
+
+              {refillRequestsData.results.slice(0, 3).map((order: any) => {
+                const statusColors: Record<string, { bg: string; text: string }> = {
+                  pending: { bg: '#F6E6C9', text: '#D48C18' },
+                  accepted: { bg: '#E9E6FF', text: '#6B5DD9' },
+                  in_transit: { bg: '#E9E6FF', text: '#6B5DD9' },
+                  completed: { bg: '#D1FAE5', text: '#10B981' },
+                  cancelled: { bg: '#F9CDD4', text: '#E44A69' },
+                };
+                const status = statusColors[order.status] || statusColors.pending;
+                return (
+                  <TouchableOpacity
+                    key={order.id}
+                    style={styles.orderItemCard}
+                    onPress={() => router.push({
+                      pathname: '/client-order-detail',
+                      params: {
+                        orderId: order.id,
+                        vendorName: order.provider?.company_name || 'Unknown',
+                        status: order.status,
+                        scheduledDate: order.scheduled_date || '',
+                        completedDate: order.completed_at || '',
+                        notes: order.notes || '',
+                      },
+                    })}
+                  >
+                    <View style={styles.orderItemLeft}>
+                      <MaterialCommunityIcons name="package-variant" size={20} color={PRIMARY_COLOR} />
+                    </View>
+                    <View style={styles.orderItemContent}>
+                      <Text style={styles.orderItemTitle}>{order.provider?.company_name || 'Unknown Vendor'}</Text>
+                      <Text style={styles.orderItemSubtitle}>
+                        {order.scheduled_date 
+                          ? new Date(order.scheduled_date).toLocaleDateString() 
+                          : 'Not scheduled'}
+                      </Text>
+                    </View>
+                    <View style={[styles.orderStatusBadge, { backgroundColor: status.bg }]}>
+                      <Text style={[styles.orderStatusText, { color: status.text }]}>
+                        {order.status === 'in_transit' ? 'In progress' : order.status}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          )}
 
           {activityLogs && activityLogs.length > 0 && (
             <View style={styles.sectionContainer}>
@@ -582,102 +639,111 @@ const styles = StyleSheet.create({
     color: '#1F2937',
     marginBottom: 16,
   },
-  viewAllText: {
+viewAllText: {
     color: PRIMARY_COLOR,
     fontSize: 12,
     fontWeight: '600',
   },
   quickActionsRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    gap: 10,
   },
   quickActionBox: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    paddingVertical: 16,
-    paddingHorizontal: 12,
     flex: 1,
-    marginHorizontal: 4,
+    backgroundColor: '#FFF',
+    borderRadius: 10,
+    padding: 16,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.03,
-    shadowRadius: 10,
-    elevation: 2,
+    justifyContent: 'center',
   },
   iconCircle: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 12,
+    justifyContent: 'center',
+    marginBottom: 8,
   },
   quickActionText: {
-    fontSize: 11,
-    fontWeight: '500',
-    color: '#4B5563',
+    color: '#11181C',
+    fontSize: 10,
+    fontWeight: '600',
   },
   activityCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 16,
+    backgroundColor: '#FFF',
+    borderRadius: 10,
+    padding: 12,
   },
   activityItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
   },
   activityIconContainer: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+    justifyContent: 'center',
+    marginRight: 10,
   },
-  activityDetails: {
-    flex: 1,
-  },
-  activityTitle: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#1F2937',
-    marginBottom: 2,
-  },
-  activitySubtitle: {
-    fontSize: 11,
-    color: '#9CA3AF',
-  },
-  activityRight: {
-    alignItems: 'flex-end',
-  },
-  activityDate: {
-    fontSize: 12,
-    color: '#6B7280',
-    fontWeight: '500',
-  },
-  divider: {
-    height: 1,
-    backgroundColor: '#F3F4F6',
-    marginLeft: 44,
-  },
+  activityDetails: { flex: 1 },
+  activityTitle: { color: '#11181C', fontSize: 12, fontWeight: '700' },
+  activitySubtitle: { color: '#6B7280', fontSize: 10 },
+  activityRight: {},
+  activityDate: { color: '#9CA3AF', fontSize: 9 },
+  divider: { height: 1, backgroundColor: '#F3F4F6', marginVertical: 10 },
   otherMonitorItem: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 16,
+    backgroundColor: '#FFF',
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 8,
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    justifyContent: 'space-between',
+  },
+  orderItemCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF',
+    padding: 12,
+    borderRadius: 10,
+    marginBottom: 8,
+  },
+  orderItemLeft: {
+    marginRight: 12,
+  },
+  orderItemContent: {
+    flex: 1,
+  },
+  orderItemTitle: {
+    color: '#11181C',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  orderItemSubtitle: {
+    color: '#6B7280',
+    fontSize: 10,
+    marginTop: 2,
+  },
+  orderStatusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+  },
+  orderStatusText: {
+    fontSize: 9,
+    fontWeight: '700',
+    textTransform: 'capitalize',
   },
   monitorIconBadge: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: 'center',
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    backgroundColor: SECONDARY_COLOR,
+    borderRadius: 6,
+    width: 12,
+    height: 12,
     alignItems: 'center',
-    marginRight: 16,
+    justifyContent: 'center',
   },
 });

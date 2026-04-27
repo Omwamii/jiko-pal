@@ -1,31 +1,32 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { useVendorProfile, VendorProfile } from '@/hooks/vendor';
 
-const initialForm = {
-  businessRegistrationNumber: 'BN/2024/12345',
-  taxPin: 'A123456789X',
-  businessDescription: 'Leading gas cylinder distributor serving Nairobi and surrounding areas since 2015. Fast, reliable, and professional service.',
-  primaryPhone: '+254 712 345 678',
-  alternatePhone: '+254 723 456 789',
-  email: 'info@quickgas.co.ke',
-  website: 'www.quickgas.co.ke',
-  streetAddress: '123 Industrial Area, Nairobi',
-  city: 'Nairobi',
-  county: 'Nairobi County',
-  postalCode: '00100',
-  deliveryRadius: '15 km',
+const initialForm: Partial<VendorProfile> = {
+  business_registration_number: '',
+  tax_pin: '',
+  business_description: '',
+  primary_phone: '',
+  alternate_phone: '',
+  website: '',
+  street_address: '',
+  city: '',
+  county: '',
+  postal_code: '',
+  delivery_radius: 15,
 };
 
-function Field({ label, value, onChangeText, editable = false, multiline = false }: {
+function Field({ label, value, onChangeText, editable = false, multiline = false, keyboardType = 'default' }: {
   label: string;
   value: string;
   onChangeText: (value: string) => void;
   editable?: boolean;
   multiline?: boolean;
+  keyboardType?: 'default' | 'numeric' | 'email-address' | 'phone-pad';
 }) {
   return (
     <View style={styles.fieldWrap}>
@@ -37,6 +38,7 @@ function Field({ label, value, onChangeText, editable = false, multiline = false
         editable={editable}
         multiline={multiline}
         textAlignVertical={multiline ? 'top' : 'center'}
+        keyboardType={keyboardType}
       />
     </View>
   );
@@ -45,7 +47,62 @@ function Field({ label, value, onChangeText, editable = false, multiline = false
 export default function VendorBusinessInformationScreen() {
   const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
-  const [form, setForm] = useState(initialForm);
+  const { profile, isLoading, fetchProfile, updateProfile } = useVendorProfile();
+  const [form, setForm] = useState<Partial<VendorProfile>>(initialForm);
+
+  useEffect(() => {
+    fetchProfile();
+  }, [fetchProfile]);
+
+  useEffect(() => {
+    if (profile) {
+      setForm({
+        business_registration_number: profile.business_registration_number || '',
+        tax_pin: profile.tax_pin || '',
+        business_description: profile.business_description || '',
+        primary_phone: profile.primary_phone || '',
+        alternate_phone: profile.alternate_phone || '',
+        website: profile.website || '',
+        street_address: profile.street_address || '',
+        city: profile.city || '',
+        county: profile.county || '',
+        postal_code: profile.postal_code || '',
+        delivery_radius: profile.delivery_radius || 15,
+      });
+    }
+  }, [profile]);
+
+  const handleSave = async () => {
+    console.log('Saving profile:', form);
+    try {
+      await updateProfile(form);
+      Alert.alert('Success', 'Business information updated successfully');
+    } catch (err: any) {
+      console.error('Save error:', err);
+      Alert.alert('Error', err?.message || 'Failed to update business information');
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <View style={styles.container}>
+        <StatusBar style="light" />
+        <View style={styles.header}>
+          <SafeAreaView edges={['top']} style={styles.safeHeader}>
+            <View style={styles.headerRow}>
+              <TouchableOpacity style={styles.backButton} onPress={() => router.back()} activeOpacity={0.8}>
+                <MaterialCommunityIcons name="arrow-left" size={18} color="#FFFFFF" />
+              </TouchableOpacity>
+              <Text style={styles.headerTitle}>Manage your business details</Text>
+            </View>
+          </SafeAreaView>
+        </View>
+        <View style={[styles.sheet, styles.loadingContainer]}>
+          <ActivityIndicator size="large" color="#3629B7" />
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -68,124 +125,129 @@ export default function VendorBusinessInformationScreen() {
         </SafeAreaView>
       </View>
 
-      <ScrollView style={styles.sheet} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.companyRow}>
-          <View style={styles.companyAvatar}><Text style={styles.companyAvatarText}>SJ</Text></View>
-          <View>
-            <Text style={styles.companyName}>QuickGas Ltd</Text>
-            <Text style={styles.companyType}>Distributor</Text>
-          </View>
+      {isLoading ? (
+        <View style={[styles.sheet, styles.loadingContainer]}>
+          <ActivityIndicator size="large" color="#3629B7" />
         </View>
-
-        <Text style={styles.sectionTitle}>Basic information</Text>
-
-        <Field
-          label="Business Registration Number"
-          value={form.businessRegistrationNumber}
-          onChangeText={(businessRegistrationNumber) => setForm((prev) => ({ ...prev, businessRegistrationNumber }))}
-          editable={isEditing}
-        />
-
-        <Field
-          label="Tax ID / PIN Number"
-          value={form.taxPin}
-          onChangeText={(taxPin) => setForm((prev) => ({ ...prev, taxPin }))}
-          editable={isEditing}
-        />
-
-        <Field
-          label="Business Description"
-          value={form.businessDescription}
-          onChangeText={(businessDescription) => setForm((prev) => ({ ...prev, businessDescription }))}
-          editable={isEditing}
-          multiline
-        />
-
-        <Text style={styles.sectionTitle}>Contact Information</Text>
-
-        <Field
-          label="Primary Phone Number"
-          value={form.primaryPhone}
-          onChangeText={(primaryPhone) => setForm((prev) => ({ ...prev, primaryPhone }))}
-          editable={isEditing}
-        />
-
-        <Field
-          label="Alternate Phone Number"
-          value={form.alternatePhone}
-          onChangeText={(alternatePhone) => setForm((prev) => ({ ...prev, alternatePhone }))}
-          editable={isEditing}
-        />
-
-        <Field
-          label="Email Address"
-          value={form.email}
-          onChangeText={(email) => setForm((prev) => ({ ...prev, email }))}
-          editable={isEditing}
-        />
-
-        <Field
-          label="Website (Optional)"
-          value={form.website}
-          onChangeText={(website) => setForm((prev) => ({ ...prev, website }))}
-          editable={isEditing}
-        />
-
-        <Text style={styles.sectionTitle}>Business Address</Text>
-
-        <Field
-          label="Street Address"
-          value={form.streetAddress}
-          onChangeText={(streetAddress) => setForm((prev) => ({ ...prev, streetAddress }))}
-          editable={isEditing}
-        />
-
-        <View style={styles.row2}>
-          <View style={{ flex: 1 }}>
-            <Field
-              label="City"
-              value={form.city}
-              onChangeText={(city) => setForm((prev) => ({ ...prev, city }))}
-              editable={isEditing}
-            />
+      ) : (
+        <ScrollView style={styles.sheet} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+          <View style={styles.companyRow}>
+            <View style={styles.companyAvatar}>
+              <Text style={styles.companyAvatarText}>
+                {profile?.company_name ? profile.company_name.slice(0, 2).toUpperCase() : 'VC'}
+              </Text>
+            </View>
+            <View>
+              <Text style={styles.companyName}>{profile?.company_name || 'Your Company'}</Text>
+              <Text style={styles.companyType}>Distributor</Text>
+            </View>
           </View>
-          <View style={{ flex: 1 }}>
-            <Field
-              label="County"
-              value={form.county}
-              onChangeText={(county) => setForm((prev) => ({ ...prev, county }))}
-              editable={isEditing}
-            />
+
+          <Text style={styles.sectionTitle}>Basic information</Text>
+
+          <Field
+            label="Business Registration Number"
+            value={form.business_registration_number || ''}
+            onChangeText={(v) => setForm((prev) => ({ ...prev, business_registration_number: v }))}
+            editable={isEditing}
+          />
+
+          <Field
+            label="Tax ID / PIN Number"
+            value={form.tax_pin || ''}
+            onChangeText={(v) => setForm((prev) => ({ ...prev, tax_pin: v }))}
+            editable={isEditing}
+          />
+
+          <Field
+            label="Business Description"
+            value={form.business_description || ''}
+            onChangeText={(v) => setForm((prev) => ({ ...prev, business_description: v }))}
+            editable={isEditing}
+            multiline
+          />
+
+          <Text style={styles.sectionTitle}>Contact Information</Text>
+
+          <Field
+            label="Primary Phone Number"
+            value={form.primary_phone || ''}
+            onChangeText={(v) => setForm((prev) => ({ ...prev, primary_phone: v }))}
+            editable={isEditing}
+            keyboardType="phone-pad"
+          />
+
+          <Field
+            label="Alternate Phone Number"
+            value={form.alternate_phone || ''}
+            onChangeText={(v) => setForm((prev) => ({ ...prev, alternate_phone: v }))}
+            editable={isEditing}
+            keyboardType="phone-pad"
+          />
+
+          <Field
+            label="Website (Optional)"
+            value={form.website || ''}
+            onChangeText={(v) => setForm((prev) => ({ ...prev, website: v }))}
+            editable={isEditing}
+          />
+
+          <Text style={styles.sectionTitle}>Business Address</Text>
+
+          <Field
+            label="Street Address"
+            value={form.street_address || ''}
+            onChangeText={(v) => setForm((prev) => ({ ...prev, street_address: v }))}
+            editable={isEditing}
+          />
+
+          <View style={styles.row2}>
+            <View style={{ flex: 1 }}>
+              <Field
+                label="City"
+                value={form.city || ''}
+                onChangeText={(v) => setForm((prev) => ({ ...prev, city: v }))}
+                editable={isEditing}
+              />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Field
+                label="County"
+                value={form.county || ''}
+                onChangeText={(v) => setForm((prev) => ({ ...prev, county: v }))}
+                editable={isEditing}
+              />
+            </View>
           </View>
-        </View>
 
-        <Field
-          label="Postal Code"
-          value={form.postalCode}
-          onChangeText={(postalCode) => setForm((prev) => ({ ...prev, postalCode }))}
-          editable={isEditing}
-        />
+          <Field
+            label="Postal Code"
+            value={form.postal_code || ''}
+            onChangeText={(v) => setForm((prev) => ({ ...prev, postal_code: v }))}
+            editable={isEditing}
+            keyboardType="numeric"
+          />
 
-        <Text style={styles.sectionTitle}>Service Areas</Text>
-        <View style={styles.tagsRow}>
-          {['Nairobi CBD', 'Westlands', 'Kilimani', 'Karen'].map((item) => (
-            <View key={item} style={styles.tag}><Text style={styles.tagText}>{item}</Text></View>
-          ))}
-        </View>
+          <Text style={styles.sectionTitle}>Service Areas</Text>
+          <View style={styles.tagsRow}>
+            {form.city ? <View style={styles.tag}><Text style={styles.tagText}>{form.city}</Text></View> : null}
+          </View>
 
-        <Field
-          label="Delivery Radius (km)"
-          value={form.deliveryRadius}
-          onChangeText={(deliveryRadius) => setForm((prev) => ({ ...prev, deliveryRadius }))}
-          editable={isEditing}
-        />
+          <Field
+            label="Delivery Radius (km)"
+            value={String(form.delivery_radius || 15)}
+            onChangeText={(v) => setForm((prev) => ({ ...prev, delivery_radius: parseInt(v) || 15 }))}
+            editable={isEditing}
+            keyboardType="numeric"
+          />
 
-        {isEditing ? (
-          <TouchableOpacity style={styles.saveButton} activeOpacity={0.85} onPress={() => setIsEditing(false)}>
-            <Text style={styles.saveButtonText}>Save Changes</Text>
-          </TouchableOpacity>
-        ) : null}
-      </ScrollView>
+          {isEditing ? (
+            <TouchableOpacity style={styles.saveButton} activeOpacity={0.85} onPress={handleSave}>
+              <Text style={styles.saveButtonText}>Save Changes</Text>
+            </TouchableOpacity>
+          ) : null}
+        </ScrollView>
+      )}
     </View>
   );
 }
@@ -220,6 +282,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#F3F3F7',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
+  },
+  loadingContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   content: { padding: 12, paddingBottom: 24 },
   companyRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },

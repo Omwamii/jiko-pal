@@ -43,7 +43,7 @@ export type IoTDevice = {
   owner_id: string | null;
   owner_name?: string;
   owner?: Client | null;
-  circle?: string | null;
+  circle: string | { circle_name?: string } | null;
   circle_id?: string | null;
   circle_name?: string | null;
   mac_address: string | null;
