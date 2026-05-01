@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, SafeAreaView, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, SafeAreaView, KeyboardAvoidingView, Platform, ActivityIndicator, Alert } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { invitesApi } from '@/lib/invites';
 
 const PRIMARY_COLOR = '#3629B7';
 
@@ -14,28 +15,68 @@ export default function InviteEmailScreen() {
     circleId?: string;
     circleName?: string;
     members?: string;
+    inviteLink?: string;
   }>();
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
+  const [inviteCreated, setInviteCreated] = useState(false);
+  const [inviteData, setInviteData] = useState<any>(null);
 
-  const handleSendInvite = () => {
-    if (!email) return;
+  const inviteType = params.circleId ? 'circle' : 'platform';
+
+  // Create invite on backend when screen loads (if not already created)
+  useEffect(() => {
+    if (inviteCreated || inviteData) return;
     
+    const createInvite = async () => {
+      try {
+        const invite = await invitesApi.create({
+          type: inviteType,
+          circle_id: params.circleId,
+          expires_in_days: 30,
+        });
+        setInviteData(invite);
+        setInviteCreated(true);
+      } catch (err: any) {
+        console.error('Failed to create invite:', err);
+      }
+    };
+    createInvite();
+  }, [inviteType, params.circleId]);
+
+  const handleSendInvite = async () => {
+    if (!email.trim()) {
+      Alert.alert('Missing Email', 'Please enter an email address.');
+      return;
+    }
+    if (!inviteData) {
+      Alert.alert('Error', 'Invite not ready yet. Please wait.');
+      return;
+    }
+
     setLoading(true);
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      // Send invite via backend (backend will send email)
+      const invite = await invitesApi.create({
+        type: inviteType,
+        circle_id: params.circleId,
+        expires_in_days: 30,
+        recipient_email: email.trim(),
+      });
+      
+      Alert.alert('Invite Sent', `Invitation sent to ${email.trim()}`);
+      router.push({ pathname: '/invite-users/success', params } as Href);
+    } catch (err: any) {
+      Alert.alert('Error', 'Failed to send invite. Please try again.');
+    } finally {
       setLoading(false);
-      router.push({
-        pathname: '/invite-users/success',
-        params,
-      } as Href);
-    }, 1000);
+    }
   };
 
   return (
     <View style={styles.container}>
       <StatusBar style="light" />
-      
+       
       {/* Header */}
       <View style={styles.header}>
         <SafeAreaView>
@@ -58,7 +99,7 @@ export default function InviteEmailScreen() {
         <View style={styles.content}>
           <Text style={styles.title}>Enter Email Address</Text>
           <Text style={styles.subtitle}>
-            We&apos;ll send them a link to join your circle and monitor the selected cylinder.
+            We&apos;ll send them a link to join {params.circleName ? `the circle "${params.circleName}"` : 'JikoPal'}.
           </Text>
 
           <View style={styles.inputContainer}>
@@ -78,7 +119,7 @@ export default function InviteEmailScreen() {
           <View style={{ flex: 1 }} />
 
           <TouchableOpacity 
-            style={[styles.sendButton, !email && styles.sendButtonDisabled]}
+            style={[styles.sendButton, (!email || loading) && styles.sendButtonDisabled]}
             onPress={handleSendInvite}
             disabled={!email || loading}
           >

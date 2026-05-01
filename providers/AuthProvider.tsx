@@ -13,6 +13,7 @@ interface AuthContextType {
   vendorProfile: Vendor | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+  tokens: { access: string; refresh: string } | null;
   login: (data: LoginData) => Promise<LoginResponse>;
   registerClient: (data: RegisterClientData) => Promise<void>;
   registerVendor: (data: RegisterVendorData) => Promise<void>;
@@ -34,6 +35,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [clientProfile, setClientProfile] = useState<Client | null>(null);
   const [vendorProfile, setVendorProfile] = useState<Vendor | null>(null);
+  const [tokens, setTokensState] = useState<{ access: string; refresh: string } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const loadStoredAuth = useCallback(async () => {
@@ -45,6 +47,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (accessToken && refreshToken) {
         setTokens(accessToken, refreshToken);
+        setTokensState({ access: accessToken, refresh: refreshToken });
         const currentUser = await authService.getCurrentUser();
         setUser(currentUser);
 
@@ -78,7 +81,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     loadStoredAuth();
   }, [loadStoredAuth]);
 
-const login = async (data: LoginData) => {
+  const login = async (data: LoginData) => {
     const response = await authService.login(data);
     
     await Promise.all([
@@ -87,6 +90,7 @@ const login = async (data: LoginData) => {
     ]);
 
     setTokens(response.access, response.refresh);
+    setTokensState({ access: response.access, refresh: response.refresh });
     setUser(response.user);
 
     if (response.user.role === 'client') {
@@ -117,6 +121,7 @@ const login = async (data: LoginData) => {
     ]);
 
     setTokens(response.tokens.access, response.tokens.refresh);
+    setTokensState({ access: response.tokens.access, refresh: response.tokens.refresh });
     setUser(response.user);
   };
 
@@ -129,6 +134,7 @@ const login = async (data: LoginData) => {
     ]);
 
     setTokens(response.tokens.access, response.tokens.refresh);
+    setTokensState({ access: response.tokens.access, refresh: response.tokens.refresh });
     setUser(response.user);
     
     try {
@@ -153,6 +159,7 @@ const login = async (data: LoginData) => {
       ]);
       
       clearTokens();
+      setTokensState(null);
       setUser(null);
       setClientProfile(null);
       setVendorProfile(null);
@@ -198,6 +205,7 @@ const login = async (data: LoginData) => {
         vendorProfile,
         isLoading,
         isAuthenticated: !!user,
+        tokens,
         login,
         registerClient,
         registerVendor,

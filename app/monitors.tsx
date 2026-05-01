@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, TextInput, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, TextInput, ActivityIndicator, Alert } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { type Href, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { AppCard } from '@/components/ui/AppCard';
-import { useDevices } from '@/hooks/queries';
+import { useDevices, useDisconnectDevice } from '@/hooks/queries';
 
 const PRIMARY_COLOR = '#3629B7';
 
@@ -12,6 +12,7 @@ export default function MonitorsScreen() {
   const router = useRouter();
   const { data: devicesData, isLoading } = useDevices();
   const [searchQuery, setSearchQuery] = useState('');
+  const { mutate: disconnectDevice, isPending: disconnecting } = useDisconnectDevice();
 
   const devices = devicesData?.results || [];
   
@@ -83,31 +84,49 @@ export default function MonitorsScreen() {
           filteredDevices.map((device) => {
             const statusColors = getStatusColor(device.current_level);
             return (
-              <AppCard
-                key={device.id}
-                style={styles.monitorCard}
-                onPress={() =>
-                  router.push({
-                    pathname: '/my-circle/cylinder',
-                    params: {
-                      name: device.device_id,
-                      location: device.mac_address || 'Unknown location',
-                      fill: String(device.current_level),
-                    },
-                  } as Href)
-                }
-              >
-                <View style={[styles.iconBadge, { backgroundColor: statusColors.bg }]}> 
-                  <MaterialCommunityIcons name="fire" size={18} color={statusColors.color} />
-                </View>
-                <View style={styles.cardDetails}>
-                  <Text style={styles.monitorTitle}>{device.device_id}</Text>
-                  <Text style={styles.monitorSubtitle}>
-                    {device.current_level}% remaining • {device.status}
-                  </Text>
-                </View>
-                <MaterialCommunityIcons name="chevron-right" size={24} color="#9CA3AF" />
-              </AppCard>
+              <View key={device.id} style={styles.monitorCard}>
+                <TouchableOpacity
+                  style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}
+                  onPress={() =>
+                    router.push({
+                      pathname: '/my-circle/cylinder',
+                      params: {
+                        name: device.device_id,
+                        location: device.mac_address || 'Unknown location',
+                        fill: String(device.current_level),
+                        deviceId: device.device_id,
+                      },
+                    } as Href)
+                  }
+                >
+                  <View style={[styles.iconBadge, { backgroundColor: statusColors.bg }]}> 
+                    <MaterialCommunityIcons name="fire" size={18} color={statusColors.color} />
+                  </View>
+                  <View style={styles.cardDetails}>
+                    <Text style={styles.monitorTitle}>{device.device_id}</Text>
+                    <Text style={styles.monitorSubtitle}>
+                      {device.current_level}% remaining • {device.status}
+                    </Text>
+                  </View>
+                  <MaterialCommunityIcons name="chevron-right" size={24} color="#9CA3AF" />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.disconnectBtn}
+                  onPress={() => {
+                    Alert.alert(
+                      'Disconnect Sensor',
+                      `Disconnect ${device.device_id}?`,
+                      [
+                        { text: 'Cancel', style: 'cancel' },
+                        { text: 'Disconnect', style: 'destructive', onPress: () => disconnectDevice(device.id) },
+                      ]
+                    );
+                  }}
+                  disabled={disconnecting}
+                >
+                  <MaterialCommunityIcons name="link-off" size={20} color="#EF4444" />
+                </TouchableOpacity>
+              </View>
             );
           })
         )}
@@ -221,5 +240,9 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '600',
+  },
+  disconnectBtn: {
+    padding: 8,
+    marginLeft: 8,
   },
 });

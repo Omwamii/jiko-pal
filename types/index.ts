@@ -26,6 +26,30 @@ export type Vendor = {
   company_name: string;
   location: string;
   is_available: boolean;
+  business_registration_number?: string;
+  tax_pin?: string;
+  business_description?: string;
+  primary_phone?: string;
+  alternate_phone?: string;
+  website?: string;
+  street_address?: string;
+  city?: string;
+  county?: string;
+  postal_code?: string;
+  delivery_radius?: number;
+  created_at: string;
+  updated_at: string;
+};
+
+export type VendorCatalogue = {
+  id: string;
+  vendor: Vendor;
+  cylinder_company: string;
+  size: number;
+  price: number;
+  picture: string | null;
+  picture_url: string | null;
+  is_available: boolean;
   created_at: string;
   updated_at: string;
 };
@@ -77,6 +101,7 @@ export type CircleMember = {
   id: string;
   user: User;
   joined_at: string;
+  phone_number?: string;
 };
 
 export type Notification = {
@@ -182,9 +207,39 @@ export type NotificationSetting = {
   alertThreshold: number;
 };
 
+export type UserSettings = {
+  id: string;
+  cylinder_level_alert_threshold: number;
+  email_notifications: boolean;
+  push_notifications: boolean;
+  sms_notifications: boolean;
+  deletion_requested_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 export type PaginatedResponse<T> = {
   count: number;
   next: string | null;
   previous: string | null;
   results: T[];
+};
+
+export type Message = {
+  id: string;
+  conversation: string;
+  sender: User;
+  content: string;
+  is_read: boolean;
+  created_at: string;
+};
+
+export type Conversation = {
+  id: string;
+  vendor: Vendor;
+  client: Client;
+  last_message: Message | null;
+  unread_count: number;
+  created_at: string;
+  updated_at: string;
 };

@@ -148,7 +148,7 @@ export default function VendorsScreen() {
                       preselectedCylinderLevel: undefined,
                     });
                     router.push({
-                      pathname: '/(tabs)/vendors/refill-date',
+                      pathname: '/(tabs)/vendors/catalogue-select',
                       params: {
                         vendorId: vendor.id,
                         vendorName: vendor.company_name,

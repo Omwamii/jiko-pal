@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Alert, ActivityIndicator, Modal, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useQuery } from '@tanstack/react-query';
 import api from '@/lib/api';
+import type { PaginatedResponse, Review } from '@/types';
 
 const PRIMARY_COLOR = '#3629B7';
 
@@ -19,6 +21,16 @@ function getStatusStyle(status: string) {
     return { backgroundColor: '#F9CDD4', color: '#E44A69', label: 'Cancelled' };
   }
   return { backgroundColor: '#E9E6FF', color: '#6B5DD9', label: 'In Progress' };
+}
+
+function Stars({ rating }: { rating: number }) {
+  return (
+    <View style={{ flexDirection: 'row' }}>
+      {[1, 2, 3, 4, 5].map((n) => (
+        <MaterialCommunityIcons key={n} name={n <= rating ? 'star' : 'star-outline'} size={14} color="#F59E0B" />
+      ))}
+    </View>
+  );
 }
 
 export default function ClientOrderDetailScreen() {
@@ -40,6 +52,17 @@ export default function ClientOrderDetailScreen() {
   const status = params.status || 'pending';
   const statusInfo = getStatusStyle(status);
   const orderId = params.orderId || '';
+
+  const { data: reviewResponse } = useQuery({
+    queryKey: ['reviewForRequest', orderId],
+    enabled: status === 'completed' && !!orderId,
+    queryFn: async () => {
+      const res = await api.get<PaginatedResponse<Review>>('/reviews/', { params: { request: orderId } });
+      return res.data;
+    },
+  });
+
+  const existingReview = useMemo(() => reviewResponse?.results?.[0] || null, [reviewResponse]);
 
   const handleSubmitReview = async () => {
     if (rating === 0) {
@@ -120,7 +143,20 @@ export default function ClientOrderDetailScreen() {
           </View>
         )}
 
-        {status === 'completed' && !showReviewForm && (
+        {status === 'completed' && !showReviewForm && existingReview ? (
+          <View style={styles.reviewCard}>
+            <View style={styles.reviewHeader}>
+              <Text style={styles.reviewTitle}>Your Review</Text>
+              <Stars rating={existingReview.rating} />
+            </View>
+            <Text style={styles.reviewDate}>
+              {new Date(existingReview.created_at).toLocaleDateString()}
+            </Text>
+            <Text style={styles.reviewComment}>
+              {existingReview.comment?.trim() ? existingReview.comment : 'No comment provided.'}
+            </Text>
+          </View>
+        ) : status === 'completed' && !showReviewForm ? (
           <TouchableOpacity
             style={styles.reviewButton}
             onPress={() => setShowReviewForm(true)}
@@ -128,7 +164,7 @@ export default function ClientOrderDetailScreen() {
             <MaterialCommunityIcons name="star-outline" size={16} color="#FFF" />
             <Text style={styles.reviewButtonText}>Leave a Review</Text>
           </TouchableOpacity>
-        )}
+        ) : null}
 
         <Modal
           visible={showReviewForm}
@@ -238,6 +274,17 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     marginBottom: 10,
   },
+  reviewCard: {
+    backgroundColor: '#FFF',
+    borderRadius: 10,
+    padding: 14,
+    marginTop: 8,
+    marginBottom: 6,
+  },
+  reviewHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  reviewTitle: { color: '#11181C', fontSize: 14, fontWeight: '700' },
+  reviewDate: { color: '#9CA3AF', fontSize: 10, marginTop: 6 },
+  reviewComment: { color: '#374151', fontSize: 12, marginTop: 8, lineHeight: 18 },
   statusText: { fontSize: 12, fontWeight: '700' },
   orderId: { color: '#9CA3AF', fontSize: 12 },
   detailCard: {

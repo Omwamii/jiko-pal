@@ -1,23 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, Alert, Image, ActivityIndicator } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppCard } from '@/components/ui/AppCard';
 import { useVendorDetails, useSubscribeVendor, useUnsubscribeVendor, useVendorSubscriptions } from '@/hooks/vendor';
+import { useCatalogueByVendor, useReviews } from '@/hooks/queries';
 
 const PRIMARY_COLOR = '#3629B7';
-
-function Stars({ rating }: { rating: number }) {
-  return (
-    <View style={{ flexDirection: 'row' }}>
-      {[1, 2, 3, 4, 5].map((n) => (
-        <MaterialCommunityIcons key={n} name={n <= rating ? 'star' : 'star-outline'} size={12} color="#F5B301" />
-      ))}
-    </View>
-  );
-}
 
 export default function VendorDetailScreen() {
   const router = useRouter();
@@ -28,12 +19,21 @@ export default function VendorDetailScreen() {
   const { subscriptions, fetchSubscriptions } = useVendorSubscriptions();
   const { subscribe, isLoading: isSubscribing } = useSubscribeVendor();
   const { unsubscribe, isLoading: isUnsubscribing } = useUnsubscribeVendor();
+  const { data: catalogue = [], isLoading: catalogueLoading } = useCatalogueByVendor(vendorId);
+  const { data: reviewsData, isLoading: reviewsLoading } = useReviews(vendorId ? { 'request__provider_id': vendorId } : undefined);
 
   const vendorName = useMemo(() => params.vendorName || vendor?.company_name || 'Vendor', [params.vendorName, vendor]);
   
   const isSubscribed = useMemo(() => {
     return subscriptions.some(sub => sub.vendor.id === vendorId);
   }, [subscriptions, vendorId]);
+
+  const reviews = useMemo(() => reviewsData?.results || [], [reviewsData]);
+  const avgRating = useMemo(() => {
+    if (reviews.length === 0) return 0;
+    const sum = reviews.reduce((acc, r) => acc + r.rating, 0);
+    return Math.round(sum / reviews.length * 10) / 10;
+  }, [reviews]);
 
   useEffect(() => {
     if (vendorId) {
@@ -80,8 +80,8 @@ export default function VendorDetailScreen() {
             <View>
               <Text style={styles.vendorName}>{vendorName}</Text>
               <View style={styles.ratingRow}>
-                <Stars rating={5} />
-                <Text style={styles.reviewedText}>4.8 (2 reviewed)</Text>
+                <Stars rating={avgRating} />
+                <Text style={styles.reviewedText}>{avgRating} ({reviews.length} reviews)</Text>
               </View>
             </View>
           </View>
@@ -103,7 +103,7 @@ export default function VendorDetailScreen() {
 
           <AppButton
             title="Request Refill"
-            onPress={() => router.push({ pathname: '/(tabs)/vendors/refill-select', params: { vendorName } } as Href)}
+            onPress={() => router.push({ pathname: '/(tabs)/vendors/catalogue-select', params: { vendorId, vendorName } } as Href)}
             style={styles.refillBtn}
           />
           <AppButton
@@ -121,6 +121,54 @@ export default function VendorDetailScreen() {
             loading={isSubscribing || isUnsubscribing}
           />
         </AppCard>
+
+        <Text style={styles.sectionTitle}>Available Cylinders</Text>
+        {catalogueLoading ? (
+          <AppCard style={styles.sectionCard}>
+            <Text style={styles.emptyText}>Loading catalogue...</Text>
+          </AppCard>
+        ) : catalogue.length === 0 ? (
+          <AppCard style={styles.sectionCard}>
+            <Text style={styles.emptyText}>No cylinders available at the moment.</Text>
+          </AppCard>
+        ) : (
+          catalogue.map((item) => (
+            <AppCard key={item.id} style={styles.catalogueCard}>
+              {item.picture_url && (
+                <Image source={{ uri: item.picture_url }} style={styles.catalogueImage} />
+              )}
+              <View style={styles.catalogueContent}>
+                <View style={styles.catalogueHeader}>
+                  <Text style={styles.catalogueTitle}>{item.cylinder_company} {item.size}</Text>
+                  {item.is_available ? (
+                    <View style={styles.availableBadge}>
+                      <Text style={styles.availableText}>In Stock</Text>
+                    </View>
+                  ) : (
+                    <View style={styles.unavailableBadge}>
+                      <Text style={styles.unavailableText}>Out of Stock</Text>
+                    </View>
+                  )}
+                </View>
+                <Text style={styles.cataloguePrice}>KES {item.price}</Text>
+                <TouchableOpacity
+                  style={[styles.requestBtn, !item.is_available && styles.requestBtnDisabled]}
+                  onPress={() => {
+                    if (item.is_available) {
+                      router.push({
+                        pathname: '/(tabs)/vendors/refill-select',
+                        params: { vendorId, vendorName, catalogueId: item.id }
+                      } as Href);
+                    }
+                  }}
+                  disabled={!item.is_available}
+                >
+                  <Text style={styles.requestBtnText}>Request This Cylinder</Text>
+                </TouchableOpacity>
+              </View>
+            </AppCard>
+          ))
+        )}
 
         <Text style={styles.sectionTitle}>About</Text>
         <AppCard style={styles.sectionCard}>
@@ -162,15 +210,51 @@ export default function VendorDetailScreen() {
         </AppCard>
 
         <View style={styles.reviewsHeader}>
-          <Text style={styles.sectionTitle}>Recent Reviews</Text>
-          <TouchableOpacity onPress={() => router.push({ pathname: '/(tabs)/vendors/reviews', params: { vendorName } } as Href)}>
-            <Text style={styles.viewAll}>View all</Text>
-          </TouchableOpacity>
+          <Text style={styles.sectionTitle}>Reviews {reviews.length > 0 && `(${reviews.length})`}</Text>
+          {reviews.length > 3 && (
+            <TouchableOpacity onPress={() => router.push({ pathname: '/(tabs)/vendors/reviews', params: { vendorId, vendorName } } as Href)}>
+              <Text style={styles.viewAll}>View all</Text>
+            </TouchableOpacity>
+          )}
         </View>
-        <AppCard style={styles.sectionCard}>
-          <Text style={styles.emptyText}>No reviews yet.</Text>
-        </AppCard>
+        {reviewsLoading ? (
+          <ActivityIndicator size="small" color={PRIMARY_COLOR} />
+        ) : reviews.length === 0 ? (
+          <AppCard style={styles.sectionCard}>
+            <Text style={styles.emptyText}>No reviews yet.</Text>
+          </AppCard>
+        ) : (
+          reviews.slice(0, 3).map((review: any) => (
+            <AppCard key={review.id} style={styles.reviewCard}>
+              <View style={styles.reviewHeader}>
+                <View style={styles.reviewAvatar}>
+                  <Text style={styles.reviewAvatarText}>
+                    {review.request?.client?.full_name?.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase() || 'U'}
+                  </Text>
+                </View>
+                <View style={styles.reviewInfo}>
+                  <Text style={styles.reviewAuthor}>{review.request?.client?.full_name || 'Anonymous'}</Text>
+                  <Stars rating={review.rating} />
+                </View>
+                <Text style={styles.reviewDate}>{new Date(review.created_at).toLocaleDateString()}</Text>
+              </View>
+              {review.comment && (
+                <Text style={styles.reviewComment}>{review.comment}</Text>
+              )}
+            </AppCard>
+          ))
+        )}
       </ScrollView>
+    </View>
+  );
+}
+
+function Stars({ rating }: { rating: number }) {
+  return (
+    <View style={{ flexDirection: 'row' }}>
+      {[1, 2, 3, 4, 5].map((n) => (
+        <MaterialCommunityIcons key={n} name={n <= rating ? 'star' : 'star-outline'} size={12} color="#F5B301" />
+      ))}
     </View>
   );
 }
@@ -231,25 +315,92 @@ const styles = StyleSheet.create({
   contactValue: { color: '#374151', fontSize: 12, fontWeight: '600' },
   reviewsHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   viewAll: { color: PRIMARY_COLOR, fontWeight: '700', fontSize: 10 },
-  reviewRow: { flexDirection: 'row', marginBottom: 12 },
+  reviewCard: { padding: 12, borderRadius: 10, marginBottom: 10 },
+  reviewHeader: { flexDirection: 'row', alignItems: 'center' },
   reviewAvatar: {
     width: 30,
     height: 30,
     borderRadius: 15,
+    backgroundColor: PRIMARY_COLOR,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 8,
   },
   reviewAvatarText: { color: '#FFF', fontSize: 11, fontWeight: '700' },
-  reviewBody: { flex: 1 },
-  reviewTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  reviewInfo: { flex: 1 },
   reviewAuthor: { fontSize: 13, color: '#374151', fontWeight: '700' },
-  reviewText: { marginTop: 2, color: '#6B7280', fontSize: 10 },
-  reviewAge: { marginTop: 3, color: '#9CA3AF', fontSize: 9 },
+  reviewDate: { color: '#9CA3AF', fontSize: 9 },
+  reviewComment: { marginTop: 8, color: '#6B7280', fontSize: 11, lineHeight: 16 },
   emptyText: {
     textAlign: 'center',
     color: '#9CA3AF',
     fontSize: 14,
     paddingVertical: 20,
+  },
+  catalogueCard: {
+    borderRadius: 10,
+    marginBottom: 10,
+    overflow: 'hidden',
+  },
+  catalogueImage: {
+    width: '100%',
+    height: 120,
+    resizeMode: 'cover',
+  },
+  catalogueContent: {
+    padding: 12,
+  },
+  catalogueHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
+  catalogueTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  availableBadge: {
+    backgroundColor: '#D1FAE5',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+  },
+  availableText: {
+    fontSize: 10,
+    fontWeight: '500',
+    color: '#10B981',
+  },
+  unavailableBadge: {
+    backgroundColor: '#FEE2E2',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+  },
+  unavailableText: {
+    fontSize: 10,
+    fontWeight: '500',
+    color: '#EF4444',
+  },
+  cataloguePrice: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#2563EB',
+    marginBottom: 8,
+  },
+  requestBtn: {
+    backgroundColor: PRIMARY_COLOR,
+    paddingVertical: 8,
+    borderRadius: 6,
+    alignItems: 'center',
+  },
+  requestBtnDisabled: {
+    backgroundColor: '#D1D5DB',
+  },
+  requestBtnText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600',
   },
 });

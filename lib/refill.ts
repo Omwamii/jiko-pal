@@ -2,8 +2,10 @@ import api from './api';
 import { RefillRequest, RefillRequestStatus, Review, PaginatedResponse } from '../types';
 
 export interface CreateRefillRequestData {
-  provider_id: string;
+  client_id: string;
+  provider_id?: string;
   device_id?: string;
+  catalogue_item_id?: string;
   scheduled_date?: string;
   notes?: string;
 }

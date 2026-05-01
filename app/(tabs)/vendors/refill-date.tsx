@@ -5,7 +5,7 @@ import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { AppCard } from '@/components/ui/AppCard';
 import { AppButton } from '@/components/ui/AppButton';
-import { useCreateRefillRequest } from '@/hooks/refill';
+import { useCreateRefillRequest } from '@/hooks/queries';
 
 const PRIMARY_COLOR = '#3629B7';
 
@@ -13,13 +13,22 @@ const days = [27, 28, 29, 30, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
 
 export default function RefillDateScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ vendorId?: string; vendorName?: string; cylinderName?: string; cylinderLevel?: string }>();
+  const params = useLocalSearchParams<{ 
+    vendorId?: string; 
+    vendorName?: string; 
+    cylinderName?: string; 
+    cylinderLevel?: string;
+    catalogueId?: string;
+  }>();
+  
   const vendorName = useMemo(() => params.vendorName || 'Quick Gas', [params.vendorName]);
   const cylinderName = useMemo(() => params.cylinderName || 'Kitchen Gas', [params.cylinderName]);
   const vendorId = params.vendorId;
+  const catalogueId = params.catalogueId;
+  
   const [selectedDay, setSelectedDay] = useState(6);
   
-  const { createRequest, isLoading, error } = useCreateRefillRequest();
+  const createRequestMutation = useCreateRefillRequest();
 
   const handleConfirmOrder = async () => {
     if (!vendorId) {
@@ -30,19 +39,24 @@ export default function RefillDateScreen() {
     try {
       const scheduledDate = new Date(2026, 0, selectedDay).toISOString().split('T')[0];
       
-      await createRequest({
+      const requestData: any = {
         provider_id: vendorId,
-        device_id: undefined,
         scheduled_date: scheduledDate,
         notes: `Refill for ${cylinderName}`,
-      });
+      };
+      
+      if (catalogueId) {
+        requestData.catalogue_item_id = catalogueId;
+      }
+      
+      await createRequestMutation.mutateAsync(requestData);
 
       router.replace({
         pathname: '/(tabs)/vendors/refill-success',
         params: { vendorName, cylinderName },
       } as Href);
-    } catch (err) {
-      Alert.alert('Error', error || 'Failed to create refill request');
+    } catch (err: any) {
+      Alert.alert('Error', err?.message || 'Failed to create refill request');
     }
   };
 
@@ -64,7 +78,7 @@ export default function RefillDateScreen() {
         <Text style={styles.sectionTitle}>Pick Delivery Date*</Text>
         <AppCard style={styles.calendarCard}>
           <View style={styles.monthRow}>
-            <Text style={styles.monthText}>December 2026</Text>
+            <Text style={styles.monthText}>January 2026</Text>
             <View style={styles.chevronWrap}>
               <MaterialCommunityIcons name="chevron-left" size={16} color="#D1D5DB" />
               <MaterialCommunityIcons name="chevron-right" size={16} color="#D1D5DB" />
@@ -99,6 +113,12 @@ export default function RefillDateScreen() {
             <Text style={styles.summaryLabel}>Cylinder:</Text>
             <Text style={styles.summaryValue}>{cylinderName}</Text>
           </View>
+          {catalogueId && (
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>Catalogue Item:</Text>
+              <Text style={[styles.summaryValue, { color: '#10B981' }]}>Yes</Text>
+            </View>
+          )}
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>Vendor:</Text>
             <Text style={styles.summaryValue}>{vendorName}</Text>
@@ -110,11 +130,11 @@ export default function RefillDateScreen() {
         </AppCard>
 
         <AppButton
-          title={isLoading ? 'Confirming...' : 'Confirm Order'}
+          title={createRequestMutation.isPending ? 'Confirming...' : 'Confirm Order'}
           onPress={handleConfirmOrder}
-          disabled={isLoading}
+          disabled={createRequestMutation.isPending}
         />
-        {isLoading && (
+        {createRequestMutation.isPending && (
           <ActivityIndicator size="small" color={PRIMARY_COLOR} style={styles.loader} />
         )}
       </ScrollView>

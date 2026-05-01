@@ -5,8 +5,9 @@ import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppCard } from '@/components/ui/AppCard';
-import { useCircleDetails, useCircleDevices, useDeleteCircle } from '@/hooks/circle';
+import { useCircleDetails, useCircleDevices, useDeleteCircle, useLeaveCircle } from '@/hooks/circle';
 import { authService } from '@/lib/auth';
+import { deviceService } from '@/lib/device';
 import { User, CircleMember } from '@/types';
 
 const PRIMARY_COLOR = '#3629B7';
@@ -19,7 +20,9 @@ export default function CircleIndexScreen() {
   
   const { circle, fetchCircle } = useCircleDetails();
   const { deleteCircle } = useDeleteCircle();
+  const { leaveCircle } = useLeaveCircle();
   const { devices, isLoading: isLoadingDevices, fetchCircleDevices } = useCircleDevices();
+  const [removingDeviceId, setRemovingDeviceId] = useState<string | null>(null);
 
   const circleName = useMemo(() => params.circleName || 'Family Home', [params.circleName]);
   const circleId = useMemo(() => params.circleId || 'family-home', [params.circleId]);
@@ -84,6 +87,54 @@ export default function CircleIndexScreen() {
     );
   };
 
+  const handleLeaveCircle = () => {
+    Alert.alert(
+      'Leave Circle',
+      `Are you sure you want to leave "${circleName}"?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Leave',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await leaveCircle(circleId);
+              router.replace('/my-circle' as Href);
+            } catch {
+              Alert.alert('Error', 'Failed to leave circle. Please try again.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleRemoveCylinder = (deviceId: string) => {
+    Alert.alert(
+      'Remove Cylinder',
+      'Remove this cylinder from the circle? It will remain connected to the owner account.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: async () => {
+            setRemovingDeviceId(deviceId);
+            try {
+              await deviceService.updateDevice(deviceId, { circle_id: null });
+              await fetchCircleDevices(circleId);
+            } catch (err) {
+              console.error('Failed to remove cylinder from circle:', err);
+              Alert.alert('Error', 'Failed to remove cylinder. Please try again.');
+            } finally {
+              setRemovingDeviceId(null);
+            }
+          },
+        },
+      ]
+    );
+  };
+
   return (
     <View style={styles.container}>
       <StatusBar style="light" />
@@ -135,13 +186,20 @@ export default function CircleIndexScreen() {
             style={styles.inviteButton}
             textStyle={styles.inviteButtonText}
           />
-          {(isCreator || showDeleteButton) && (
+          {isCreator ? (
             <AppButton
-            title="Delete Circle"
-            onPress={handleDeleteCircle}
-            style={styles.deleteButton}
-            textStyle={styles.deleteButtonText}
-          />
+              title="Delete Circle"
+              onPress={handleDeleteCircle}
+              style={styles.deleteButton}
+              textStyle={styles.deleteButtonText}
+            />
+          ) : (
+            <AppButton
+              title="Leave Circle"
+              onPress={handleLeaveCircle}
+              style={styles.leaveButton}
+              textStyle={styles.leaveButtonText}
+            />
           )}
           
         </View>
@@ -180,6 +238,7 @@ export default function CircleIndexScreen() {
                         name: device.device_id,
                         location: device.owner_name ? device.owner_name : 'Unknown',
                         fill: String(device.current_level),
+                        deviceId: device.device_id,
                       },
                     } as Href)
                   }
@@ -205,7 +264,24 @@ export default function CircleIndexScreen() {
                       <Text style={styles.progressText}>{device.current_level}%</Text>
                     </View>
                   </View>
-                  <MaterialCommunityIcons name="chevron-right" size={22} color="#9CA3AF" />
+                  <View style={styles.deviceActions}>
+                    {isCreator ? (
+                      <TouchableOpacity
+                        onPress={() => {
+                          if (!removingDeviceId) handleRemoveCylinder(device.device_id);
+                        }}
+                        disabled={!!removingDeviceId}
+                        style={styles.removeBtn}
+                      >
+                        {removingDeviceId === device.device_id ? (
+                          <ActivityIndicator size="small" color="#EF4444" />
+                        ) : (
+                          <MaterialCommunityIcons name="trash-can-outline" size={18} color="#EF4444" />
+                        )}
+                      </TouchableOpacity>
+                    ) : null}
+                    <MaterialCommunityIcons name="chevron-right" size={22} color="#9CA3AF" />
+                  </View>
                 </AppCard>
               ))
             )
@@ -231,9 +307,11 @@ export default function CircleIndexScreen() {
                           pathname: '/my-circle/member',
                           params: {
                             memberId: member.id,
+                            memberUserId: memberUser?.id || '',
                             memberName: memberUser?.username || 'Unknown',
                             memberEmail: memberUser?.email || '',
                             memberRole: circle?.creator?.id === memberUser?.id ? 'Owner' : 'Member',
+                            phone: member.phone_number || '',
                             joined: member.joined_at,
                             circleName,
                           },
@@ -323,6 +401,17 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: PRIMARY_COLOR,
   },
+  leaveButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: '#fecaca',
+    borderRadius: 8,
+    backgroundColor: '#FEE2E2',
+  },
+  leaveButtonText: { fontSize: 11, color: '#B91C1C' },
   tabRow: {
     flexDirection: 'row',
     marginBottom: 10,
@@ -363,6 +452,15 @@ const styles = StyleSheet.create({
   },
   itemContent: {
     flex: 1,
+  },
+  deviceActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  removeBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#FEE2E2',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   itemTitle: {
     fontSize: 15,

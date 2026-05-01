@@ -46,6 +46,7 @@ export default function RootLayout() {
             <Stack.Screen name="vendor-subscribers" />
             <Stack.Screen name="vendor-customer-detail" />
             <Stack.Screen name="vendor-customer-chat" />
+            <Stack.Screen name="member-chat" />
             <Stack.Screen name="vendor-monitor-detail" />
             <Stack.Screen name="vendor-settings" />
             <Stack.Screen name="vendor-business-information" />
@@ -56,6 +57,7 @@ export default function RootLayout() {
             <Stack.Screen name="client-orders" />
             <Stack.Screen name="client-order-detail" />
             <Stack.Screen name="monitors" />
+            <Stack.Screen name="invite/[code]" />
             <Stack.Screen name="(tabs)" />
           </Stack>
           <StatusBar style="auto" />

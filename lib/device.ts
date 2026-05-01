@@ -49,4 +49,8 @@ export const deviceService = {
     const response = await api.get<DeviceStats>('/readings/stats/', { params: { device_id: deviceId } });
     return response.data;
   },
+
+  async disconnectDevice(id: string): Promise<void> {
+    await api.post(`/devices/${id}/disconnect/`);
+  },
 };

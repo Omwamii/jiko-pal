@@ -90,6 +90,57 @@ export default function ProfileSettingsScreen() {
           <MaterialCommunityIcons name="chevron-right" size={20} color="#9CA3AF" />
         </AppCard>
 
+        {user?.role === 'vendor' && (
+          <>
+            <Text style={styles.sectionTitle}>BUSINESS</Text>
+            <AppCard style={styles.optionCard} onPress={() => router.push('/vendor-business-information' as Href)}>
+              <View style={[styles.optionIconWrap, { backgroundColor: '#FEF3C7' }]}>
+                <MaterialCommunityIcons name="office-building" size={18} color="#F59E0B" />
+              </View>
+              <View style={styles.optionBody}>
+                <Text style={styles.optionTitle}>Business Information</Text>
+                <Text style={styles.optionSub}>Update your business details</Text>
+              </View>
+              <MaterialCommunityIcons name="chevron-right" size={20} color="#9CA3AF" />
+            </AppCard>
+
+            <AppCard style={styles.optionCard} onPress={() => router.push('/vendor-catalogue' as Href)}>
+              <View style={[styles.optionIconWrap, { backgroundColor: '#DBEAFE' }]}>
+                <MaterialCommunityIcons name="gas-cylinder" size={18} color="#3B82F6" />
+              </View>
+              <View style={styles.optionBody}>
+                <Text style={styles.optionTitle}>Catalogue Management</Text>
+                <Text style={styles.optionSub}>Manage your gas cylinder catalogue</Text>
+              </View>
+              <MaterialCommunityIcons name="chevron-right" size={20} color="#9CA3AF" />
+            </AppCard>
+          </>
+        )}
+
+        <Text style={styles.sectionTitle}>PREFERENCES</Text>
+        <AppCard style={styles.optionCard} onPress={() => router.push('/(tabs)/profile/preferences' as Href)}>
+          <View style={[styles.optionIconWrap, { backgroundColor: '#FEF3C7' }]}>
+            <MaterialCommunityIcons name="tune-variant" size={18} color="#F59E0B" />
+          </View>
+          <View style={styles.optionBody}>
+            <Text style={styles.optionTitle}>Monitoring & Alerts</Text>
+            <Text style={styles.optionSub}>Cylinder threshold, notifications, and account options</Text>
+          </View>
+          <MaterialCommunityIcons name="chevron-right" size={20} color="#9CA3AF" />
+        </AppCard>
+
+        <Text style={styles.sectionTitle}>ACCOUNT ACTIONS</Text>
+        <AppCard style={styles.optionCard} onPress={() => router.push('/(tabs)/profile/account-actions' as Href)}>
+          <View style={[styles.optionIconWrap, { backgroundColor: '#FEF3C7' }]}>
+            <MaterialCommunityIcons name="shield-account" size={18} color="#F59E0B" />
+          </View>
+          <View style={styles.optionBody}>
+            <Text style={styles.optionTitle}>Account Actions</Text>
+            <Text style={styles.optionSub}>Deactivate or delete your account</Text>
+          </View>
+          <MaterialCommunityIcons name="chevron-right" size={20} color="#9CA3AF" />
+        </AppCard>
+
         <AppCard style={styles.logoutCard} onPress={handleLogout}>
           <View style={[styles.optionIconWrap, { backgroundColor: '#FEE2E2' }]}>
             <MaterialCommunityIcons name="logout" size={18} color="#EF4444" />
@@ -177,4 +228,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   logoutTitle: { color: '#EF4444', fontSize: 13, fontWeight: '700' },
+  dangerCard: {
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#F59E0B',
+  },
 });

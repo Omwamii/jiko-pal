@@ -6,6 +6,7 @@ export default function ProfileStackLayout() {
       <Stack.Screen name="index" />
       <Stack.Screen name="edit" />
       <Stack.Screen name="password" />
+      <Stack.Screen name="preferences" />
     </Stack>
   );
 }

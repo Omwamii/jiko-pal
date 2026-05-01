@@ -40,7 +40,7 @@ export default function VendorSettingsScreen() {
           </TouchableOpacity>
         </View>
 
-        <Text style={styles.sectionTitle}>Account</Text>
+        <Text style={styles.sectionTitle}>BUSINESS</Text>
 
         <View style={styles.groupCard}>
           <TouchableOpacity
@@ -48,8 +48,8 @@ export default function VendorSettingsScreen() {
             activeOpacity={0.85}
             onPress={() => router.push('/vendor-business-information' as Href)}
           >
-            <View style={[styles.optionIconWrap, { backgroundColor: '#E8E7FF' }]}>
-              <MaterialCommunityIcons name="account" size={18} color="#3629B7" />
+            <View style={[styles.optionIconWrap, { backgroundColor: '#FEF3C7' }]}>
+              <MaterialCommunityIcons name="office-building" size={18} color="#F59E0B" />
             </View>
             <View style={styles.optionMeta}>
               <Text style={styles.optionTitle}>Business Information</Text>
@@ -60,6 +60,25 @@ export default function VendorSettingsScreen() {
 
           <View style={styles.divider} />
 
+          <TouchableOpacity
+            style={styles.optionRow}
+            activeOpacity={0.85}
+            onPress={() => router.push('/vendor-catalogue' as Href)}
+          >
+            <View style={[styles.optionIconWrap, { backgroundColor: '#DBEAFE' }]}>
+              <MaterialCommunityIcons name="gas-cylinder" size={18} color="#3B82F6" />
+            </View>
+            <View style={styles.optionMeta}>
+              <Text style={styles.optionTitle}>Catalogue Management</Text>
+              <Text style={styles.optionSub}>Manage your gas cylinder catalogue</Text>
+            </View>
+            <MaterialCommunityIcons name="chevron-right" size={20} color="#9CA3AF" />
+          </TouchableOpacity>
+        </View>
+
+        <Text style={styles.sectionTitle}>Account</Text>
+
+        <View style={styles.groupCard}>
           <TouchableOpacity
             style={styles.optionRow}
             activeOpacity={0.85}
@@ -85,7 +104,7 @@ export default function VendorSettingsScreen() {
             <MaterialCommunityIcons name="logout" size={18} color="#EF4444" />
           </View>
           <View style={styles.optionMeta}>
-            <Text style={styles.logoutTitle}>Log Out</Text>
+            <Text style={[styles.logoutTitle, { color: '#EF4444' }]}>Log Out</Text>
             <Text style={styles.optionSub}>Sign Out of your account</Text>
           </View>
           <MaterialCommunityIcons name="chevron-right" size={20} color="#EF4444" />
@@ -106,9 +125,9 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.18)',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.18)',
     marginRight: 8,
   },
   headerTitle: { color: '#FFFFFF', fontSize: 28, fontWeight: '700' },
@@ -175,7 +194,7 @@ const styles = StyleSheet.create({
   },
   optionMeta: { flex: 1 },
   optionTitle: { color: '#11131A', fontSize: 13, fontWeight: '700' },
-  optionSub: { color: '#9CA3AF', fontSize: 10, marginTop: 2 },
+  optionSub: { color: '#6B7280', fontSize: 10, marginTop: 2 },
   divider: { height: 1, backgroundColor: '#ECECF3' },
   logoutCard: {
     marginTop: 24,

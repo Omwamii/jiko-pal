@@ -2,10 +2,13 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, SafeAreaView, KeyboardAvoidingView, Platform, Dimensions, Alert, ActivityIndicator } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../providers/AuthProvider';
+import { invitesApi } from '@/lib/invites';
 
 const PRIMARY_COLOR = '#3629B7';
 const { height } = Dimensions.get('window');
+const PENDING_INVITE_KEY = 'pendingInviteCode';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -26,11 +29,21 @@ export default function LoginScreen() {
 
     try {
       const response = await login({ email: email.trim(), password });
-      if (response.user.role === 'vendor') {
-        router.replace('/vendor-dashboard');
-      } else {
-        router.replace('/(tabs)');
+      const pendingCode = await AsyncStorage.getItem(PENDING_INVITE_KEY);
+      if (pendingCode) {
+        await AsyncStorage.removeItem(PENDING_INVITE_KEY);
+        try {
+          const result = await invitesApi.accept(pendingCode);
+          if (result.circle_id) {
+            router.replace({ pathname: '/my-circle/circle', params: { circleId: result.circle_id } } as any);
+            return;
+          }
+        } catch (e) {
+          console.error('Invite accept failed after login:', e);
+        }
       }
+
+      router.replace(response.user.role === 'vendor' ? '/vendor-dashboard' : '/(tabs)');
     } catch (err: any) {
       console.error('Login error:', err);
       if (err.response?.data?.detail) {

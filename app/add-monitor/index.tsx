@@ -21,8 +21,14 @@ export default function SelectDeviceTypeScreen() {
 
   const eligibleExistingCount = React.useMemo(() => {
     const devices = devicesData?.results || [];
-    return devices.filter((d) => !d.circle && !d.circle_name).length;
-  }, [devicesData]);
+    const targetCircleId = params.circleId;
+    return devices.filter((d) => {
+      if (!d.circle && !d.circle_name) return true;
+      if (!targetCircleId) return false;
+      const currentCircleId = typeof d.circle === 'string' ? d.circle : null;
+      return currentCircleId ? currentCircleId !== targetCircleId : false;
+    }).length;
+  }, [devicesData, params.circleId]);
 
   const existingDisabled = isLoadingDevices || eligibleExistingCount === 0;
 

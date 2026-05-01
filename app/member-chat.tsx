@@ -1,104 +1,70 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, TextInput, ScrollView, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import api from '../../../lib/api';
-import type { Conversation, Message, PaginatedResponse } from '../../../types';
-import { useAuth } from '../../../providers/AuthProvider';
+import type { Message, PaginatedResponse } from '@/types';
+import { useAuth } from '@/providers/AuthProvider';
+import { directChatApi, getDirectWebSocketUrl } from '@/lib/directChat';
 
 const PRIMARY_COLOR = '#3629B7';
 
-const getConversation = async (vendorId: string) => {
-  // Get all conversations and find existing one with this vendor
-  const conversations = await api.get<{ results: Conversation[] }>('/conversations/');
-  const existing = conversations.data.results.find(
-    (conv: any) => conv.vendor?.id === vendorId
-  );
-  if (existing) return existing;
-  
-  // Create new conversation if not found
-  const res = await api.post<Conversation>('/conversations/', { vendor_id: vendorId });
-  return res.data;
-};
-
-const getMessages = async (conversationId: string) => {
-  const res = await api.get<PaginatedResponse<Message> | Message[]>(`/conversations/${conversationId}/messages/`);
-  const data = res.data;
-  if (Array.isArray(data)) {
-    return { count: data.length, next: null, previous: null, results: data };
-  }
-  return data;
-};
-
-const sendMessageApi = async ({ conversationId, content }: { conversationId: string; content: string }) => {
-  const res = await api.post<Message>(`/conversations/${conversationId}/send_message/`, { content });
-  return res.data;
-};
-
-export default function VendorChatScreen() {
+export default function MemberChatScreen() {
   const router = useRouter();
-  const { vendorId, vendorName } = useLocalSearchParams<{ vendorId?: string; vendorName?: string }>();
+  const params = useLocalSearchParams<{ memberUserId?: string; memberName?: string }>();
+  const memberUserId = typeof params.memberUserId === 'string' ? params.memberUserId : '';
+  const memberName = typeof params.memberName === 'string' ? params.memberName : 'Member';
+
+  const { user, tokens } = useAuth();
   const [message, setMessage] = useState('');
   const [conversationId, setConversationId] = useState<string | null>(null);
   const scrollRef = useRef<ScrollView>(null);
   const queryClient = useQueryClient();
 
-  const { user, tokens } = useAuth();
-
-  const { data: conversation, isLoading: convLoading } = useQuery({
-    queryKey: ['conversation', conversationId],
-    queryFn: () => api.get<Conversation>(`/conversations/${conversationId}/`).then(r => r.data),
-    enabled: !!conversationId,
-  });
+  useEffect(() => {
+    if (!memberUserId) return;
+    if (memberUserId === user?.id) return;
+    directChatApi
+      .createConversation(memberUserId)
+      .then((c) => setConversationId(c.id))
+      .catch(() => setConversationId(null));
+  }, [memberUserId, user?.id]);
 
   const { data: messagesData, isLoading: msgLoading } = useQuery({
-    queryKey: ['messages', conversationId],
-    queryFn: () => getMessages(conversationId!),
+    queryKey: ['directMessages', conversationId],
+    queryFn: () => directChatApi.getMessages(conversationId!),
     enabled: !!conversationId,
   });
 
   const { mutate: sendMessage, isPending: sending } = useMutation({
-    mutationFn: sendMessageApi,
+    mutationFn: (content: string) => directChatApi.sendMessage(conversationId!, content),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
+      queryClient.invalidateQueries({ queryKey: ['directMessages', conversationId] });
       setMessage('');
       setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
     },
   });
 
   useEffect(() => {
-    if (vendorId && !conversationId) {
-      getConversation(vendorId).then(data => setConversationId(data.id));
-    }
-  }, [vendorId]);
-
-  useEffect(() => {
-    if (conversationId && tokens?.access) {
-      // Use backend WebSocket URL for chat
-      const baseUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8000';
-      const wsBase = baseUrl.replace(/^http/, 'ws');
-      const ws = new WebSocket(`${wsBase}/ws/chat/${conversationId}/?token=${tokens.access}`);
-      
-      ws.onmessage = (e) => {
-        const data = JSON.parse(e.data);
-        if (data.conversation === conversationId) {
-          queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
-        }
-      };
-      
-      return () => ws.close();
-    }
-  }, [conversationId, tokens?.access]);
+    if (!conversationId || !tokens?.access) return;
+    const ws = new WebSocket(getDirectWebSocketUrl(conversationId, tokens.access));
+    ws.onmessage = (e) => {
+      const data = JSON.parse(e.data);
+      if (data.conversation === conversationId) {
+        queryClient.invalidateQueries({ queryKey: ['directMessages', conversationId] });
+      }
+    };
+    return () => ws.close();
+  }, [conversationId, tokens?.access, queryClient]);
 
   const handleSend = () => {
     if (!message.trim() || !conversationId) return;
-    sendMessage({ conversationId, content: message });
+    sendMessage(message.trim());
   };
 
-  const messages = messagesData?.results || [];
-  const isLoading = convLoading || msgLoading;
+  const messages = (messagesData as PaginatedResponse<Message> | undefined)?.results || [];
 
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
@@ -110,17 +76,17 @@ export default function VendorChatScreen() {
               <MaterialCommunityIcons name="arrow-left" size={20} color="#11181C" />
             </TouchableOpacity>
             <View style={styles.avatar}>
-              <Text style={styles.avatarText}>{(vendorName || 'V').charAt(0)}</Text>
+              <Text style={styles.avatarText}>{(memberName || 'M').charAt(0)}</Text>
               <View style={styles.onlineDot} />
             </View>
             <View>
-              <Text style={styles.vendorName}>{vendorName || 'Vendor'}</Text>
-              <Text style={styles.onlineText}>Active now</Text>
+              <Text style={styles.title}>{memberName}</Text>
+              <Text style={styles.subtitle}>Chat</Text>
             </View>
           </View>
         </View>
 
-        {isLoading ? (
+        {msgLoading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={PRIMARY_COLOR} />
           </View>
@@ -211,8 +177,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#FFF',
   },
-  vendorName: { color: '#11181C', fontWeight: '700', fontSize: 15 },
-  onlineText: { color: '#9CA3AF', fontSize: 10 },
+  title: { color: '#11181C', fontWeight: '700', fontSize: 15 },
+  subtitle: { color: '#9CA3AF', fontSize: 10 },
   chatBody: { padding: 12, paddingBottom: 20 },
   msgRow: { flexDirection: 'row', marginBottom: 14 },
   msgLeft: { justifyContent: 'flex-start' },
@@ -232,38 +198,38 @@ const styles = StyleSheet.create({
   msgWrap: { maxWidth: '82%' },
   msgBubble: { borderRadius: 12, paddingHorizontal: 12, paddingVertical: 9 },
   msgBubbleLeft: { backgroundColor: '#FFFFFF' },
-  msgBubbleRight: { backgroundColor: PRIMARY_COLOR, alignSelf: 'flex-end' },
-  msgText: { fontSize: 11, lineHeight: 15 },
-  msgTextLeft: { color: '#4B5563' },
+  msgBubbleRight: { backgroundColor: PRIMARY_COLOR },
+  msgText: { fontSize: 12 },
+  msgTextLeft: { color: '#11181C' },
   msgTextRight: { color: '#FFFFFF' },
-  msgTime: { fontSize: 9, color: '#9CA3AF', marginTop: 4 },
-  msgTimeLeft: { alignSelf: 'flex-start' },
-  msgTimeRight: { alignSelf: 'flex-end' },
+  msgTime: { marginTop: 3, fontSize: 9, color: '#9CA3AF' },
+  msgTimeLeft: { textAlign: 'left' },
+  msgTimeRight: { textAlign: 'right' },
   inputBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     borderTopWidth: 1,
     borderTopColor: '#E5E7EB',
     backgroundColor: '#FFFFFF',
-    paddingVertical: 8,
   },
   input: {
     flex: 1,
-    height: 36,
+    height: 42,
     backgroundColor: '#F3F4F6',
-    borderRadius: 18,
+    borderRadius: 12,
     paddingHorizontal: 12,
     color: '#11181C',
-    fontSize: 12,
-    marginHorizontal: 6,
+    marginRight: 10,
   },
   sendBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
     backgroundColor: PRIMARY_COLOR,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
   },
 });
+

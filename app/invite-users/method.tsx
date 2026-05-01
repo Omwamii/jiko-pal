@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, TextInput, Alert } from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, TextInput, Alert, ActivityIndicator } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import * as Clipboard from 'expo-clipboard';
+import { invitesApi } from '@/lib/invites';
 
 const PRIMARY_COLOR = '#3629B7';
 
@@ -16,13 +18,36 @@ export default function InviteMethodScreen() {
     members?: string;
   }>();
   const [showLink, setShowLink] = useState(false);
+  const [inviteLink, setInviteLink] = useState<string>('');
+  const [isLoadingLink, setIsLoadingLink] = useState(false);
 
-  const inviteLink = "https://gasmonitor.app/invite/abcde124";
+  const inviteType = useMemo(() => (params.circleId ? 'circle' : 'platform'), [params.circleId]);
 
   const handleCopy = () => {
-    // Basic clipboard feedback
-    Alert.alert("Link Copied", "The invitation link has been copied to your clipboard.");
+    if (!inviteLink) return;
+    Clipboard.setStringAsync(inviteLink);
+    Alert.alert('Link Copied', 'The invitation link has been copied to your clipboard.');
   };
+
+  useEffect(() => {
+    const run = async () => {
+      setIsLoadingLink(true);
+      try {
+        const invite = await invitesApi.create({
+          type: inviteType,
+          circle_id: params.circleId,
+          expires_in_days: 30,
+        });
+        setInviteLink(invite.invite_url);
+      } catch (err: any) {
+        console.error('Failed to create invite:', err);
+        Alert.alert('Error', 'Failed to create invite link. Please try again.');
+      } finally {
+        setIsLoadingLink(false);
+      }
+    };
+    run();
+  }, [inviteType, params.circleId]);
 
   return (
     <View style={styles.container}>
@@ -67,7 +92,7 @@ export default function InviteMethodScreen() {
             onPress={() =>
               router.push({
                 pathname: '/invite-users/email',
-                params,
+                params: { ...params, inviteLink },
               } as Href)
             }
           >
@@ -88,7 +113,7 @@ export default function InviteMethodScreen() {
             onPress={() =>
               router.push({
                 pathname: '/invite-users/sms',
-                params,
+                params: { ...params, inviteLink },
               } as Href)
             }
           >
@@ -118,11 +143,15 @@ export default function InviteMethodScreen() {
             <View style={styles.linkShareContainer}>
               <TextInput 
                 style={styles.linkInput} 
-                value={inviteLink}
+                value={isLoadingLink ? 'Generating link…' : inviteLink}
                 editable={false}
               />
-              <TouchableOpacity style={styles.copyButton} onPress={handleCopy}>
-                <MaterialCommunityIcons name="content-copy" size={16} color="#FFF" style={{ marginRight: 4 }} />
+              <TouchableOpacity style={[styles.copyButton, (!inviteLink || isLoadingLink) && { opacity: 0.6 }]} onPress={handleCopy} disabled={!inviteLink || isLoadingLink}>
+                {isLoadingLink ? (
+                  <ActivityIndicator size="small" color="#FFF" style={{ marginRight: 4 }} />
+                ) : (
+                  <MaterialCommunityIcons name="content-copy" size={16} color="#FFF" style={{ marginRight: 4 }} />
+                )}
                 <Text style={styles.copyButtonText}>Copy</Text>
               </TouchableOpacity>
             </View>

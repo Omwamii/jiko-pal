@@ -1,13 +1,16 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import api from '../lib/api';
 import { clientService, CreateClientData } from '../lib/client';
-import { vendorService, CreateVendorData } from '../lib/vendor';
+import { vendorService, CreateVendorData, CreateCatalogueData } from '../lib/vendor';
 import { circleService, CreateCircleData } from '../lib/circle';
 import { notificationService } from '../lib/notification';
-import { refillRequestService, CreateRefillRequestData } from '../lib/refill';
+import { refillRequestService, reviewService, CreateRefillRequestData } from '../lib/refill';
 import { deviceService } from '../lib/device';
 import { authService } from '../lib/auth';
 import { activityLogService } from '../lib/activity';
-import { ActivityLog } from '../types';
+import { chatApi } from '../lib/chat';
+import { userSettingsApi, type UpdateUserSettingsInput } from '../lib/userSettings';
+import { ActivityLog, Conversation, Message, VendorCatalogue } from '../types';
 
 export const useClient = (id?: string) => {
   return useQuery({
@@ -173,6 +176,17 @@ export const useDevice = (id: string) => {
   });
 };
 
+export const useDisconnectDevice = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (deviceId: string) => deviceService.disconnectDevice(deviceId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['devices'] });
+    },
+  });
+};
+
 export const useDeviceReadings = (deviceId: string, params?: Record<string, string>) => {
   return useQuery({
     queryKey: ['deviceReadings', deviceId, params],
@@ -240,5 +254,151 @@ export const useActivityLogs = (limit: number = 10) => {
     queryKey: ['activityLogs', limit],
     queryFn: () => activityLogService.getRecentActivityLogs(limit),
     staleTime: 60 * 1000,
+  });
+};
+
+export const useConversations = (params?: Record<string, string>) => {
+  return useQuery({
+    queryKey: ['conversations', params],
+    queryFn: () => chatApi.getConversations(),
+  });
+};
+
+export const useConversation = (id: string) => {
+  return useQuery({
+    queryKey: ['conversation', id],
+    queryFn: () => chatApi.getConversation(id),
+    enabled: !!id,
+  });
+};
+
+export const useCreateConversation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: { vendor_id?: string; client_id?: string }) =>
+      chatApi.createConversation(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+    },
+  });
+};
+
+export const useMessages = (conversationId: string) => {
+  return useQuery({
+    queryKey: ['messages', conversationId],
+    queryFn: () => chatApi.getMessages(conversationId),
+    enabled: !!conversationId,
+  });
+};
+
+export const useSendMessage = (conversationId: string) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (content: string) => chatApi.sendMessage(conversationId, content),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
+      queryClient.invalidateQueries({ queryKey: ['conversation', conversationId] });
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+    },
+  });
+};
+
+export const useMarkMessagesRead = (conversationId: string) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => chatApi.markAsRead(conversationId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['conversation', conversationId] });
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+    },
+  });
+};
+
+export const useUserSettings = () => {
+  return useQuery({
+    queryKey: ['userSettings'],
+    queryFn: () => userSettingsApi.getMySettings(),
+  });
+};
+
+export const useUpdateUserSettings = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: UpdateUserSettingsInput) => userSettingsApi.updateMySettings(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['userSettings'] });
+    },
+  });
+};
+
+export const useRequestAccountDeletion = () => {
+  return useMutation({
+    mutationFn: () => userSettingsApi.requestAccountDeletion(),
+  });
+};
+
+export const useDeactivateAccount = () => {
+  return useMutation({
+    mutationFn: () => api.post('/auth/deactivate/'),
+  });
+};
+
+export const useReviews = (params?: Record<string, string>) => {
+  return useQuery({
+    queryKey: ['reviews', params],
+    queryFn: () => reviewService.getReviews(params),
+  });
+};
+
+export const useMyCatalogue = () => {
+  return useQuery({
+    queryKey: ['myCatalogue'],
+    queryFn: () => vendorService.getMyCatalogue(),
+  });
+};
+
+export const useCatalogueByVendor = (vendorId: string) => {
+  return useQuery({
+    queryKey: ['catalogue', vendorId],
+    queryFn: () => vendorService.getCatalogueByVendor(vendorId),
+    enabled: !!vendorId,
+  });
+};
+
+export const useCreateCatalogueItem = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: CreateCatalogueData) => vendorService.createCatalogueItem(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['myCatalogue'] });
+    },
+  });
+};
+
+export const useUpdateCatalogueItem = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<CreateCatalogueData> }) =>
+      vendorService.updateCatalogueItem(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['myCatalogue'] });
+    },
+  });
+};
+
+export const useDeleteCatalogueItem = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => vendorService.deleteCatalogueItem(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['myCatalogue'] });
+    },
   });
 };

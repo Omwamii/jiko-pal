@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, SafeAreaView, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, SafeAreaView, KeyboardAvoidingView, Platform, ActivityIndicator, Alert } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { invitesApi } from '@/lib/invites';
 
 const PRIMARY_COLOR = '#3629B7';
 
@@ -14,28 +15,68 @@ export default function InviteSMSScreen() {
     circleId?: string;
     circleName?: string;
     members?: string;
+    inviteLink?: string;
   }>();
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
+  const [inviteData, setInviteData] = useState<any>(null);
+  const [inviteCreated, setInviteCreated] = useState(false);
 
-  const handleSendInvite = () => {
-    if (!phone) return;
+  const inviteType = params.circleId ? 'circle' : 'platform';
+
+  // Create invite on backend when screen loads
+  useEffect(() => {
+    if (inviteCreated || inviteData) return;
     
+    const createInvite = async () => {
+      try {
+        const invite = await invitesApi.create({
+          type: inviteType,
+          circle_id: params.circleId,
+          expires_in_days: 30,
+        });
+        setInviteData(invite);
+        setInviteCreated(true);
+      } catch (err: any) {
+        console.error('Failed to create invite:', err);
+      }
+    };
+    createInvite();
+  }, [inviteType, params.circleId]);
+
+  const handleSendInvite = async () => {
+    if (!phone.trim()) {
+      Alert.alert('Missing Phone', 'Please enter a phone number.');
+      return;
+    }
+    if (!inviteData) {
+      Alert.alert('Error', 'Invite not ready yet. Please wait.');
+      return;
+    }
+
     setLoading(true);
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      // Send SMS via backend (dummy function logs to console)
+      await invitesApi.create({
+        type: inviteType,
+        circle_id: params.circleId,
+        expires_in_days: 30,
+        recipient_phone: phone.trim(),
+      });
+      
+      Alert.alert('Invite Sent', `Invitation sent to ${phone.trim()}`);
+      router.push({ pathname: '/invite-users/success', params } as Href);
+    } catch (err: any) {
+      Alert.alert('Error', 'Failed to send invite. Please try again.');
+    } finally {
       setLoading(false);
-      router.push({
-        pathname: '/invite-users/success',
-        params,
-      } as Href);
-    }, 1000);
+    }
   };
 
   return (
     <View style={styles.container}>
       <StatusBar style="light" />
-      
+       
       {/* Header */}
       <View style={styles.header}>
         <SafeAreaView>
@@ -58,11 +99,10 @@ export default function InviteSMSScreen() {
         <View style={styles.content}>
           <Text style={styles.title}>Enter Phone Number</Text>
           <Text style={styles.subtitle}>
-            We&apos;ll send them a text message with a secure link to join your circle.
+            We&apos;ll send them a text message with a link to join {params.circleName ? `the circle "${params.circleName}"` : 'JikoPal'}.
           </Text>
 
           <View style={styles.inputContainer}>
-            <MaterialCommunityIcons name="phone-outline" size={20} color="#9CA3AF" style={styles.inputIcon} />
             <Text style={styles.countryCode}>+254</Text>
             <TextInput
               style={styles.input}
@@ -77,7 +117,7 @@ export default function InviteSMSScreen() {
           <View style={{ flex: 1 }} />
 
           <TouchableOpacity 
-            style={[styles.sendButton, !phone && styles.sendButtonDisabled]}
+            style={[styles.sendButton, (!phone || loading) && styles.sendButtonDisabled]}
             onPress={handleSendInvite}
             disabled={!phone || loading}
           >
@@ -151,9 +191,6 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     paddingHorizontal: 16,
     height: 56,
-  },
-  inputIcon: {
-    marginRight: 12,
   },
   countryCode: {
     fontSize: 16,

@@ -26,8 +26,14 @@ export default function AddExistingCylinderScreen() {
 
   const eligibleDevices = useMemo(() => {
     const devices = devicesData?.results || [];
-    return devices.filter((d) => !d.circle && !d.circle_name);
-  }, [devicesData]);
+    const targetCircleId = params.circleId;
+    return devices.filter((d) => {
+      if (!d.circle && !d.circle_name) return true;
+      if (!targetCircleId) return false;
+      const currentCircleId = typeof d.circle === 'string' ? d.circle : null;
+      return currentCircleId ? currentCircleId !== targetCircleId : false;
+    });
+  }, [devicesData, params.circleId]);
 
   const attachToCircle = async (device: IoTDevice) => {
     const circleId = params.circleId;
@@ -209,4 +215,3 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 });
-

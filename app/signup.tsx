@@ -2,9 +2,12 @@ import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, SafeAreaView, KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../providers/AuthProvider';
+import { invitesApi } from '@/lib/invites';
 
 const PRIMARY_COLOR = '#3629B7';
+const PENDING_INVITE_KEY = 'pendingInviteCode';
 
 export default function SignupScreen() {
   const router = useRouter();
@@ -83,6 +86,20 @@ export default function SignupScreen() {
           company_name: companyName.trim(),
           location: location.trim(),
         });
+      }
+
+      const pendingCode = await AsyncStorage.getItem(PENDING_INVITE_KEY);
+      if (pendingCode) {
+        await AsyncStorage.removeItem(PENDING_INVITE_KEY);
+        try {
+          const result = await invitesApi.accept(pendingCode);
+          if (result.circle_id) {
+            router.replace({ pathname: '/my-circle/circle', params: { circleId: result.circle_id } } as any);
+            return;
+          }
+        } catch (e) {
+          console.error('Invite accept failed after signup:', e);
+        }
       }
 
       router.replace('/(tabs)');

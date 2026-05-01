@@ -1,11 +1,12 @@
-import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Alert } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import Svg, { Circle } from 'react-native-svg';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppCard } from '@/components/ui/AppCard';
+import { useDisconnectDevice } from '@/hooks/queries';
 
 const PRIMARY_COLOR = '#3629B7';
 
@@ -16,12 +17,36 @@ const circumference = 2 * Math.PI * radius;
 
 export default function CircleCylinderScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ name?: string; location?: string; fill?: string }>();
+  const params = useLocalSearchParams<{ name?: string; location?: string; fill?: string; deviceId?: string }>();
+  const [disconnecting, setDisconnecting] = useState(false);
+
+  const { mutate: disconnect } = useDisconnectDevice();
 
   const cylinderName = useMemo(() => params.name || 'Kitchen Gas', [params.name]);
   const status = useMemo(() => Number(params.fill || '65'), [params.fill]);
   const location = useMemo(() => params.location || 'Home - Kitchen', [params.location]);
   const strokeDashoffset = circumference - (circumference * status) / 100;
+
+  const handleDisconnect = () => {
+    if (!params.deviceId) return;
+    Alert.alert(
+      'Disconnect Sensor',
+      `Disconnect ${cylinderName}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Disconnect',
+          style: 'destructive',
+          onPress: () => {
+            setDisconnecting(true);
+            disconnect(params.deviceId!, {
+              onSettled: () => setDisconnecting(false),
+            });
+          },
+        },
+      ]
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -103,6 +128,18 @@ export default function CircleCylinderScreen() {
               },
             } as Href);
           }} style={styles.refillButton} />
+
+          {params.deviceId && (
+            <TouchableOpacity
+              style={[styles.disconnectBtn, disconnecting && styles.btnDisabled]}
+              onPress={handleDisconnect}
+              disabled={disconnecting}
+            >
+              <Text style={styles.disconnectText}>
+                {disconnecting ? 'Disconnecting...' : 'Disconnect Sensor'}
+              </Text>
+            </TouchableOpacity>
+          )}
         </AppCard>
       </View>
     </View>
@@ -222,4 +259,14 @@ const styles = StyleSheet.create({
     marginTop: 14,
     height: 40,
   },
+  disconnectBtn: {
+    marginTop: 10,
+    height: 40,
+    borderRadius: 8,
+    backgroundColor: '#FEE2E2',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  btnDisabled: { opacity: 0.5 },
+  disconnectText: { color: '#DC2626', fontSize: 14, fontWeight: '600' },
 });
