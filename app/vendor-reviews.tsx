@@ -1,33 +1,14 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import React, { useMemo } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { useAuth } from '@/providers/AuthProvider';
+import { useVendorReviews } from '@/hooks/queries';
+import type { Review } from '@/types';
 
-type Review = {
-  id: string;
-  initials: string;
-  author: string;
-  message: string;
-  age: string;
-};
-
-const reviews: Review[] = [
-  { id: 'r-1', initials: 'SK', author: '', message: 'Great service! Fast delivery and professional staff.', age: '1 week ago' },
-  { id: 'r-2', initials: 'JD', author: 'John Doe', message: 'Great service! Fast delivery and professional staff.', age: '2 days ago' },
-  { id: 'r-3', initials: 'JD', author: 'John Doe', message: 'Great service! Fast delivery and professional staff.', age: '2 days ago' },
-];
-
-const distribution = [
-  { label: '5 *', value: 220, ratio: 0.92 },
-  { label: '4 *', value: 45, ratio: 0.52 },
-  { label: '3 *', value: 15, ratio: 0.32 },
-  { label: '2 *', value: 6, ratio: 0.18 },
-  { label: '1 *', value: 3, ratio: 0.1 },
-];
-
-function Stars({ count = 5 }: { count?: number }) {
+const Stars = ({ count = 5 }: { count?: number }) => {
   return (
     <View style={styles.stars}>
       {Array.from({ length: count }).map((_, index) => (
@@ -35,10 +16,43 @@ function Stars({ count = 5 }: { count?: number }) {
       ))}
     </View>
   );
-}
+};
 
 export default function VendorReviewsScreen() {
   const router = useRouter();
+  const { vendorProfile } = useAuth();
+  const vendorId = vendorProfile?.id || '';
+  
+  const { data: reviewsData, isLoading } = useVendorReviews(vendorId);
+  const reviews = useMemo(() => reviewsData?.results || [], [reviewsData]);
+  
+  const averageRating = useMemo(() => {
+    if (reviews.length === 0) return '0';
+    const sum = reviews.reduce((acc, review) => acc + review.rating, 0);
+    return (sum / reviews.length).toFixed(1);
+  }, [reviews]);
+
+  const ratingDistribution = useMemo(() => {
+    const dist: Record<number, number> = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+    reviews.forEach((r) => { if (r.rating >= 1 && r.rating <= 5) dist[r.rating]++; });
+    return [5, 4, 3, 2, 1].map((star) => ({
+      label: `${star} *`,
+      value: dist[star],
+      ratio: reviews.length > 0 ? dist[star] / reviews.length : 0,
+    }));
+  }, [reviews]);
+
+  const getTimeAgo = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    if (diffDays === 0) return 'Today';
+    if (diffDays === 1) return '1 day ago';
+    if (diffDays < 7) return `${diffDays} days ago`;
+    if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
+    return `${Math.floor(diffDays / 30)} months ago`;
+  };
 
   return (
     <View style={styles.container}>
@@ -58,17 +72,17 @@ export default function VendorReviewsScreen() {
       <ScrollView style={styles.sheet} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.ratingCard}>
           <Text style={styles.ratingLabel}>Overall Rating</Text>
-
+          
           <View style={styles.overallRow}>
-            <Text style={styles.ratingValue}>4.8</Text>
+            <Text style={styles.ratingValue}>{averageRating}</Text>
             <View>
-              <Stars />
-              <Text style={styles.reviewCount}>389 Reviews</Text>
+              <Stars count={Math.round(parseFloat(averageRating))} />
+              <Text style={styles.reviewCount}>{reviews.length} Reviews</Text>
             </View>
           </View>
 
           <View style={styles.distributionWrap}>
-            {distribution.map((item) => (
+            {ratingDistribution.map((item) => (
               <View key={item.label} style={styles.distRow}>
                 <Text style={styles.distLabel}>{item.label}</Text>
                 <View style={styles.barTrack}>
@@ -82,46 +96,39 @@ export default function VendorReviewsScreen() {
 
         <View style={styles.recentHeader}>
           <Text style={styles.recentTitle}>Recent Reviews</Text>
-          <TouchableOpacity activeOpacity={0.8}>
-            <Text style={styles.viewAll}>View all</Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.highlightCard}>
-          <View style={styles.reviewTop}>
-            <View style={styles.avatarGreen}><Text style={styles.avatarText}>SK</Text></View>
-            <Stars />
-          </View>
-          <Text style={styles.message}>Great service! Fast delivery and professional staff.</Text>
-          <Text style={styles.age}>1 week ago</Text>
-
-          <View style={styles.replyCard}>
-            <View style={styles.reviewTop}>
-              <MaterialCommunityIcons name="reply-outline" size={14} color="#5E5FAF" />
-              <Text style={styles.replyTitle}>Your Reply</Text>
-            </View>
-            <Text style={styles.replyText}>Thank you so much for your kind words! We’re thrilled you had a great experience.</Text>
-            <Text style={styles.age}>2 days ago</Text>
-          </View>
-        </View>
-
-        {reviews.slice(1).map((review) => (
-          <View key={review.id} style={styles.reviewCard}>
-            <View style={styles.reviewTop}>
-              <View style={styles.avatarPurple}><Text style={styles.avatarText}>{review.initials}</Text></View>
-              <Text style={styles.author}>{review.author}</Text>
-              <View style={{ marginLeft: 'auto' }}><Stars /></View>
-            </View>
-
-            <Text style={styles.message}>{review.message}</Text>
-            <Text style={styles.age}>{review.age}</Text>
-
-            <TouchableOpacity style={styles.replyButton} activeOpacity={0.85}>
-              <MaterialCommunityIcons name="message-reply-outline" size={15} color="#5E5FAF" />
-              <Text style={styles.replyButtonText}>Reply to Review</Text>
+          {reviews.length > 3 && (
+            <TouchableOpacity activeOpacity={0.8}>
+              <Text style={styles.viewAll}>View all</Text>
             </TouchableOpacity>
+          )}
+        </View>
+
+        {isLoading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#3629B7" />
           </View>
-        ))}
+        ) : reviews.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <MaterialCommunityIcons name="star-outline" size={48} color="#D1D5DB" />
+            <Text style={styles.emptyText}>No reviews yet</Text>
+            <Text style={styles.emptySubtext}>Reviews from clients will appear here</Text>
+          </View>
+        ) : (
+          reviews.map((review) => (
+            <View key={review.id} style={styles.reviewCard}>
+              <View style={styles.reviewTop}>
+                <View style={styles.avatarGreen}><Text style={styles.avatarText}>{review.client?.full_name?.charAt(0) || 'C'}</Text></View>
+                <View style={styles.reviewMeta}>
+                  <Text style={styles.author}>{review.client?.full_name || 'Client'}</Text>
+                  <Stars count={review.rating} />
+                </View>
+              </View>
+
+              <Text style={styles.message}>{review.comment || 'No comment'}</Text>
+              <Text style={styles.age}>{getTimeAgo(review.created_at)}</Text>
+            </View>
+          ))
+        )}
       </ScrollView>
     </View>
   );
@@ -163,21 +170,16 @@ const styles = StyleSheet.create({
   recentHeader: { marginTop: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   recentTitle: { color: '#20212A', fontSize: 22, fontWeight: '700' },
   viewAll: { color: '#3629B7', fontSize: 10, fontWeight: '600' },
-  highlightCard: {
-    marginTop: 8,
-    borderWidth: 1,
-    borderStyle: 'dashed',
-    borderColor: '#5DA6E5',
-    borderRadius: 3,
-    padding: 8,
-    backgroundColor: '#FFFFFF',
-  },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', marginTop: 40 },
+  emptyContainer: { alignItems: 'center', marginTop: 40, gap: 8 },
+  emptyText: { color: '#374151', fontSize: 16, fontWeight: '600' },
+  emptySubtext: { color: '#9CA3AF', fontSize: 12 },
   reviewCard: {
     marginTop: 10,
     borderRadius: 10,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#ECECF3',
+    borderColor: '#E5E7EB',
     padding: 10,
   },
   reviewTop: { flexDirection: 'row', alignItems: 'center', gap: 6 },
@@ -189,38 +191,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarPurple: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: '#4338CA',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   avatarText: { color: '#FFFFFF', fontSize: 10, fontWeight: '700' },
+  reviewMeta: { flex: 1 },
   author: { color: '#1A1B25', fontSize: 16, fontWeight: '600' },
   message: { marginTop: 6, color: '#75788A', fontSize: 10 },
   age: { marginTop: 5, color: '#A0A3B1', fontSize: 8 },
-  replyCard: {
-    marginTop: 8,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderStyle: 'dashed',
-    borderColor: '#8E8EEA',
-    backgroundColor: '#F5F4FF',
-    padding: 8,
-  },
-  replyTitle: { color: '#5E5FAF', fontSize: 10, fontWeight: '700' },
-  replyText: { marginTop: 4, color: '#7D7FB0', fontSize: 9 },
-  replyButton: {
-    marginTop: 8,
-    borderRadius: 8,
-    backgroundColor: '#D9D6EF',
-    height: 32,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-  },
-  replyButtonText: { color: '#5E5FAF', fontSize: 10, fontWeight: '600' },
 });

@@ -1,9 +1,9 @@
 import React, { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Alert, ActivityIndicator, Modal, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Alert, ActivityIndicator, Modal, KeyboardAvoidingView, Platform, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useRouter, useLocalSearchParams, type Href } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import api from '@/lib/api';
 import type { PaginatedResponse, Review } from '@/types';
@@ -38,20 +38,48 @@ export default function ClientOrderDetailScreen() {
   const params = useLocalSearchParams<{
     orderId?: string;
     vendorName?: string;
+    vendorId?: string;
+    vendorPhone?: string;
     status?: string;
     scheduledDate?: string;
     completedDate?: string;
     notes?: string;
   }>();
-
+  
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [rating, setRating] = useState(0);
   const [reviewText, setReviewText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-
+  
   const status = params.status || 'pending';
   const statusInfo = getStatusStyle(status);
   const orderId = params.orderId || '';
+  const vendorName = params.vendorName || 'Unknown Vendor';
+  const vendorId = params.vendorId;
+  const vendorPhone = params.vendorPhone;
+
+  const isCompleted = status === 'completed';
+  const isCancelled = status === 'cancelled';
+  const canContact = !isCompleted && !isCancelled;
+
+  const handleCall = () => {
+    if (vendorPhone) {
+      Linking.openURL(`tel:${vendorPhone}`);
+    } else {
+      Alert.alert('Error', 'Vendor phone number not available');
+    }
+  };
+
+  const handleChat = () => {
+    if (vendorId && vendorId !== '') {
+      router.push({
+        pathname: '/(tabs)/vendors/chat',
+        params: { vendorId, vendorName }
+      } as Href);
+    } else {
+      Alert.alert('Error', 'Vendor information not available');
+    }
+  };
 
   const { data: reviewResponse } = useQuery({
     queryKey: ['reviewForRequest', orderId],
@@ -140,6 +168,20 @@ export default function ClientOrderDetailScreen() {
           <View style={styles.detailCard}>
             <Text style={styles.detailLabel}>Notes</Text>
             <Text style={styles.detailValue}>{params.notes}</Text>
+          </View>
+        )}
+
+        {canContact && (
+          <View style={styles.contactButtons}>
+            <TouchableOpacity style={styles.callButton} onPress={handleCall} activeOpacity={0.8}>
+              <MaterialCommunityIcons name="phone" size={18} color="#16A34A" />
+              <Text style={styles.callButtonText}>Call Vendor</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity style={styles.chatButton} onPress={handleChat} activeOpacity={0.8}>
+              <MaterialCommunityIcons name="message-outline" size={18} color="#FFFFFF" />
+              <Text style={styles.chatButtonText}>Chat with Vendor</Text>
+            </TouchableOpacity>
           </View>
         )}
 
@@ -372,5 +414,41 @@ const styles = StyleSheet.create({
   },
   modalCloseBtn: {
     padding: 4,
+  },
+  contactButtons: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 16,
+    marginBottom: 10,
+  },
+  callButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#E8F5E9',
+    paddingVertical: 12,
+    borderRadius: 10,
+    gap: 8,
+  },
+  callButtonText: {
+    color: '#16A34A',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  chatButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: PRIMARY_COLOR,
+    paddingVertical: 12,
+    borderRadius: 10,
+    gap: 8,
+  },
+  chatButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });

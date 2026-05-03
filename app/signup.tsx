@@ -102,6 +102,11 @@ export default function SignupScreen() {
         }
       }
 
+      if (accountType === 'vendor') {
+        router.replace('/vendor-dashboard');
+        return;
+      }
+
       router.replace('/(tabs)');
     } catch (err: any) {
       console.error('Signup error:', err);

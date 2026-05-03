@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
 import { VendorBottomNav } from '@/components/vendor/VendorBottomNav';
-import { useCompleteRefillRequest } from '@/hooks/refill';
+import { useCompleteRefillRequest, useRefillRequestDetails } from '@/hooks/refill';
 
 const SECONDARY_COLOR = '#14B27A';
 
@@ -16,6 +16,19 @@ export default function VendorMarkDeliveredScreen() {
   const customerName = Array.isArray(params.customer) ? params.customer[0] : params.customer;
   
   const { completeOrder, isLoading } = useCompleteRefillRequest();
+  const { fetchRequest, refillRequest, isLoading: isLoadingRequest } = useRefillRequestDetails();
+  
+  useEffect(() => {
+    if (orderId) {
+      fetchRequest(orderId);
+    }
+  }, [orderId, fetchRequest]);
+
+  const [manualPrice, setManualPrice] = useState('');
+  const [uploadedPhotos, setUploadedPhotos] = useState<string[]>([]);
+
+  const hasCatalogueItem = refillRequest?.catalogue_item != null;
+  const cataloguePrice = hasCatalogueItem ? refillRequest?.catalogue_item?.price : null;
 
   const getInitials = (name: string) => {
     if (!name) return 'CU';
@@ -32,8 +45,20 @@ export default function VendorMarkDeliveredScreen() {
       return;
     }
 
+    if (!hasCatalogueItem && !manualPrice) {
+      Alert.alert('Error', 'Please enter the delivered cylinder price');
+      return;
+    }
+
+    const price = hasCatalogueItem ? cataloguePrice! : parseFloat(manualPrice);
+
+    if (isNaN(price) || price <= 0) {
+      Alert.alert('Error', 'Please enter a valid price');
+      return;
+    }
+
     try {
-      await completeOrder(orderId);
+      await completeOrder(orderId, price);
       router.replace('/vendor-delivery-success' as Href);
     } catch (err) {
       Alert.alert('Error', 'Failed to mark as delivered. Please try again.');
@@ -71,6 +96,35 @@ export default function VendorMarkDeliveredScreen() {
               <Text style={styles.address}>123 Kimathi Street, Nairobi</Text>
             </View>
           </View>
+
+          {hasCatalogueItem && cataloguePrice ? (
+            <View style={styles.catalogueInfo}>
+              <MaterialCommunityIcons name="gas-cylinder" size={16} color={SECONDARY_COLOR} />
+              <Text style={styles.catalogueText}>
+                Catalogue Item: {refillRequest?.catalogue_item?.cylinder_company} {refillRequest?.catalogue_item?.size}kg
+              </Text>
+              <Text style={styles.priceText}>KES {cataloguePrice}</Text>
+            </View>
+          ) : (
+            <View style={styles.noCatalogueBox}>
+              <MaterialCommunityIcons name="information-outline" size={16} color="#F59E0B" />
+              <Text style={styles.noCatalogueText}>No catalogue item selected. Please enter the delivered cylinder price.</Text>
+            </View>
+          )}
+
+          {!hasCatalogueItem && (
+            <View style={styles.priceInputContainer}>
+              <Text style={styles.priceLabel}>Delivered Cylinder Price (KES) *</Text>
+              <TextInput
+                style={styles.priceInput}
+                placeholder="Enter amount"
+                placeholderTextColor="#9CA3AF"
+                value={manualPrice}
+                onChangeText={setManualPrice}
+                keyboardType="numeric"
+              />
+            </View>
+          )}
 
           <View style={styles.summaryBottom}>
             <View>
@@ -201,4 +255,34 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   markDeliveredText: { color: '#FFFFFF', fontSize: 12, fontWeight: '600' },
+  catalogueInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+    gap: 8,
+  },
+  catalogueText: { color: '#374151', fontSize: 12, flex: 1 },
+  priceText: { color: '#10B981', fontSize: 14, fontWeight: '700' },
+  noCatalogueBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEF3C7',
+    padding: 10,
+    borderRadius: 8,
+    marginTop: 8,
+    gap: 8,
+  },
+  noCatalogueText: { color: '#92400E', fontSize: 12, flex: 1 },
+  priceInputContainer: { marginTop: 12 },
+  priceLabel: { color: '#374151', fontSize: 12, fontWeight: '600', marginBottom: 4 },
+  priceInput: {
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 16,
+    color: '#111827',
+    backgroundColor: '#FFFFFF',
+  },
 });

@@ -8,9 +8,27 @@ import 'react-native-reanimated';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
 import QueryProvider from '@/providers/QueryProvider';
-import { AuthProvider } from '@/providers/AuthProvider';
+import { AuthProvider, useAuth } from '@/providers/AuthProvider';
+import { pushNotificationService } from '@/lib/pushNotifications';
 
 SplashScreen.preventAutoHideAsync();
+
+function PushNotificationInitializer() {
+  const { isAuthenticated } = useAuth();
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      pushNotificationService.setupNotificationHandler();
+      pushNotificationService.getPushToken().then((token) => {
+        if (token) {
+          pushNotificationService.registerDeviceToken(token);
+        }
+      });
+    }
+  }, [isAuthenticated]);
+
+  return null;
+}
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -31,9 +49,11 @@ export default function RootLayout() {
   return (
     <QueryProvider>
       <AuthProvider>
+        <PushNotificationInitializer />
         <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
           <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="index" />
+            <Stack.Screen name="welcome" />
             <Stack.Screen name="account-type" />
             <Stack.Screen name="login" />
             <Stack.Screen name="signup" />

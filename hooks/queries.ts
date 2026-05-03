@@ -394,11 +394,19 @@ export const useUpdateCatalogueItem = () => {
 
 export const useDeleteCatalogueItem = () => {
   const queryClient = useQueryClient();
-
+  
   return useMutation({
     mutationFn: (id: string) => vendorService.deleteCatalogueItem(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['myCatalogue'] });
     },
+  });
+};
+
+export const useVendorReviews = (vendorId: string) => {
+  return useQuery({
+    queryKey: ['vendorReviews', vendorId],
+    queryFn: () => reviewService.getReviews({ vendor: vendorId }),
+    enabled: !!vendorId,
   });
 };

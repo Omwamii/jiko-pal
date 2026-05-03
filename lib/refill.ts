@@ -40,8 +40,12 @@ export const refillRequestService = {
     return response.data;
   },
 
-  async completeRefillRequest(id: string): Promise<RefillRequest> {
-    const response = await api.patch<RefillRequest>(`/refill-requests/${id}/status/`, { status: 'completed' });
+  async completeRefillRequest(id: string, price?: number): Promise<RefillRequest> {
+    const data: any = { status: 'completed' };
+    if (price !== undefined) {
+      data.price = price;
+    }
+    const response = await api.patch<RefillRequest>(`/refill-requests/${id}/status/`, data);
     return response.data;
   },
 

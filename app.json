@@ -20,13 +20,15 @@
       "permissions": [
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
-        "NEARBY_WIFI_DEVICES"
+        "NEARBY_WIFI_DEVICES",
+        "android.permission.ACCESS_FINE_LOCATION"
       ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.anonymous.jikopal"
+      "package": "com.anonymous.jikopal",
+      "googleServicesFile": "./google-services.json"
     },
     "web": {
       "bundler": "metro",
@@ -44,10 +46,27 @@
           "resizeMode": "contain",
           "backgroundColor": "#5E60CE"
         }
+      ],
+      [
+        "expo-notifications",
+        {
+          "androidMode": "production",
+          "iosModes": [
+            "development",
+            "production"
+          ]
+        }
       ]
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "f87a97f0-84d4-480d-877a-fc17d31a333b"
+      }
+    },
+    "owner": "omwami"
   }
 }

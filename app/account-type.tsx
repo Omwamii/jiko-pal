@@ -11,12 +11,7 @@ export default function AccountTypeScreen() {
 
   const handleContinue = () => {
     console.log('Selected Account Type:', selectedType);
-    if (selectedType === 'vendor') {
-      router.push('/vendor-dashboard' as Href);
-      return;
-    }
-
-    router.push({ pathname: '/signup', params: { accountType: 'client' } } as Href);
+    router.push({ pathname: '/signup', params: { accountType: selectedType } } as Href);
   };
 
   const isClient = selectedType === 'client';

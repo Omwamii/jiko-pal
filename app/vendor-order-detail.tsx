@@ -25,6 +25,7 @@ export default function VendorOrderDetailScreen() {
   const status = refillRequest?.status || 'pending';
   const customerName = params.customer || refillRequest?.client?.full_name || 'Customer';
   const customerPhone = params.phone || refillRequest?.client?.phone_number || '';
+  const clientId = refillRequest?.client?.id || '';
 
   const getInitials = (name: string) => {
     if (!name) return 'CU';
@@ -108,7 +109,7 @@ export default function VendorOrderDetailScreen() {
               <TouchableOpacity 
                 style={[styles.actionButton, styles.directionsButton]} 
                 activeOpacity={0.85}
-                onPress={() => router.push(`/vendor-customer-chat?customer=${encodeURIComponent(customerName)}&phone=${encodeURIComponent(customerPhone)}`)}
+                onPress={() => router.push(`/vendor-customer-chat?customer=${encodeURIComponent(customerName)}&phone=${encodeURIComponent(customerPhone)}&clientId=${encodeURIComponent(clientId)}`)}
               >
                 <MaterialCommunityIcons name="message-outline" size={16} color="#FFFFFF" />
                 <Text style={[styles.actionText, styles.directionsText]}>Message</Text>
@@ -150,10 +151,18 @@ export default function VendorOrderDetailScreen() {
               </View>
             )}
 
-            <TouchableOpacity style={styles.mapButton} activeOpacity={0.85}>
-              <MaterialCommunityIcons name="send-outline" size={16} color="#FFFFFF" />
-              <Text style={styles.mapButtonText}>Open in Maps</Text>
-            </TouchableOpacity>
+            {refillRequest?.catalogue_item && (
+              <View style={styles.catalogueCard}>
+                <View style={styles.catalogueTitleRow}>
+                  <MaterialCommunityIcons name="gas-cylinder" size={14} color="#2563EB" />
+                  <Text style={styles.catalogueTitle}>Selected Catalogue Item</Text>
+                </View>
+                <Text style={styles.catalogueItem}>
+                  {refillRequest.catalogue_item.cylinder_company} {refillRequest.catalogue_item.size}kg
+                </Text>
+                <Text style={styles.cataloguePrice}>KES {refillRequest.catalogue_item.price}</Text>
+              </View>
+            )}
 
             {status === 'accepted' || status === 'in_transit' ? (
               <TouchableOpacity style={styles.markButton} activeOpacity={0.85} onPress={handleMarkDelivered}>
@@ -240,6 +249,16 @@ const styles = StyleSheet.create({
   instructionsTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   instructionsTitle: { color: '#92400E', fontSize: 11, fontWeight: '600', marginBottom: 4 },
   instructionsText: { color: '#78350F', fontSize: 12 },
+  catalogueCard: {
+    marginTop: 10,
+    backgroundColor: '#EFF6FF',
+    padding: 14,
+    borderRadius: 10,
+  },
+  catalogueTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  catalogueTitle: { color: '#1E40AF', fontSize: 11, fontWeight: '600', marginBottom: 4 },
+  catalogueItem: { color: '#1E3A8A', fontSize: 14, fontWeight: '600', marginTop: 4 },
+  cataloguePrice: { color: '#059669', fontSize: 14, fontWeight: '700', marginTop: 2 },
   mapButton: { marginTop: 16, height: 44, borderRadius: 22, backgroundColor: '#14B27A', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
   mapButtonText: { color: '#FFFFFF', fontSize: 12, fontWeight: '600' },
   markButton: { marginTop: 10, height: 44, borderRadius: 22, backgroundColor: '#D0CDEB', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },

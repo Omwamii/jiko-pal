@@ -98,11 +98,11 @@ export const useCompleteRefillRequest = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const completeOrder = useCallback(async (id: string): Promise<RefillRequest> => {
+  const completeOrder = useCallback(async (id: string, price?: number): Promise<RefillRequest> => {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await refillRequestService.completeRefillRequest(id);
+      const response = await refillRequestService.completeRefillRequest(id, price);
       return response;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to complete order';

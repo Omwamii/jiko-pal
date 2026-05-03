@@ -12,6 +12,14 @@ import { useAuth } from '../providers/AuthProvider';
 const PRIMARY_COLOR = '#3629B7';
 
 const getConversation = async (clientId: string) => {
+  // First try to find existing conversation with this client
+  const conversations = await api.get<{ results: Conversation[] }>('/conversations/');
+  const existing = conversations.data.results.find(
+    (conv: any) => conv.client?.id === clientId || conv.client === clientId
+  );
+  if (existing) return existing;
+  
+  // Create new conversation if not found
   const res = await api.post<Conversation>('/conversations/', { client_id: clientId });
   return res.data;
 };
@@ -42,12 +50,6 @@ export default function VendorCustomerChatScreen() {
 
   const { user, tokens } = useAuth();
 
-  const { data: conversation, isLoading: convLoading } = useQuery({
-    queryKey: ['conversation', conversationId],
-    queryFn: () => api.get<Conversation>(`/conversations/${conversationId}/`).then(r => r.data),
-    enabled: !!conversationId,
-  });
-
   const { data: messagesData, isLoading: msgLoading } = useQuery({
     queryKey: ['messages', conversationId],
     queryFn: () => getMessages(conversationId!),
@@ -67,7 +69,7 @@ export default function VendorCustomerChatScreen() {
     if (clientId && !conversationId) {
       getConversation(clientId).then(data => setConversationId(data.id));
     }
-  }, [clientId]);
+  }, [clientId, conversationId]);
 
   useEffect(() => {
     if (conversationId && tokens?.access) {
@@ -84,7 +86,7 @@ export default function VendorCustomerChatScreen() {
 
       return () => ws.close();
     }
-  }, [conversationId, tokens?.access]);
+  }, [conversationId, tokens?.access, queryClient]);
 
   const handleSend = () => {
     if (!message.trim() || !conversationId) return;
@@ -92,7 +94,7 @@ export default function VendorCustomerChatScreen() {
   };
 
   const messages = messagesData?.results || [];
-  const isLoading = convLoading || msgLoading;
+  const isLoading = msgLoading;
 
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>

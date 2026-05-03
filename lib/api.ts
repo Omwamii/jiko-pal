@@ -9,6 +9,25 @@ const api = axios.create({
   },
 });
 
+// Public API instance without auth interceptor for endpoints like registration
+export const publicApi = axios.create({
+  baseURL: API_BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Ensure no auth header is sent with publicApi requests
+publicApi.interceptors.request.use(
+  (config) => {
+    if (config.headers && 'Authorization' in config.headers) {
+      delete config.headers.Authorization;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
 let accessToken: string | null = null;
 let refreshToken: string | null = null;
 

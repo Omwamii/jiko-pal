@@ -262,6 +262,8 @@ export default function DashboardScreen() {
                       params: {
                         orderId: order.id,
                         vendorName: order.provider?.company_name || 'Unknown',
+                        vendorId: order.provider?.id || '',
+                        vendorPhone: order.provider?.primary_phone || '',
                         status: order.status,
                         scheduledDate: order.scheduled_date || '',
                         completedDate: order.completed_at || '',

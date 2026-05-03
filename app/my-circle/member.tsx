@@ -9,6 +9,7 @@ import {
   Alert,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import * as Linking from 'expo-linking';
 import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { AppCard } from '@/components/ui/AppCard';
@@ -125,17 +126,21 @@ export default function MemberProfileScreen() {
           </View>
         </AppCard>
 
-        <Text style={styles.sectionTitle}>Actions</Text>
-        <View style={styles.actionsRow}>
-          <TouchableOpacity style={[styles.actionButton, styles.callButton]} activeOpacity={0.85} onPress={handleCall}>
-            <MaterialCommunityIcons name="phone-outline" size={16} color="#16A34A" />
-            <Text style={[styles.actionText, styles.callText]}>{isSelf ? 'Your account' : 'Call'}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.actionButton, styles.messageButton]} activeOpacity={0.85} onPress={handleMessage}>
-            <MaterialCommunityIcons name="message-outline" size={16} color="#FFFFFF" />
-            <Text style={[styles.actionText, styles.messageText]}>{isSelf ? 'Your account' : 'Message'}</Text>
-          </TouchableOpacity>
-        </View>
+        {!isSelf && (
+          <>
+             <Text style={styles.sectionTitle}>Actions</Text>
+            <View style={styles.actionsRow}>
+              <TouchableOpacity style={[styles.actionButton, styles.callButton]} activeOpacity={0.85} onPress={handleCall}>
+                <MaterialCommunityIcons name="phone-outline" size={16} color="#16A34A" />
+                <Text style={[styles.actionText, styles.callText]}>{'Call'}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.actionButton, styles.messageButton]} activeOpacity={0.85} onPress={handleMessage}>
+                <MaterialCommunityIcons name="message-outline" size={16} color="#FFFFFF" />
+                <Text style={[styles.actionText, styles.messageText]}>{'Message'}</Text>
+              </TouchableOpacity>
+            </View>
+          </>
+        )}
       </ScrollView>
     </View>
   );

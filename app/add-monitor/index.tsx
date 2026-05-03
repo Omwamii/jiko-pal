@@ -22,15 +22,21 @@ export default function SelectDeviceTypeScreen() {
   const eligibleExistingCount = React.useMemo(() => {
     const devices = devicesData?.results || [];
     const targetCircleId = params.circleId;
+    const isAddingToCircle = params.fromCircle === 'true';
+    
+    // If not adding to a circle, existing cylinder option is not available
+    if (!isAddingToCircle) return 0;
+    
     return devices.filter((d) => {
       if (!d.circle && !d.circle_name) return true;
       if (!targetCircleId) return false;
       const currentCircleId = typeof d.circle === 'string' ? d.circle : null;
       return currentCircleId ? currentCircleId !== targetCircleId : false;
     }).length;
-  }, [devicesData, params.circleId]);
+  }, [devicesData, params.circleId, params.fromCircle]);
 
   const existingDisabled = isLoadingDevices || eligibleExistingCount === 0;
+  const existingNotForCircle = params.fromCircle !== 'true';
 
   return (
     <View style={styles.container}>
@@ -83,22 +89,28 @@ export default function SelectDeviceTypeScreen() {
 
         {/* Option: Add Existing Cylinder */}
         <TouchableOpacity
-          style={[styles.optionCard, existingDisabled && { opacity: 0.55 }]}
+          style={[styles.optionCard, (existingDisabled || existingNotForCircle) && { opacity: 0.55 }]}
           onPress={() =>
-            existingDisabled
+            (existingDisabled || existingNotForCircle)
               ? null
-              : router.push({ pathname: '/add-monitor/existing', params: nextParams } as unknown as Href)
+              : router.push({ pathname: '/add-monitor/existing', params: nextParams } as Href)
           }
         >
-          <View style={[styles.iconContainer, { backgroundColor: '#9CA3AF' }]}>
+          <View style={[styles.iconContainer, { backgroundColor: existingNotForCircle ? '#D1D5DB' : '#9CA3AF' }]}>
             <MaterialCommunityIcons name="gas-cylinder" size={24} color="#FFF" />
           </View>
           <View style={styles.optionDetails}>
             <Text style={styles.optionTitle}>Existing Cylinder</Text>
             <Text style={styles.optionDescription}>
-              {existingDisabled ? 'No connected cylinders available' : 'Add a cylinder already connected to your account'}
+              {existingNotForCircle 
+                ? 'Only available when adding to a monitoring circle' 
+                : existingDisabled 
+                  ? 'No connected cylinders available' 
+                  : 'Add a cylinder already connected to your account'}
             </Text>
-            <Text style={styles.optionBadgeText}>{existingDisabled ? 'Unavailable' : 'Quick Add'}</Text>
+            <Text style={styles.optionBadgeText}>
+              {existingNotForCircle ? 'Requires Circle' : existingDisabled ? 'Unavailable' : 'Quick Add'}
+            </Text>
           </View>
           {isLoadingDevices ? (
             <ActivityIndicator size="small" color={PRIMARY_COLOR} />

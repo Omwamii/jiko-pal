@@ -146,7 +146,7 @@ export default function CircleIndexScreen() {
               <MaterialCommunityIcons name="arrow-left" size={24} color="#FFF" />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>
-              {activeTab === 'cylinders' ? 'Cylinders Monitored' : `${circleName} Members`}
+              {activeTab === 'cylinders' ? 'Cylinders Monitored' : `Circle Members`}
             </Text>
           </View>
         </SafeAreaView>
@@ -160,7 +160,7 @@ export default function CircleIndexScreen() {
               router.push({
                 pathname: '/add-monitor',
                 params: {
-                  fromCircle: '1',
+                  fromCircle: 'true',
                   circleId,
                   circleName,
                   members: String(memberCount),

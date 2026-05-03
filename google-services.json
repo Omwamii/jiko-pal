@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "740729229090",
+    "project_id": "jikopal-lpg-monitoring-system",
+    "storage_bucket": "jikopal-lpg-monitoring-system.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:740729229090:android:4f144ac5b66d30c0991f7b",
+        "android_client_info": {
+          "package_name": "com.anonymous.jikopal"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCYEnzQs9Tz6MaKn-jxTEIr7mYg3ui8gh4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-nati
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter, Href } from 'expo-router';
 import { VendorBottomNav } from '@/components/vendor/VendorBottomNav';
 
 type TimeFilter = 'all' | 'week' | 'month' | 'year';
@@ -131,37 +131,40 @@ export default function VendorAnalyticsScreen() {
             <View style={styles.progressTrack}><View style={[styles.progressFill, { width: '78%', backgroundColor: '#10B981' }]} /></View>
           </View>
 
-          <Text style={styles.sectionTitle}>Customer Satisfaction</Text>
-          <View style={styles.satisfactionCard}>
-            <Text style={styles.ratingLabel}>Overall Rating</Text>
-
-            <View style={styles.ratingRow}>
-              <Text style={styles.ratingValue}>4.8</Text>
-              <View>
-                <View style={styles.starsRow}>
-                  <MaterialCommunityIcons name="star" size={11} color="#FBBF24" />
-                  <MaterialCommunityIcons name="star" size={11} color="#FBBF24" />
-                  <MaterialCommunityIcons name="star" size={11} color="#FBBF24" />
-                  <MaterialCommunityIcons name="star" size={11} color="#FBBF24" />
-                  <MaterialCommunityIcons name="star-outline" size={11} color="#FBBF24" />
-                </View>
-                <Text style={styles.reviewCount}>389 Reviews</Text>
+        <Text style={styles.sectionTitle}>Customer Satisfaction</Text>
+        <TouchableOpacity 
+          activeOpacity={0.8} 
+          onPress={() => router.push('/vendor-reviews' as Href)}
+          style={styles.satisfactionCard}>
+          <Text style={styles.ratingLabel}>Overall Rating</Text>
+          
+          <View style={styles.ratingRow}>
+            <Text style={styles.ratingValue}>4.8</Text>
+            <View>
+              <View style={styles.starsRow}>
+                <MaterialCommunityIcons name="star" size={11} color="#FBBF24" />
+                <MaterialCommunityIcons name="star" size={11} color="#FBBF24" />
+                <MaterialCommunityIcons name="star" size={11} color="#FBBF24" />
+                <MaterialCommunityIcons name="star" size={11} color="#FBBF24" />
+                <MaterialCommunityIcons name="star-half-full" size={11} color="#FBBF24" />
               </View>
-            </View>
-
-            <View style={styles.breakdownWrap}>
-              {ratingBreakdown.map((item) => (
-                <View key={item.label} style={styles.breakdownRow}>
-                  <Text style={styles.breakdownLabel}>{item.label}</Text>
-                  <View style={styles.breakdownTrack}>
-                    <View style={[styles.breakdownFill, { width: `${item.ratio * 100}%` }]} />
-                  </View>
-                  <Text style={styles.breakdownValue}>{item.value}</Text>
-                </View>
-              ))}
+              <Text style={styles.reviewCount}>389 Reviews</Text>
             </View>
           </View>
-        </ScrollView>
+
+          <View style={styles.breakdownWrap}>
+            {ratingBreakdown.map((item) => (
+              <View key={item.label} style={styles.breakdownRow}>
+                <Text style={styles.breakdownLabel}>{item.label}</Text>
+              <View style={styles.breakdownTrack}>
+                <View style={[styles.breakdownFill, { width: `${item.ratio * 100}%` }]} />
+              </View>
+                <Text style={styles.breakdownValue}>{item.value}</Text>
+              </View>
+            ))}
+          </View>
+         </TouchableOpacity>
+         </ScrollView>
       </View>
 
       <VendorBottomNav active="home" />

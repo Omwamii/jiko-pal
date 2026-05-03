@@ -93,6 +93,23 @@ export default function VendorSettingsScreen() {
             </View>
             <MaterialCommunityIcons name="chevron-right" size={20} color="#9CA3AF" />
           </TouchableOpacity>
+
+          <View style={styles.divider} />
+
+          <TouchableOpacity
+            style={styles.optionRow}
+            activeOpacity={0.85}
+            onPress={() => router.push('/vendor-account-actions' as Href)}
+          >
+            <View style={[styles.optionIconWrap, { backgroundColor: '#FEE2E2' }]}>
+              <MaterialCommunityIcons name="account-cog" size={18} color="#EF4444" />
+            </View>
+            <View style={styles.optionMeta}>
+              <Text style={[styles.optionTitle, { color: '#EF4444' }]}>Account Actions</Text>
+              <Text style={styles.optionSub}>Deactivate or delete account</Text>
+            </View>
+            <MaterialCommunityIcons name="chevron-right" size={20} color="#EF4444" />
+          </TouchableOpacity>
         </View>
 
         <TouchableOpacity

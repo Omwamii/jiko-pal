@@ -5,6 +5,7 @@ export type User = {
   email: string;
   username: string;
   role: UserRole;
+  is_active: boolean;
   created_at: string;
   updated_at: string;
 };
@@ -126,11 +127,17 @@ export type RefillRequest = {
   scheduled_date: string | null;
   completed_at: string | null;
   notes: string | null;
+  catalogue_item: VendorCatalogue | null;
 };
 
 export type Review = {
   id: string;
   request: RefillRequest;
+  client: {
+    id: string;
+    full_name: string;
+    email: string;
+  };
   rating: number;
   comment: string | null;
   created_at: string;

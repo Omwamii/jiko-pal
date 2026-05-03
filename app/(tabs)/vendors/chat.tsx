@@ -14,22 +14,18 @@ const getConversation = async (vendorId: string) => {
   // Get all conversations and find existing one with this vendor
   const conversations = await api.get<{ results: Conversation[] }>('/conversations/');
   const existing = conversations.data.results.find(
-    (conv: any) => conv.vendor?.id === vendorId
+    (conv: any) => conv.vendor?.id === vendorId || conv.vendor === vendorId
   );
   if (existing) return existing;
   
-  // Create new conversation if not found
+  // Create new conversation - backend uses authenticated user's client profile
   const res = await api.post<Conversation>('/conversations/', { vendor_id: vendorId });
   return res.data;
 };
 
 const getMessages = async (conversationId: string) => {
-  const res = await api.get<PaginatedResponse<Message> | Message[]>(`/conversations/${conversationId}/messages/`);
-  const data = res.data;
-  if (Array.isArray(data)) {
-    return { count: data.length, next: null, previous: null, results: data };
-  }
-  return data;
+  const res = await api.get<PaginatedResponse<Message>>(`/conversations/${conversationId}/messages/`);
+  return res.data;
 };
 
 const sendMessageApi = async ({ conversationId, content }: { conversationId: string; content: string }) => {
@@ -47,12 +43,7 @@ export default function VendorChatScreen() {
 
   const { user, tokens } = useAuth();
 
-  const { data: conversation, isLoading: convLoading } = useQuery({
-    queryKey: ['conversation', conversationId],
-    queryFn: () => api.get<Conversation>(`/conversations/${conversationId}/`).then(r => r.data),
-    enabled: !!conversationId,
-  });
-
+  // Pre-fetch messages when conversation is ready
   const { data: messagesData, isLoading: msgLoading } = useQuery({
     queryKey: ['messages', conversationId],
     queryFn: () => getMessages(conversationId!),
@@ -72,25 +63,27 @@ export default function VendorChatScreen() {
     if (vendorId && !conversationId) {
       getConversation(vendorId).then(data => setConversationId(data.id));
     }
-  }, [vendorId]);
+  }, [vendorId, conversationId]);
 
   useEffect(() => {
     if (conversationId && tokens?.access) {
-      // Use backend WebSocket URL for chat
-      const baseUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8000';
+      // Construct WebSocket URL from API base URL
+      const baseUrl = process.env.EXPO_PUBLIC_WS_URL || 'http://localhost:8000';
       const wsBase = baseUrl.replace(/^http/, 'ws');
       const ws = new WebSocket(`${wsBase}/ws/chat/${conversationId}/?token=${tokens.access}`);
       
       ws.onmessage = (e) => {
         const data = JSON.parse(e.data);
-        if (data.conversation === conversationId) {
+        // Handle both direct messages and nested message format
+        const messageData = data.message || data;
+        if (messageData.conversation === conversationId || messageData.conversation_id === conversationId) {
           queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
         }
       };
       
       return () => ws.close();
     }
-  }, [conversationId, tokens?.access]);
+  }, [conversationId, tokens?.access, queryClient]);
 
   const handleSend = () => {
     if (!message.trim() || !conversationId) return;
@@ -98,7 +91,7 @@ export default function VendorChatScreen() {
   };
 
   const messages = messagesData?.results || [];
-  const isLoading = convLoading || msgLoading;
+  const isLoading = msgLoading;
 
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>

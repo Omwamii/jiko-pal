@@ -49,6 +49,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setTokens(accessToken, refreshToken);
         setTokensState({ access: accessToken, refresh: refreshToken });
         const currentUser = await authService.getCurrentUser();
+
+        if (!currentUser.is_active) {
+          await logout();
+          return;
+        }
+
         setUser(currentUser);
 
         if (currentUser.role === 'client') {
@@ -83,7 +89,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (data: LoginData) => {
     const response = await authService.login(data);
-    
+    console.log(response)
+
+    if (!response.user.is_active) {
+      await clearTokens();
+      throw new Error('Your account has been deactivated. Please contact support at jikopalsupport@gmail.com for account reactivation.');
+    }
+
     await Promise.all([
       AsyncStorage.setItem(TOKEN_KEYS.access, response.access),
       AsyncStorage.setItem(TOKEN_KEYS.refresh, response.refresh),
