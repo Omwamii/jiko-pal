@@ -20,50 +20,25 @@ export default function InviteSMSScreen() {
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
   const [inviteData, setInviteData] = useState<any>(null);
-  const [inviteCreated, setInviteCreated] = useState(false);
 
   const inviteType = params.circleId ? 'circle' : 'platform';
-
-  // Create invite on backend when screen loads
-  useEffect(() => {
-    if (inviteCreated || inviteData) return;
-    
-    const createInvite = async () => {
-      try {
-        const invite = await invitesApi.create({
-          type: inviteType,
-          circle_id: params.circleId,
-          expires_in_days: 30,
-        });
-        setInviteData(invite);
-        setInviteCreated(true);
-      } catch (err: any) {
-        console.error('Failed to create invite:', err);
-      }
-    };
-    createInvite();
-  }, [inviteType, params.circleId]);
 
   const handleSendInvite = async () => {
     if (!phone.trim()) {
       Alert.alert('Missing Phone', 'Please enter a phone number.');
       return;
     }
-    if (!inviteData) {
-      Alert.alert('Error', 'Invite not ready yet. Please wait.');
-      return;
-    }
 
     setLoading(true);
     try {
-      // Send SMS via backend (dummy function logs to console)
-      await invitesApi.create({
+      const invite = await invitesApi.create({
         type: inviteType,
         circle_id: params.circleId,
         expires_in_days: 30,
         recipient_phone: phone.trim(),
       });
-      
+      setInviteData(invite);
+
       Alert.alert('Invite Sent', `Invitation sent to ${phone.trim()}`);
       router.push({ pathname: '/invite-users/success', params } as Href);
     } catch (err: any) {

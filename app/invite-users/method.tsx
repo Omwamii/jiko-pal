@@ -23,31 +23,32 @@ export default function InviteMethodScreen() {
 
   const inviteType = useMemo(() => (params.circleId ? 'circle' : 'platform'), [params.circleId]);
 
+  const generateInviteLink = async () => {
+    if (isLoadingLink || inviteLink) return;
+    setIsLoadingLink(true);
+    try {
+      const invite = await invitesApi.create({
+        type: inviteType,
+        circle_id: params.circleId,
+        expires_in_days: 30,
+      });
+      setInviteLink(invite.invite_url);
+    } catch (err: any) {
+      console.error('Failed to create invite:', err);
+      Alert.alert('Error', 'Failed to create invite link. Please try again.');
+    } finally {
+      setIsLoadingLink(false);
+    }
+  };
+
   const handleCopy = () => {
-    if (!inviteLink) return;
+    if (!inviteLink) {
+      generateInviteLink();
+      return;
+    }
     Clipboard.setStringAsync(inviteLink);
     Alert.alert('Link Copied', 'The invitation link has been copied to your clipboard.');
   };
-
-  useEffect(() => {
-    const run = async () => {
-      setIsLoadingLink(true);
-      try {
-        const invite = await invitesApi.create({
-          type: inviteType,
-          circle_id: params.circleId,
-          expires_in_days: 30,
-        });
-        setInviteLink(invite.invite_url);
-      } catch (err: any) {
-        console.error('Failed to create invite:', err);
-        Alert.alert('Error', 'Failed to create invite link. Please try again.');
-      } finally {
-        setIsLoadingLink(false);
-      }
-    };
-    run();
-  }, [inviteType, params.circleId]);
 
   return (
     <View style={styles.container}>

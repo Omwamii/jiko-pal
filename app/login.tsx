@@ -35,6 +35,7 @@ export default function LoginScreen() {
         try {
           const result = await invitesApi.accept(pendingCode);
           if (result.circle_id) {
+            router.dismissAll();
             router.replace({ pathname: '/my-circle/circle', params: { circleId: result.circle_id } } as any);
             return;
           }
@@ -43,6 +44,7 @@ export default function LoginScreen() {
         }
       }
 
+      router.dismissAll();
       router.replace(response.user.role === 'vendor' ? '/vendor-dashboard' : '/(tabs)');
     } catch (err: any) {
       console.error('Login error:', err);

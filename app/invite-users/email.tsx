@@ -19,51 +19,26 @@ export default function InviteEmailScreen() {
   }>();
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
-  const [inviteCreated, setInviteCreated] = useState(false);
   const [inviteData, setInviteData] = useState<any>(null);
 
   const inviteType = params.circleId ? 'circle' : 'platform';
-
-  // Create invite on backend when screen loads (if not already created)
-  useEffect(() => {
-    if (inviteCreated || inviteData) return;
-    
-    const createInvite = async () => {
-      try {
-        const invite = await invitesApi.create({
-          type: inviteType,
-          circle_id: params.circleId,
-          expires_in_days: 30,
-        });
-        setInviteData(invite);
-        setInviteCreated(true);
-      } catch (err: any) {
-        console.error('Failed to create invite:', err);
-      }
-    };
-    createInvite();
-  }, [inviteType, params.circleId]);
 
   const handleSendInvite = async () => {
     if (!email.trim()) {
       Alert.alert('Missing Email', 'Please enter an email address.');
       return;
     }
-    if (!inviteData) {
-      Alert.alert('Error', 'Invite not ready yet. Please wait.');
-      return;
-    }
 
     setLoading(true);
     try {
-      // Send invite via backend (backend will send email)
       const invite = await invitesApi.create({
         type: inviteType,
         circle_id: params.circleId,
         expires_in_days: 30,
         recipient_email: email.trim(),
       });
-      
+      setInviteData(invite);
+
       Alert.alert('Invite Sent', `Invitation sent to ${email.trim()}`);
       router.push({ pathname: '/invite-users/success', params } as Href);
     } catch (err: any) {

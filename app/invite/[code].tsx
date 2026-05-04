@@ -23,7 +23,9 @@ export default function InviteLandingScreen() {
           await AsyncStorage.setItem(PENDING_INVITE_KEY, code);
           router.replace('/login');
           return;
-        }
+        }  
+
+        console.log(`In invite, received the user: `, user);
 
         const result = await invitesApi.accept(code);
         if (result.circle_id) {

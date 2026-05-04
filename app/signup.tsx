@@ -94,6 +94,7 @@ export default function SignupScreen() {
         try {
           const result = await invitesApi.accept(pendingCode);
           if (result.circle_id) {
+            router.dismissAll();
             router.replace({ pathname: '/my-circle/circle', params: { circleId: result.circle_id } } as any);
             return;
           }
@@ -103,10 +104,12 @@ export default function SignupScreen() {
       }
 
       if (accountType === 'vendor') {
+        router.dismissAll();
         router.replace('/vendor-dashboard');
         return;
       }
 
+      router.dismissAll();
       router.replace('/(tabs)');
     } catch (err: any) {
       console.error('Signup error:', err);

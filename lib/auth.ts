@@ -46,7 +46,7 @@ export const authService = {
   },
 
   async registerClient(data: RegisterClientData): Promise<{user: User, tokens: { access: string, refresh: string }}> {
-    const response = await api.post<{user: User, tokens: { access: string, refresh: string}}>('/clients/', data);
+    const response = await publicApi.post<{user: User, tokens: { access: string, refresh: string}}>('/auth/register-client/', data);
     const { tokens, user } = response.data;
     setTokens(tokens.access, tokens.refresh);
     return { user, tokens };

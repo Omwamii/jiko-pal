@@ -30,7 +30,7 @@ export default function InviteUsersSelectMonitorScreen() {
             >
               <MaterialCommunityIcons name="arrow-left" size={24} color="#FFF" />
             </TouchableOpacity>
-            <Text style={styles.headerTitle}>Invite Users</Text>
+            <Text style={styles.headerTitle}>Invite Users to a circle</Text>
           </View>
         </SafeAreaView>
       </View>
@@ -44,13 +44,13 @@ export default function InviteUsersSelectMonitorScreen() {
             <View style={styles.infoTextContainer}>
               <Text style={styles.infoTitle}>Share Access</Text>
               <Text style={styles.infoDescription}>
-                Choose which gas cylinder you want to share. Users will only see the monitors you give them access to.
+                Choose which gas circle you want to invite the user to. Users will only see the circles they are invited to.
               </Text>
             </View>
           </View>
         </View>
 
-        <Text style={styles.sectionTitle}>Select Monitor</Text>
+        <Text style={styles.sectionTitle}>Select Circle</Text>
 
         {/* Monitor List */}
         <TouchableOpacity style={styles.monitorCard} onPress={() => handleSelect('kitchen')}>
