@@ -40,6 +40,7 @@ export default function CircleCylinderScreen() {
           onPress: () => {
             setDisconnecting(true);
             disconnect(params.deviceId!, {
+              onSuccess: () => router.back(),
               onSettled: () => setDisconnecting(false),
             });
           },
