@@ -52,6 +52,7 @@ export default function DeviceDetailsScreen() {
       
       await deviceService.updateDevice(deviceId, {
         owner_id: clientId,
+        circle_id: params.circleId || null,
       });
 
       router.replace({
