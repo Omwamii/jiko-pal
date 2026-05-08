@@ -4,6 +4,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { type Href, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { AppCard } from '@/components/ui/AppCard';
+import { MonitorReadingSummary } from '@/components/MonitorReadingSummary';
 import { useDevices, useDisconnectDevice } from '@/hooks/queries';
 
 const PRIMARY_COLOR = '#3629B7';
@@ -107,6 +108,7 @@ export default function MonitorsScreen() {
                     <Text style={styles.monitorSubtitle}>
                       {device.current_level}% remaining • {device.status}
                     </Text>
+                    <MonitorReadingSummary deviceId={device.device_id} compact />
                   </View>
                   <MaterialCommunityIcons name="chevron-right" size={24} color="#9CA3AF" />
                 </TouchableOpacity>

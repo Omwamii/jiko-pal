@@ -1,13 +1,22 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, TextInput, KeyboardAvoidingView, Platform, Alert, ActivityIndicator } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import NetInfo from '@react-native-community/netinfo';
 import { useAuth } from '@/providers/AuthProvider';
-import { clientService } from '@/lib/client';
 import { deviceService } from '@/lib/device';
 
 const PRIMARY_COLOR = '#3629B7';
+const DEFAULT_ACTIVITY_MODE = 'medium' as const;
+
+const parseCylinderSizeKg = (raw: string) => {
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+  const match = trimmed.match(/(\d+(\.\d+)?)/);
+  if (!match) return NaN;
+  return Number(match[1]);
+};
 
 export default function DeviceDetailsScreen() {
   const router = useRouter();
@@ -27,6 +36,14 @@ export default function DeviceDetailsScreen() {
   const [cylinderSize, setCylinderSize] = useState('');
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isConnected, setIsConnected] = useState(true);
+
+  useEffect(() => {
+    const unsubscribe = NetInfo.addEventListener(state => {
+      setIsConnected(state.isConnected ?? true);
+    });
+    return unsubscribe;
+  }, []);
 
   const isProvisioned = params.provisioned === '1';
 
@@ -47,13 +64,31 @@ export default function DeviceDetailsScreen() {
     setIsSubmitting(true);
 
     try {
-      const clientId = clientProfile?.id || (await clientService.getMyClient()).id;
+      const clientId = clientProfile?.id;
       const deviceId = buildDeviceId();
+
+      const parsedCylinderSizeKg = parseCylinderSizeKg(cylinderSize);
+      if (Number.isNaN(parsedCylinderSizeKg)) {
+        Alert.alert('Invalid cylinder size', 'Please enter a valid number (e.g. 6 or 13).');
+        return;
+      }
       
       await deviceService.updateDevice(deviceId, {
         owner_id: clientId,
         circle_id: params.circleId || null,
+        ...(parsedCylinderSizeKg != null ? { cylinder_size: parsedCylinderSizeKg } : {}),
       });
+
+      // Separate API call for activity mode (kept distinct from attach/update fields).
+      try {
+        const updatedDevice = await deviceService.getDevice(deviceId);
+        if (!updatedDevice.activity_mode) {
+          await deviceService.changeActivityMode(deviceId, DEFAULT_ACTIVITY_MODE);
+        }
+      } catch (error) {
+        // Do not block the success flow if activity mode update fails.
+        console.warn('Failed to update activity mode:', error);
+      }
 
       router.replace({
         pathname: '/add-monitor/success',
@@ -176,8 +211,20 @@ export default function DeviceDetailsScreen() {
           </View>
         </View>
 
+        {/* Network status */}
+        {!isConnected && (
+          <View style={styles.noNetworkBox}>
+            <MaterialCommunityIcons name="wifi-off" size={18} color="#92400E" />
+            <Text style={styles.noNetworkText}>No internet connection. Connect to a network to continue.</Text>
+          </View>
+        )}
+
         {/* Submit Button */}
-        <TouchableOpacity style={[styles.primaryButton, isSubmitting && styles.primaryButtonDisabled]} onPress={handleAddMonitor} disabled={isSubmitting}>
+        <TouchableOpacity
+          style={[styles.primaryButton, (isSubmitting || !isConnected) && styles.primaryButtonDisabled]}
+          onPress={handleAddMonitor}
+          disabled={isSubmitting || !isConnected}
+        >
           {isSubmitting ? <ActivityIndicator size="small" color="#FFF" /> : <Text style={styles.primaryButtonText}>Add Cylinder</Text>}
         </TouchableOpacity>
 
@@ -271,6 +318,21 @@ const styles = StyleSheet.create({
   textArea: {
     height: 100,
     paddingTop: 12,
+  },
+  noNetworkBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEF3C7',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 16,
+  },
+  noNetworkText: {
+    flex: 1,
+    marginLeft: 8,
+    color: '#92400E',
+    fontSize: 13,
+    fontWeight: '500',
   },
   deviceInfoContainer: {
     backgroundColor: '#E2E1F1',

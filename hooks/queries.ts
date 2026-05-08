@@ -173,6 +173,32 @@ export const useDevice = (id: string) => {
   return useQuery({
     queryKey: ['device', id],
     queryFn: () => deviceService.getDevice(id),
+    enabled: !!id,
+  });
+};
+
+export const useUpdateDevice = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Record<string, unknown> }) => deviceService.updateDevice(id, data as any),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['devices'] });
+      queryClient.invalidateQueries({ queryKey: ['device', variables.id] });
+    },
+  });
+};
+
+export const useChangeActivityMode = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, activity_mode }: { id: string; activity_mode: 'low' | 'medium' | 'high' | 'ultra_high' }) =>
+      deviceService.changeActivityMode(id, activity_mode),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['devices'] });
+      queryClient.invalidateQueries({ queryKey: ['device', variables.id] });
+    },
   });
 };
 
@@ -192,6 +218,15 @@ export const useDeviceReadings = (deviceId: string, params?: Record<string, stri
     queryKey: ['deviceReadings', deviceId, params],
     queryFn: () => deviceService.getDeviceReadings(deviceId, params),
     enabled: !!deviceId,
+  });
+};
+
+export const useLatestDeviceReading = (deviceId: string) => {
+  return useQuery({
+    queryKey: ['deviceLatestReading', deviceId],
+    queryFn: () => deviceService.getLatestDeviceReading(deviceId),
+    enabled: !!deviceId,
+    refetchInterval: 30_000,
   });
 };
 

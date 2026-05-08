@@ -7,6 +7,7 @@ import Svg, { Circle } from 'react-native-svg';
 import { type Href, useRouter } from 'expo-router';
 import { useAuth } from '@/providers/AuthProvider';
 import { useDevices, useRefillRequests, useUnreadNotificationCount, useCurrentUser, useActivityLogs } from '@/hooks/queries';
+import { MonitorReadingSummary } from '@/components/MonitorReadingSummary';
 
 const PRIMARY_COLOR = '#3629B7';
 const SECONDARY_COLOR = '#14B27A';
@@ -175,6 +176,8 @@ export default function DashboardScreen() {
                   </Text>
                 </View>
               </View>
+
+              {mainDevice?.device_id && <MonitorReadingSummary deviceId={mainDevice.device_id} />}
 
               <TouchableOpacity
                 style={styles.refillButton}
@@ -391,7 +394,7 @@ export default function DashboardScreen() {
                   onPress={() =>
                     router.push({
                       pathname: '/my-circle/cylinder',
-                      params: { name: device.device_id, fill: String(device.current_level) },
+                      params: { name: device.device_id, fill: String(device.current_level), deviceId: device.device_id },
                     } as Href)
                   }
                 >
@@ -409,6 +412,7 @@ export default function DashboardScreen() {
                   <View style={styles.activityDetails}>
                     <Text style={styles.activityTitle}>{device.device_id}</Text>
                     <Text style={styles.activitySubtitle}>{device.current_level}% remaining</Text>
+                    <MonitorReadingSummary deviceId={device.device_id} compact />
                   </View>
                   <MaterialCommunityIcons name="chevron-right" size={24} color="#9CA3AF" />
                 </TouchableOpacity>

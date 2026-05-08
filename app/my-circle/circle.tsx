@@ -5,6 +5,7 @@ import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppCard } from '@/components/ui/AppCard';
+import { MonitorReadingSummary } from '@/components/MonitorReadingSummary';
 import { useCircleDetails, useCircleDevices, useDeleteCircle, useLeaveCircle } from '@/hooks/circle';
 import { authService } from '@/lib/auth';
 import { deviceService } from '@/lib/device';
@@ -263,6 +264,7 @@ export default function CircleIndexScreen() {
                       </View>
                       <Text style={styles.progressText}>{device.current_level}%</Text>
                     </View>
+                    <MonitorReadingSummary deviceId={device.device_id} compact />
                   </View>
                   <View style={styles.deviceActions}>
                     {isCreator ? (

@@ -76,6 +76,8 @@ export type IoTDevice = {
   current_level: number;
   battery_level: number;
   status: 'active' | 'inactive' | 'maintenance';
+  cylinder_size?: number | null;
+  activity_mode?: 'low' | 'medium' | 'high' | 'ultra_high';
   created_at: string;
   updated_at: string;
 };
@@ -83,7 +85,15 @@ export type IoTDevice = {
 export type DeviceReading = {
   id: string;
   device: IoTDevice;
-  level_percent: number;
+  // Backend renamed `level_percent` -> `percent`; keep both for compatibility.
+  level_percent?: number;
+  percent?: number;
+  level?: number | null;
+  distance?: number | null;
+  temperature?: number | null;
+  signal_strength?: number | null;
+  tilt_angle?: number | null;
+  liquid_status?: 'liquid_detected' | 'no_liquid' | null;
   battery_level: number | null;
   timestamp: string;
 };
