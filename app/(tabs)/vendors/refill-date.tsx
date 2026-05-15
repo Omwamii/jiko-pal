@@ -122,7 +122,7 @@ export default function RefillDateScreen() {
 
       router.replace({
         pathname: '/(tabs)/vendors/refill-success',
-        params: { vendorName, cylinderName },
+        params: { vendorId, vendorName, cylinderName },
       } as Href);
     } catch (err: any) {
       Alert.alert('Error', err?.message || 'Failed to create refill request');

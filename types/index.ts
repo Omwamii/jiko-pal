@@ -77,6 +77,7 @@ export type IoTDevice = {
   battery_level: number;
   status: 'active' | 'inactive' | 'maintenance';
   cylinder_size?: number | null;
+  cylinder_brand?: string | null;
   activity_mode?: 'low' | 'medium' | 'high' | 'ultra_high';
   created_at: string;
   updated_at: string;

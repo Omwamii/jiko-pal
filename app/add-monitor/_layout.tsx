@@ -6,7 +6,7 @@ export default function AddMonitorLayout() {
       <Stack.Screen 
         name="index" 
         options={{ 
-          title: 'Add Monitor',
+          title: 'Add Gas Level Sensor',
           headerShown: false 
         }} 
       />

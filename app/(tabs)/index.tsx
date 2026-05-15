@@ -8,6 +8,7 @@ import { type Href, useRouter } from 'expo-router';
 import { useAuth } from '@/providers/AuthProvider';
 import { useDevices, useRefillRequests, useUnreadNotificationCount, useCurrentUser, useActivityLogs } from '@/hooks/queries';
 import { MonitorReadingSummary } from '@/components/MonitorReadingSummary';
+import { formatDate } from '@/lib/utils';
 
 const PRIMARY_COLOR = '#3629B7';
 const SECONDARY_COLOR = '#14B27A';
@@ -119,7 +120,16 @@ export default function DashboardScreen() {
               <View style={styles.cardHeader}>
                 <View>
                   <Text style={styles.cylinderLabel}>Main Cylinder</Text>
-                  <Text style={styles.cylinderName}>{mainDevice?.device_id || 'Gas Monitor'}</Text>
+                  <TouchableOpacity
+                   onPress={() =>
+                    router.push({
+                      pathname: '/my-circle/cylinder',
+                      params: { name: mainDevice.device_id, fill: String(mainDevice.current_level), deviceId: mainDevice.device_id },
+                    } as Href)
+                  }
+                  >
+                    <Text style={styles.cylinderName}>{mainDevice?.device_id || 'Gas Level Sensor'}</Text>
+                  </TouchableOpacity>
                 </View>
                 <View style={[styles.statusBadge, { backgroundColor: getStatusColor(mainDevice?.current_level || 0) + '20' }]}>
                   <Text style={[styles.statusText, { color: getStatusColor(mainDevice?.current_level || 0) }]}>
@@ -128,7 +138,15 @@ export default function DashboardScreen() {
                 </View>
               </View>
 
-              <View style={styles.progressContainer}>
+              <TouchableOpacity
+                   onPress={() =>
+                    router.push({
+                      pathname: '/my-circle/cylinder',
+                      params: { name: mainDevice.device_id, fill: String(mainDevice.current_level), deviceId: mainDevice.device_id },
+                    } as Href)
+                  }
+                  >
+                    <View style={styles.progressContainer}>
                 <Svg width={size} height={size}>
                   <Circle
                     stroke="#E5E7EB"
@@ -161,6 +179,7 @@ export default function DashboardScreen() {
                   <Text style={styles.remainingText}>Remaining</Text>
                 </View>
               </View>
+              </TouchableOpacity>
 
               <View style={styles.metricsRow}>
                 <View style={styles.metricItem}>
@@ -171,7 +190,7 @@ export default function DashboardScreen() {
                   <Text style={styles.metricLabel}>Last Seen</Text>
                   <Text style={styles.metricValue}>
                     {mainDevice?.last_seen 
-                      ? new Date(mainDevice.last_seen).toLocaleDateString() 
+                      ? formatDate(mainDevice.last_seen)
                       : 'N/A'}
                   </Text>
                 </View>
@@ -206,7 +225,7 @@ export default function DashboardScreen() {
                   style={styles.addMonitorButton}
                   onPress={() => router.push('/add-monitor')}
                 >
-                  <Text style={styles.addMonitorButtonText}>Add Monitor</Text>
+                  <Text style={styles.addMonitorButtonText}>Add Level Sensor</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -219,7 +238,7 @@ export default function DashboardScreen() {
                 <View style={[styles.iconCircle, { backgroundColor: '#E0E7FF' }]}>
                   <MaterialCommunityIcons name="plus" size={24} color={PRIMARY_COLOR} />
                 </View>
-                <Text style={styles.quickActionText}>Add monitor</Text>
+                <Text style={styles.quickActionText}>Level Sensor</Text>
               </TouchableOpacity>
 
               <TouchableOpacity style={styles.quickActionBox} onPress={() => router.push('/invite-users')}>
@@ -281,7 +300,7 @@ export default function DashboardScreen() {
                       <Text style={styles.orderItemTitle}>{order.provider?.company_name || 'Unknown Vendor'}</Text>
                       <Text style={styles.orderItemSubtitle}>
                         {order.scheduled_date 
-                          ? new Date(order.scheduled_date).toLocaleDateString() 
+                          ? formatDate(order.scheduled_date)
                           : 'Not scheduled'}
                       </Text>
                     </View>
@@ -366,7 +385,7 @@ export default function DashboardScreen() {
                         </View>
                         <View style={styles.activityRight}>
                           <Text style={styles.activityDate}>
-                            {new Date(item.created_at).toLocaleDateString()}
+                            {formatDate(item.created_at)}
                           </Text>
                         </View>
                       </View>
@@ -381,7 +400,7 @@ export default function DashboardScreen() {
           {devices.length > 1 && (
             <View style={[styles.sectionContainer, styles.lastSection]}>
               <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Other Monitors</Text>
+                <Text style={styles.sectionTitle}>Other Connected Level Sensors</Text>
                 <TouchableOpacity onPress={() => router.push('/monitors' as Href)}>
                   <Text style={styles.viewAllText}>View all</Text>
                 </TouchableOpacity>
@@ -593,6 +612,7 @@ const styles = StyleSheet.create({
     height: 56,
     justifyContent: 'center',
     alignItems: 'center',
+    marginTop: 5,
   },
   refillButtonText: {
     color: '#FFFFFF',

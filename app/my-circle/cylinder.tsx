@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Alert, ActivityIndicator, TextInput, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Alert, ActivityIndicator, ScrollView } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -17,6 +17,9 @@ const strokeWidth = 12;
 const radius = (size - strokeWidth) / 2;
 const circumference = 2 * Math.PI * radius;
 
+// Keep this in sync with IoTDevice.CYLINDER_SIZES in `lpg-monitoring-system-api/core/models.py`.
+const CYLINDER_SIZE_OPTIONS: number[] = [3, 6, 13, 22.5, 35, 50];
+
 const parseCylinderSizeKg = (raw: string) => {
   const trimmed = raw.trim();
   if (!trimmed) return null;
@@ -30,6 +33,7 @@ export default function CircleCylinderScreen() {
   const params = useLocalSearchParams<{ name?: string; location?: string; fill?: string; deviceId?: string }>();
   const [disconnecting, setDisconnecting] = useState(false);
   const [cylinderSizeDraft, setCylinderSizeDraft] = useState('');
+  const [cylinderSizeDropdownOpen, setCylinderSizeDropdownOpen] = useState(false);
 
   const { mutate: disconnect } = useDisconnectDevice();
   const { clientProfile } = useAuth();
@@ -43,10 +47,14 @@ export default function CircleCylinderScreen() {
   const signalColors = signalQuality ? getSignalQualityColors(signalQuality) : null;
 
   const cylinderName = useMemo(() => params.name || device?.device_id || 'Kitchen Gas', [params.name, device?.device_id]);
-  const status = useMemo(
-    () => (device ? Number(device.current_level || 0) : Number(params.fill || '65')),
-    [device, params.fill]
-  );
+  const status = useMemo(() => {
+    const fallback = device ? Number(device.current_level || 0) : Number(params.fill || '65');
+    const hasLiquid = latestReading?.liquid_status !== 'no_liquid';
+    const readingLevel = latestReading?.level;
+    const candidate = hasLiquid && readingLevel != null ? Number(readingLevel) : fallback;
+    if (Number.isNaN(candidate)) return 0;
+    return Math.max(0, Math.min(100, candidate));
+  }, [device, params.fill, latestReading?.liquid_status, latestReading?.level]);
   const location = useMemo(() => params.location || device?.mac_address || 'Home - Kitchen', [params.location, device?.mac_address]);
   const strokeDashoffset = circumference - (circumference * status) / 100;
 
@@ -54,11 +62,14 @@ export default function CircleCylinderScreen() {
   const canEditCylinderSize = canEditActivityMode;
   const activityMode = device?.activity_mode || 'medium';
   const currentCylinderSizeLabel = device?.cylinder_size != null ? `${device.cylinder_size} kg` : '—';
+  const selectedCylinderSize = parseCylinderSizeKg(cylinderSizeDraft);
+  const selectedCylinderSizeLabel = selectedCylinderSize != null ? `${selectedCylinderSize} kg` : 'Not set';
 
   useEffect(() => {
     if (!device) return;
     const nextDraft = device.cylinder_size != null ? String(device.cylinder_size) : '';
     setCylinderSizeDraft(nextDraft);
+    setCylinderSizeDropdownOpen(false);
   }, [device]);
 
   const activityModes: { key: 'low' | 'medium' | 'high' | 'ultra_high'; title: string; description: string }[] = [
@@ -119,8 +130,47 @@ export default function CircleCylinderScreen() {
     );
   };
 
-  console.log(latestReading);
+   const getStatusColor = (level: number) => {
+     if (level >= 50) return '#10B981';
+     if (level >= 20) return '#F59E0B';
+     return '#EF4444';
+   };
+ 
+   const getStatusText = (level: number) => {
+     if (level >= 50) return 'Good';
+     if (level >= 20) return 'Low';
+     return 'Critical';
+   };
 
+   const getTiltStatus = (tiltAngle: number | null | undefined) => {
+     if (tiltAngle == null) return null;
+     const normalized = Math.abs(tiltAngle);
+     if (normalized <= 3) return { label: 'Ideal', fg: '#10B981', bg: '#10B98120' };
+     if (normalized <= 10) return { label: 'Tilted', fg: '#F59E0B', bg: '#F59E0B20' };
+     return { label: 'Severe', fg: '#EF4444', bg: '#EF444420' };
+   };
+
+   const tiltStatus = getTiltStatus(latestReading?.tilt_angle);
+   const getTemperatureStatus = (temperature: number | null | undefined) => {
+     if (temperature == null) return null;
+     if (temperature < -15) return { label: 'Too cold', fg: '#3B82F6', bg: '#3B82F620' };
+     if (temperature > 60) return { label: 'Too hot', fg: '#EF4444', bg: '#EF444420' };
+     return { label: 'Working', fg: '#10B981', bg: '#10B98120' };
+   };
+
+   const getCookingStatus = (
+     temperature: number | null | undefined,
+     liquidStatus: 'liquid_detected' | 'no_liquid' | null | undefined
+   ) => {
+     if (temperature == null) return null;
+     if (liquidStatus === 'no_liquid') return { label: 'No liquid', fg: '#6B7280', bg: '#6B728020' };
+     if (temperature >= 40 && temperature <= 60) return { label: 'Cooking likely', fg: '#F59E0B', bg: '#F59E0B20' };
+     if (temperature >= 32 && temperature < 40) return { label: 'Warm', fg: '#F59E0B', bg: '#F59E0B20' };
+     return { label: 'Idle', fg: '#10B981', bg: '#10B98120' };
+   };
+
+   const temperatureStatus = getTemperatureStatus(latestReading?.temperature);
+   const cookingStatus = getCookingStatus(latestReading?.temperature, latestReading?.liquid_status);
 
   return (
     <View style={styles.container}>
@@ -153,8 +203,10 @@ export default function CircleCylinderScreen() {
               <Text style={styles.label}>Main Cylinder</Text>
               <Text style={styles.name}>{cylinderName}</Text>
             </View>
-            <View style={styles.statusBadge}>
-              <Text style={styles.statusText}>Good</Text>
+            <View style={[styles.statusBadge, { backgroundColor: getStatusColor(status) + '20' }]}>
+              <Text style={[styles.statusText, { color: getStatusColor(status) }]}>
+                  {getStatusText(status)}
+                </Text>
             </View>
           </View>
 
@@ -209,12 +261,27 @@ export default function CircleCylinderScreen() {
                 {latestReading?.temperature ?? '—'}
                 {latestReading?.temperature != null ? '°C' : ''}
               </Text>
+              {/* {temperatureStatus && (
+                <View style={[styles.tempBadge, { backgroundColor: temperatureStatus.bg, borderColor: temperatureStatus.fg }]}>
+                  <Text style={[styles.tempBadgeText, { color: temperatureStatus.fg }]}>{temperatureStatus.label}</Text>
+                </View>
+              )} */}
+              {cookingStatus && (
+                <View style={[styles.cookingBadge, { backgroundColor: cookingStatus.bg, borderColor: cookingStatus.fg }]}>
+                  <Text style={[styles.cookingBadgeText, { color: cookingStatus.fg }]}>{cookingStatus.label}</Text>
+                </View>
+              )}
             </View>
             <View style={styles.readingItem}>
               <Text style={styles.readingLabel}>Tilt</Text>
               <Text style={styles.readingValue}>
                 {latestReading?.tilt_angle != null ? `${latestReading.tilt_angle.toFixed(1)}°` : '—'}
               </Text>
+              {tiltStatus && (
+                <View style={[styles.tiltBadge, { backgroundColor: tiltStatus.bg, borderColor: tiltStatus.fg }]}>
+                  <Text style={[styles.tiltBadgeText, { color: tiltStatus.fg }]}>{tiltStatus.label}</Text>
+                </View>
+              )}
             </View>
             <View style={styles.readingItem}>
               <Text style={styles.readingLabel}>Signal</Text>
@@ -223,7 +290,9 @@ export default function CircleCylinderScreen() {
               </Text>
               {signalQuality && signalColors && (
                 <View style={[styles.signalBadge, { backgroundColor: signalColors.bg, borderColor: signalColors.fg }]}>
-                  <Text style={[styles.signalBadgeText, { color: signalColors.fg }]}>{getSignalQualityLabel(signalQuality)}</Text>
+                  <Text style={[styles.signalBadgeText, { color: signalColors.fg , backgroundColor: signalColors.bg, borderColor: signalColors.fg }]}>
+                    {getSignalQualityLabel(signalQuality)}
+                  </Text>
                 </View>
               )}
             </View>
@@ -234,26 +303,76 @@ export default function CircleCylinderScreen() {
               <Text style={styles.cylinderSizeTitle}>Cylinder size</Text>
               {updatingDevice && <ActivityIndicator size="small" color={PRIMARY_COLOR} />}
             </View>
-            <Text style={styles.cylinderSizeSubtitle}>Used for estimates and refill recommendations.</Text>
+            <Text style={styles.cylinderSizeSubtitle}>This is used to determined the approximate height of the connected cylinder to calculate the liquid % level.</Text>
 
             {canEditCylinderSize ? (
-              <View style={styles.cylinderSizeEditor}>
-                <TextInput
-                  style={[styles.cylinderSizeInput, updatingDevice && styles.cylinderSizeInputDisabled]}
-                  placeholder="e.g. 6 or 13"
-                  placeholderTextColor="#9CA3AF"
-                  value={cylinderSizeDraft}
-                  onChangeText={setCylinderSizeDraft}
-                  keyboardType="numeric"
-                  editable={!updatingDevice}
-                />
+              <>
+                <View style={styles.cylinderSizeDropdownWrap}>
+                  <TouchableOpacity
+                    style={[styles.cylinderSizeDropdown, updatingDevice && styles.cylinderSizeDropdownDisabled]}
+                    onPress={() => setCylinderSizeDropdownOpen((v) => !v)}
+                    disabled={updatingDevice}
+                    activeOpacity={0.85}
+                  >
+                    <View style={styles.cylinderSizeDropdownLeft}>
+                      <Text style={styles.cylinderSizeDropdownLabel}>Selected</Text>
+                      <Text style={styles.cylinderSizeDropdownValue}>{selectedCylinderSizeLabel}</Text>
+                    </View>
+                    <MaterialCommunityIcons
+                      name={cylinderSizeDropdownOpen ? 'chevron-up' : 'chevron-down'}
+                      size={22}
+                      color="#6B7280"
+                    />
+                  </TouchableOpacity>
+
+                  {cylinderSizeDropdownOpen && (
+                    <View style={styles.cylinderSizeDropdownList}>
+                      <TouchableOpacity
+                        style={[styles.cylinderSizeDropdownItem, selectedCylinderSize == null && styles.cylinderSizeDropdownItemSelected]}
+                        onPress={() => {
+                          setCylinderSizeDraft('');
+                          setCylinderSizeDropdownOpen(false);
+                        }}
+                      >
+                        <Text
+                          style={[
+                            styles.cylinderSizeDropdownItemText,
+                            selectedCylinderSize == null && styles.cylinderSizeDropdownItemTextSelected,
+                          ]}
+                        >
+                          Not set
+                        </Text>
+                      </TouchableOpacity>
+                      {CYLINDER_SIZE_OPTIONS.map((kg) => {
+                        const selected = selectedCylinderSize === kg;
+                        return (
+                          <TouchableOpacity
+                            key={kg}
+                            style={[styles.cylinderSizeDropdownItem, selected && styles.cylinderSizeDropdownItemSelected]}
+                            onPress={() => {
+                              setCylinderSizeDraft(String(kg));
+                              setCylinderSizeDropdownOpen(false);
+                            }}
+                          >
+                            <Text
+                              style={[styles.cylinderSizeDropdownItemText, selected && styles.cylinderSizeDropdownItemTextSelected]}
+                            >
+                              {kg} kg
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  )}
+                </View>
+
                 <AppButton
-                  title="Save"
+                  title="Save cylinder size"
                   onPress={handleSaveCylinderSize}
                   disabled={updatingDevice}
                   style={styles.cylinderSizeSaveBtn}
                 />
-              </View>
+              </>
             ) : (
               <>
                 <Text style={styles.cylinderSizeReadOnlyValue}>{currentCylinderSizeLabel}</Text>
@@ -355,27 +474,52 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#6B7280',
   },
-  cylinderSizeEditor: {
+  cylinderSizeSaveBtn: {
     marginTop: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
+    paddingHorizontal: 14,
   },
-  cylinderSizeInput: {
-    flex: 1,
+  cylinderSizeDropdownWrap: {
+    marginTop: 10,
+  },
+  cylinderSizeDropdown: {
     borderWidth: 1,
     borderColor: '#E5E7EB',
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    color: '#111827',
-    marginRight: 10,
-  },
-  cylinderSizeInputDisabled: {
-    opacity: 0.7,
-  },
-  cylinderSizeSaveBtn: {
+    borderRadius: 14,
     paddingHorizontal: 14,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  cylinderSizeDropdownDisabled: { opacity: 0.7 },
+  cylinderSizeDropdownLeft: { flex: 1, paddingRight: 10 },
+  cylinderSizeDropdownLabel: { color: '#6B7280', fontSize: 11, fontWeight: '600' },
+  cylinderSizeDropdownValue: { marginTop: 2, color: '#11181C', fontSize: 14, fontWeight: '700' },
+  cylinderSizeDropdownList: {
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    overflow: 'hidden',
+  },
+  cylinderSizeDropdownItem: {
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
+  },
+  cylinderSizeDropdownItemSelected: {
+    backgroundColor: '#EEF2FF',
+  },
+  cylinderSizeDropdownItemText: {
+    color: '#11181C',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  cylinderSizeDropdownItemTextSelected: {
+    color: PRIMARY_COLOR,
   },
   cylinderSizeReadOnlyValue: {
     marginTop: 10,
@@ -525,8 +669,41 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#11181C',
   },
-  signalBadge: {
+  tiltBadge: {
     marginTop: 6,
+    borderWidth: 1,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 999,
+  },
+  tiltBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  tempBadge: {
+    marginTop: 6,
+    borderWidth: 1,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 999,
+  },
+  tempBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  cookingBadge: {
+    marginTop: 6,
+    borderWidth: 1,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 999,
+  },
+  cookingBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  signalBadge: {
+    // marginTop: 6,
     borderWidth: 1,
     paddingHorizontal: 8,
     paddingVertical: 2,

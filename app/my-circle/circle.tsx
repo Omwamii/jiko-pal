@@ -136,6 +136,8 @@ export default function CircleIndexScreen() {
     );
   };
 
+
+
   return (
     <View style={styles.container}>
       <StatusBar style="light" />
@@ -264,7 +266,7 @@ export default function CircleIndexScreen() {
                       </View>
                       <Text style={styles.progressText}>{device.current_level}%</Text>
                     </View>
-                    <MonitorReadingSummary deviceId={device.device_id} compact />
+                    {/* <MonitorReadingSummary deviceId={device.device_id} compact /> */}
                   </View>
                   <View style={styles.deviceActions}>
                     {isCreator ? (
@@ -291,20 +293,10 @@ export default function CircleIndexScreen() {
               const memberUser = member.user;
               const initials = memberUser?.username?.slice(0, 2).toUpperCase() || 'U';
               return (
-                <AppCard key={member.id} style={styles.listCard}>
-                  <View style={styles.memberAvatar}>
-                    <Text style={styles.memberInitials}>{initials}</Text>
-                  </View>
-                  <View style={styles.itemContent}>
-                    <Text style={styles.itemTitle}>{memberUser?.username || 'Unknown'}</Text>
-                    <Text style={styles.itemSubtitle}>{memberUser?.email || ''}</Text>
-                    <Text style={styles.memberMeta}>
-                      {circle?.creator?.id === memberUser?.id ? 'Owner' : 'Member'}
-                    </Text>
-                  </View>
-                  <View style={styles.memberRight}>
-                    <TouchableOpacity
-                      onPress={() =>
+                <AppCard 
+                  key={member.id} 
+                  style={styles.listCard}
+                  onPress={() =>
                         router.push({
                           pathname: '/my-circle/member',
                           params: {
@@ -319,9 +311,18 @@ export default function CircleIndexScreen() {
                           },
                         } as Href)
                       }
-                    >
-                      <MaterialCommunityIcons name="cog-outline" size={18} color="#6B7280" />
-                    </TouchableOpacity>
+                >
+                  <View style={styles.memberAvatar}>
+                    <Text style={styles.memberInitials}>{initials}</Text>
+                  </View>
+                  <View style={styles.itemContent}>
+                    <Text style={styles.itemTitle}>{memberUser?.username || 'Unknown'}</Text>
+                    <Text style={styles.itemSubtitle}>{memberUser?.email || ''}</Text>
+                    <Text style={styles.memberMeta}>
+                      {circle?.creator?.id === memberUser?.id ? 'Owner' : 'Member'}
+                    </Text>
+                  </View>
+                  <View style={styles.memberRight}>
                     <View style={styles.activeBadge}>
                       <Text style={styles.activeText}>Active</Text>
                     </View>

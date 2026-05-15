@@ -41,10 +41,12 @@ export default function CatalogueSelectScreen() {
 
   const handleSkipAndChat = () => {
     router.push({
-      pathname: '/(tabs)/vendors/chat',
+      pathname: '/(tabs)/vendors/refill-date',
       params: {
         vendorId,
         vendorName,
+        cylinderName: cylinderName || '',
+        cylinderLevel: cylinderLevel || '',
       },
     } as Href);
   };
@@ -69,7 +71,7 @@ export default function CatalogueSelectScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <Text style={styles.sectionTitle}>Available Cylinders</Text>
         <Text style={styles.sectionSubtitle}>
-          Select a cylinder from the catalogue, or skip to chat with vendor for special requests
+          Select a cylinder from the catalogue, or continue without selecting and share details via chat after placing your request.
         </Text>
 
         {isLoading ? (
@@ -123,7 +125,10 @@ export default function CatalogueSelectScreen() {
 
         <TouchableOpacity style={styles.chatButton} onPress={handleSkipAndChat}>
           <MaterialCommunityIcons name="chat-outline" size={20} color={PRIMARY_COLOR} />
-          <Text style={styles.chatButtonText}>Continue without selecting - Chat with Vendor</Text>
+          <View style={styles.chatButtonTextWrap}>
+            <Text style={styles.chatButtonText}>Continue without selecting an item</Text>
+            <Text style={styles.chatButtonNote}>Note: Chat the vendor to provide order details.</Text>
+          </View>
         </TouchableOpacity>
       </ScrollView>
     </View>
@@ -200,5 +205,7 @@ const styles = StyleSheet.create({
     borderColor: PRIMARY_COLOR,
     gap: 8,
   },
+  chatButtonTextWrap: { alignItems: 'center' },
   chatButtonText: { color: PRIMARY_COLOR, fontSize: 16, fontWeight: '600' },
+  chatButtonNote: { color: '#6B7280', fontSize: 11, marginTop: 2, fontWeight: '500' },
 });

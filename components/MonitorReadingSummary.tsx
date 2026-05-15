@@ -85,7 +85,7 @@ export function MonitorReadingSummary({ deviceId, compact }: Props) {
 
 const styles = StyleSheet.create({
   wrap: {
-    marginTop: 6,
+    marginTop: 3,
   },
   warningBox: {
     flexDirection: 'row',

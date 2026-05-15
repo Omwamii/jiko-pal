@@ -49,7 +49,7 @@ export default function SuccessScreen() {
             <MaterialCommunityIcons name="check" size={64} color="#FFF" />
           </View>
           
-          <Text style={styles.title}>Monitor Added!</Text>
+          <Text style={styles.title}>Level Sensor Added!</Text>
           <Text style={styles.subtitle}>
             Your gas monitor has been successfully connected and is now tracking your cylinder.
           </Text>
@@ -67,7 +67,7 @@ export default function SuccessScreen() {
             style={styles.secondaryButton}
             onPress={addAnotherMonitor}
           >
-            <Text style={styles.secondaryButtonText}>Add Another Monitor</Text>
+            <Text style={styles.secondaryButtonText}>Add Another Sensor</Text>
           </TouchableOpacity>
         </View>
 

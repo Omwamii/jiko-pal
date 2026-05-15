@@ -1,20 +1,27 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, ActivityIndicator } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { useCircles } from '@/hooks/queries';
 
 const PRIMARY_COLOR = '#3629B7';
 
 export default function InviteUsersSelectMonitorScreen() {
   const router = useRouter();
+  const { data: circlesData, isLoading: isLoadingCircles, isError: isCirclesError, refetch } = useCircles();
 
-  const handleSelect = (monitorId: string) => {
+  const handleSelect = (circleId?: string, circleName?: string) => {
     router.push({
       pathname: '/invite-users/method',
-      params: { monitorId }
+      params: {
+        circleId,
+        circleName,
+      },
     });
   };
+
+  const circles = circlesData?.results || [];
 
   return (
     <View style={styles.container}>
@@ -52,65 +59,51 @@ export default function InviteUsersSelectMonitorScreen() {
 
         <Text style={styles.sectionTitle}>Select Circle</Text>
 
-        {/* Monitor List */}
-        <TouchableOpacity style={styles.monitorCard} onPress={() => handleSelect('kitchen')}>
-          <View style={[styles.iconBadge, { backgroundColor: '#D1FAE5' }]}>
-            <MaterialCommunityIcons name="fire" size={24} color="#10B981" />
+        {/* Circles list */}
+        {isLoadingCircles ? (
+          <View style={styles.loadingWrap}>
+            <ActivityIndicator size="large" color={PRIMARY_COLOR} />
+            <Text style={styles.loadingText}>Loading circles…</Text>
           </View>
-          <View style={styles.monitorDetails}>
-            <Text style={styles.monitorTitle}>Kitchen Gas</Text>
-            <Text style={styles.monitorSubtitle}>Home - Kitchen</Text>
-            <View style={styles.progressRow}>
-              <View style={styles.progressBarBackground}>
-                <View style={[styles.progressBarFill, { width: '65%', backgroundColor: '#10B981' }]} />
+        ) : isCirclesError ? (
+          <View style={styles.emptyState}>
+            <MaterialCommunityIcons name="alert-circle-outline" size={34} color="#9CA3AF" />
+            <Text style={styles.emptyTitle}>Couldn’t load circles</Text>
+            <Text style={styles.emptySubtitle}>Check your connection and try again.</Text>
+            <TouchableOpacity style={styles.retryBtn} onPress={() => refetch()} activeOpacity={0.85}>
+              <Text style={styles.retryBtnText}>Retry</Text>
+            </TouchableOpacity>
+          </View>
+        ) : circles.length === 0 ? (
+          <View style={styles.emptyState}>
+            <MaterialCommunityIcons name="account-group-outline" size={34} color="#9CA3AF" />
+            <Text style={styles.emptyTitle}>No circles found</Text>
+            <Text style={styles.emptySubtitle}>Create or join a circle, then invite users.</Text>
+          </View>
+        ) : (
+          circles.map((circle) => (
+            <TouchableOpacity key={circle.id} style={styles.monitorCard} onPress={() => handleSelect(circle.id, circle.circle_name)}>
+              <View style={[styles.iconBadge, { backgroundColor: '#E0E7FF' }]}>
+                <MaterialCommunityIcons name="account-group" size={24} color={PRIMARY_COLOR} />
               </View>
-              <Text style={styles.progressText}>65%</Text>
-            </View>
-          </View>
-          <MaterialCommunityIcons name="chevron-right" size={24} color="#9CA3AF" />
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.monitorCard} onPress={() => handleSelect('office')}>
-          <View style={[styles.iconBadge, { backgroundColor: '#D1FAE5' }]}>
-            <MaterialCommunityIcons name="fire" size={24} color="#10B981" />
-          </View>
-          <View style={styles.monitorDetails}>
-            <Text style={styles.monitorTitle}>Office Gas</Text>
-            <Text style={styles.monitorSubtitle}>Office - Main Floor</Text>
-            <View style={styles.progressRow}>
-              <View style={styles.progressBarBackground}>
-                <View style={[styles.progressBarFill, { width: '85%', backgroundColor: '#10B981' }]} />
+              <View style={styles.monitorDetails}>
+                <Text style={styles.monitorTitle}>{circle.circle_name}</Text>
+                <Text style={styles.monitorSubtitle}>
+                  {circle.member_count} member{circle.member_count === 1 ? '' : 's'}
+                </Text>
               </View>
-              <Text style={styles.progressText}>85%</Text>
-            </View>
-          </View>
-          <MaterialCommunityIcons name="chevron-right" size={24} color="#9CA3AF" />
-        </TouchableOpacity>
+              <MaterialCommunityIcons name="chevron-right" size={24} color="#9CA3AF" />
+            </TouchableOpacity>
+          ))
+        )}
 
-        <TouchableOpacity style={styles.monitorCard} onPress={() => handleSelect('backup')}>
-          <View style={[styles.iconBadge, { backgroundColor: '#FEF3C7' }]}>
-            <MaterialCommunityIcons name="fire" size={24} color="#F59E0B" />
-          </View>
-          <View style={styles.monitorDetails}>
-            <Text style={styles.monitorTitle}>Backup Cylinder</Text>
-            <Text style={styles.monitorSubtitle}>Home - Garage</Text>
-            <View style={styles.progressRow}>
-              <View style={styles.progressBarBackground}>
-                <View style={[styles.progressBarFill, { width: '35%', backgroundColor: '#F59E0B' }]} />
-              </View>
-              <Text style={styles.progressText}>35%</Text>
-            </View>
-          </View>
-          <MaterialCommunityIcons name="chevron-right" size={24} color="#9CA3AF" />
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.monitorCard} onPress={() => handleSelect('global')}>
+        <TouchableOpacity style={styles.monitorCard} onPress={() => handleSelect()}>
           <View style={[styles.iconBadge, { backgroundColor: '#E0E7FF' }]}>
             <MaterialCommunityIcons name="earth" size={24} color={PRIMARY_COLOR} />
           </View>
           <View style={styles.monitorDetails}>
             <Text style={styles.monitorTitle}>No particular circle</Text>
-            <Text style={styles.monitorSubtitle}>Invite without assigning a monitor</Text>
+            <Text style={styles.monitorSubtitle}>Invite without assigning a circle</Text>
           </View>
           <MaterialCommunityIcons name="chevron-right" size={24} color="#9CA3AF" />
         </TouchableOpacity>
@@ -213,6 +206,13 @@ const styles = StyleSheet.create({
   monitorDetails: {
     flex: 1,
   },
+  loadingWrap: { paddingVertical: 18, alignItems: 'center' },
+  loadingText: { marginTop: 10, color: '#6B7280', fontSize: 12, fontWeight: '600' },
+  emptyState: { paddingVertical: 18, alignItems: 'center', paddingHorizontal: 10 },
+  emptyTitle: { marginTop: 10, color: '#11181C', fontSize: 14, fontWeight: '700' },
+  emptySubtitle: { marginTop: 4, color: '#6B7280', fontSize: 12, textAlign: 'center' },
+  retryBtn: { marginTop: 12, backgroundColor: PRIMARY_COLOR, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 10 },
+  retryBtnText: { color: '#FFF', fontSize: 12, fontWeight: '700' },
   monitorTitle: {
     fontSize: 16,
     fontWeight: 'bold',

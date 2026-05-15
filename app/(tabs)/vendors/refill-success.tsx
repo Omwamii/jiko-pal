@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, SafeAreaView } from 'react-native';
+import { Alert, View, Text, StyleSheet, SafeAreaView } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -10,9 +10,21 @@ const PRIMARY_COLOR = '#3629B7';
 
 export default function RefillSuccessScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ vendorName?: string; cylinderName?: string }>();
+  const params = useLocalSearchParams<{ vendorId?: string; vendorName?: string; cylinderName?: string }>();
+  const vendorId = useMemo(() => params.vendorId || '', [params.vendorId]);
   const vendorName = useMemo(() => params.vendorName || 'QuickGas Ltd', [params.vendorName]);
   const cylinderName = useMemo(() => params.cylinderName || 'Office Gas', [params.cylinderName]);
+
+  const handleChat = () => {
+    if (!vendorId) {
+      Alert.alert('Missing vendor', 'Unable to open chat right now. Please find the vendor in Vendors and start chat from there.');
+      return;
+    }
+    router.replace({
+      pathname: '/(tabs)/vendors/chat',
+      params: { vendorId, vendorName },
+    });
+  };
 
   return (
     <View style={styles.container}>
@@ -59,7 +71,7 @@ export default function RefillSuccessScreen() {
 
           <AppButton
             title="Chat with vendor"
-            onPress={() => router.replace({ pathname: './chat', params: { vendorName } })}
+            onPress={handleChat}
             variant="inverted"
             style={styles.chatBtn}
             textStyle={styles.chatText}

@@ -7,6 +7,7 @@ import { AppButton } from '@/components/ui/AppButton';
 import { AppCard } from '@/components/ui/AppCard';
 import { useVendorDetails, useSubscribeVendor, useUnsubscribeVendor, useVendorSubscriptions } from '@/hooks/vendor';
 import { useCatalogueByVendor, useReviews } from '@/hooks/queries';
+import { formatDate } from '@/lib/utils';
 
 const PRIMARY_COLOR = '#3629B7';
 
@@ -89,15 +90,15 @@ export default function VendorDetailScreen() {
           <View style={styles.metricsRow}>
             <View style={styles.metricCol}>
               <Text style={styles.metricLabel}>Name</Text>
-              <Text style={styles.metricValue}>Ksh. 1500</Text>
+              <Text style={styles.metricValue}>{vendor?.company_name}</Text>
             </View>
             <View style={styles.metricCol}>
-              <Text style={styles.metricLabel}>Current</Text>
-              <Text style={styles.metricValue}>Ksh. 1500</Text>
+              <Text style={styles.metricLabel}>Location</Text>
+              <Text style={styles.metricValue}>{vendor?.location || vendor?.county}</Text>
             </View>
             <View style={styles.metricCol}>
-              <Text style={styles.metricLabel}>Price now</Text>
-              <Text style={[styles.metricValue, { color: '#10B981' }]}>Available Now</Text>
+              <Text style={styles.metricLabel}>Availability</Text>
+              <Text style={[styles.metricValue, { color: '#10B981' }]}>{vendor?.is_available}</Text>
             </View>
           </View>
 
@@ -139,7 +140,7 @@ export default function VendorDetailScreen() {
               )}
               <View style={styles.catalogueContent}>
                 <View style={styles.catalogueHeader}>
-                  <Text style={styles.catalogueTitle}>{item.cylinder_company} {item.size}</Text>
+                  <Text style={styles.catalogueTitle}>{item.cylinder_company} {Math.floor(item.size)} Kg</Text>
                   {item.is_available ? (
                     <View style={styles.availableBadge}>
                       <Text style={styles.availableText}>In Stock</Text>
@@ -185,9 +186,15 @@ export default function VendorDetailScreen() {
               <MaterialCommunityIcons name="phone" size={14} color={PRIMARY_COLOR} />
             </View>
             <View>
-              <Text style={styles.contactLabel}>Phone</Text>
-              <Text style={styles.contactValue}>+254 712435730</Text>
+              <Text style={styles.contactLabel}>Primary Phone</Text>
+              <Text style={styles.contactValue}>{vendor?.primary_phone}</Text>
             </View>
+            {vendor?.alternate_phone && (
+              <View>
+                <Text style={styles.contactLabel}>Secondary Phone</Text>
+                <Text style={styles.contactValue}>{vendor?.primary_phone}</Text>
+              </View>
+            )}
           </View>
           <View style={styles.contactRow}>
             <View style={[styles.contactIcon, { backgroundColor: '#D1FAE5' }]}>
@@ -195,7 +202,7 @@ export default function VendorDetailScreen() {
             </View>
             <View>
               <Text style={styles.contactLabel}>Email</Text>
-              <Text style={styles.contactValue}>contact@quickgasltd.com</Text>
+              <Text style={styles.contactValue}>{vendor?.user.email}</Text>
             </View>
           </View>
           <View style={[styles.contactRow, { marginBottom: 0 }]}>
@@ -204,9 +211,21 @@ export default function VendorDetailScreen() {
             </View>
             <View>
               <Text style={styles.contactLabel}>Address</Text>
-              <Text style={styles.contactValue}>456 Commerce St, City Center</Text>
+              <Text style={styles.contactValue}>{vendor?.street_address}</Text>
             </View>
           </View>
+
+          {vendor?.website && (
+            <View style={styles.contactRow}>
+              <View style={[styles.contactIcon, { backgroundColor: '#E0E7FF' }]}>
+                <MaterialCommunityIcons name="globe-light" size={14} color={PRIMARY_COLOR} />
+              </View>
+              <View>
+                <Text style={styles.contactLabel}>Website</Text>
+                <Text style={styles.contactValue}>{vendor?.website}</Text>
+              </View>
+            </View>
+          )}
         </AppCard>
 
         <View style={styles.reviewsHeader}>
@@ -236,7 +255,7 @@ export default function VendorDetailScreen() {
                   <Text style={styles.reviewAuthor}>{review.request?.client?.full_name || 'Anonymous'}</Text>
                   <Stars rating={review.rating} />
                 </View>
-                <Text style={styles.reviewDate}>{new Date(review.created_at).toLocaleDateString()}</Text>
+                <Text style={styles.reviewDate}>{formatDate(review.created_at)}</Text>
               </View>
               {review.comment && (
                 <Text style={styles.reviewComment}>{review.comment}</Text>

@@ -6,6 +6,7 @@ import { StatusBar } from 'expo-status-bar';
 import { AppCard } from '@/components/ui/AppCard';
 import { useActivityLogs } from '@/hooks/queries';
 import { ActivityLog } from '@/types';
+import { formatDate } from '@/lib/utils';
 
 const PRIMARY_COLOR = '#3629B7';
 
@@ -77,7 +78,7 @@ const formatRelativeTime = (dateStr: string) => {
   if (diffMins < 60) return `${diffMins} minutes ago`;
   if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
   if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
-  return date.toLocaleDateString();
+  return formatDate(date.toString());
 };
 
 export default function RecentActivityScreen() {

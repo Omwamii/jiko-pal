@@ -48,7 +48,7 @@ export default function MonitorsScreen() {
             <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
               <MaterialCommunityIcons name="arrow-left" size={24} color="#FFF" />
             </TouchableOpacity>
-            <Text style={styles.headerTitle}>My Monitors</Text>
+            <Text style={styles.headerTitle}>Connected Gas Level Sensors</Text>
           </View>
         </SafeAreaView>
       </View>
@@ -57,14 +57,14 @@ export default function MonitorsScreen() {
         <View style={styles.searchContainer}>
           <TextInput 
             style={styles.searchInput} 
-            placeholder="Search by monitor name...." 
+            placeholder="Search by sensor name...." 
             placeholderTextColor="#9CA3AF"
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
         </View>
 
-        <Text style={styles.sectionTitle}>Active Monitors</Text>
+        <Text style={styles.sectionTitle}>Active Level Sensors</Text>
 
         {filteredDevices.length === 0 ? (
           <View style={styles.emptyState}>
@@ -77,7 +77,7 @@ export default function MonitorsScreen() {
                 style={styles.addButton}
                 onPress={() => router.push('/add-monitor')}
               >
-                <Text style={styles.addButtonText}>Add Monitor</Text>
+                <Text style={styles.addButtonText}>Add Gas Level Sensor</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -108,7 +108,7 @@ export default function MonitorsScreen() {
                     <Text style={styles.monitorSubtitle}>
                       {device.current_level}% remaining • {device.status}
                     </Text>
-                    <MonitorReadingSummary deviceId={device.device_id} compact />
+                    {/* <MonitorReadingSummary deviceId={device.device_id} compact /> */}
                   </View>
                   <MaterialCommunityIcons name="chevron-right" size={24} color="#9CA3AF" />
                 </TouchableOpacity>

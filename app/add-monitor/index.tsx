@@ -50,7 +50,7 @@ export default function SelectDeviceTypeScreen() {
               <MaterialCommunityIcons name="arrow-left" size={24} color="#FFF" />
             </TouchableOpacity>
             <View>
-              <Text style={styles.headerTitle}>Add Monitor</Text>
+              <Text style={styles.headerTitle}>Add Gas Level Sensor</Text>
               <Text style={styles.headerSubtitle}>Step 1: Choose device type</Text>
             </View>
           </View>
@@ -80,8 +80,8 @@ export default function SelectDeviceTypeScreen() {
             <MaterialCommunityIcons name="qrcode-scan" size={24} color="#FFF" />
           </View>
           <View style={styles.optionDetails}>
-            <Text style={styles.optionTitle}>Smart IoT Sensor</Text>
-            <Text style={styles.optionDescription}>Bluetooth or WIFI Enabled gas Sensor</Text>
+            <Text style={styles.optionTitle}>Smart IoT connect</Text>
+            <Text style={styles.optionDescription}>Connect the device through WiFi or hotspot </Text>
             <Text style={styles.optionBadgeText}>Real-Time Monitoring</Text>
           </View>
           <MaterialCommunityIcons name="chevron-right" size={24} color="#9CA3AF" />

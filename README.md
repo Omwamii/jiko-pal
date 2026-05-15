@@ -2,6 +2,10 @@
 
 This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
 
+## Documentation
+
+- Frontend implementation: `docs/frontend-implementation.md`
+
 ## Get started
 
 1. Install dependencies
