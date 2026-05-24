@@ -19,6 +19,14 @@ export interface RegisterVendorData {
   location: string;
 }
 
+export interface UpdateVendorData {
+  company_name?: string;
+  location?: string;
+  location_latitude?: number;
+  location_longitude?: number;
+  is_available?: boolean;
+}
+
 export interface LoginData {
   email: string;
   password: string;
@@ -89,7 +97,7 @@ export const authService = {
     return response.data;
   },
 
-  async updateVendorProfile(data: Partial<RegisterVendorData>): Promise<Vendor> {
+  async updateVendorProfile(data: UpdateVendorData): Promise<Vendor> {
     const response = await api.patch<Vendor>('/vendors/me/', data);
     return response.data;
   },

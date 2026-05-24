@@ -22,7 +22,7 @@ export default function SelectDeviceTypeScreen() {
   const eligibleExistingCount = React.useMemo(() => {
     const devices = devicesData?.results || [];
     const targetCircleId = params.circleId;
-    const isAddingToCircle = params.fromCircle === 'true';
+    const isAddingToCircle = params.fromCircle === 'true' || params.fromCircle === '1';
     
     // If not adding to a circle, existing cylinder option is not available
     if (!isAddingToCircle) return 0;
@@ -36,7 +36,7 @@ export default function SelectDeviceTypeScreen() {
   }, [devicesData, params.circleId, params.fromCircle]);
 
   const existingDisabled = isLoadingDevices || eligibleExistingCount === 0;
-  const existingNotForCircle = params.fromCircle !== 'true';
+  const existingNotForCircle = !(params.fromCircle === 'true' || params.fromCircle === '1');
 
   return (
     <View style={styles.container}>

@@ -1,13 +1,38 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Switch, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { type Href, useRouter } from 'expo-router';
 import { VendorBottomNav } from '@/components/vendor/VendorBottomNav';
+import { useAuth } from '@/providers/AuthProvider';
+import { useToggleVendorAvailability } from '@/hooks/queries';
 
 export default function VendorSettingsScreen() {
   const router = useRouter();
+  const { vendorProfile, user, logout, refreshVendorProfile, updateVendorLocationIfNeeded } = useAuth();
+  const { mutateAsync: toggleAvailability, isPending: isToggling } = useToggleVendorAvailability();
+
+  const initials =
+    (vendorProfile?.company_name || user?.username || user?.email || 'V')
+      .split(' ')
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((p) => p[0]?.toUpperCase())
+      .join('') || 'V';
+
+  const handleToggleVisibility = async () => {
+    if (!vendorProfile?.id) return;
+    try {
+      const updated = await toggleAvailability(vendorProfile.id);
+      await refreshVendorProfile();
+      if (updated?.is_available) {
+        await updateVendorLocationIfNeeded({ force: true });
+      }
+    } catch {
+      Alert.alert('Update failed', 'Unable to change your visibility right now. Please try again.');
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -27,15 +52,19 @@ export default function VendorSettingsScreen() {
       <View style={styles.sheet}>
         <View style={styles.profileCard}>
           <View style={styles.profileLeft}>
-            <View style={styles.avatar}><Text style={styles.avatarText}>GC</Text></View>
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>{initials}</Text>
+            </View>
             <View>
-              <Text style={styles.name}>Gas Connect Ltd.</Text>
-              <Text style={styles.email}>john.doe@mail.com</Text>
-              <View style={styles.tag}><Text style={styles.tagText}>Verified Vendor</Text></View>
+              <Text style={styles.name}>{vendorProfile?.company_name || 'Vendor'}</Text>
+              <Text style={styles.email}>{user?.email || ''}</Text>
+              <View style={styles.tag}>
+                <Text style={styles.tagText}>{vendorProfile?.is_available ? 'Visible to clients' : 'Hidden from clients'}</Text>
+              </View>
             </View>
           </View>
 
-          <TouchableOpacity activeOpacity={0.8}>
+          <TouchableOpacity activeOpacity={0.8} onPress={() => router.push('/vendor-business-information' as Href)}>
             <MaterialCommunityIcons name="pencil-outline" size={17} color="#11131A" />
           </TouchableOpacity>
         </View>
@@ -43,6 +72,28 @@ export default function VendorSettingsScreen() {
         <Text style={styles.sectionTitle}>BUSINESS</Text>
 
         <View style={styles.groupCard}>
+          <View style={styles.optionRow}>
+            <View style={[styles.optionIconWrap, { backgroundColor: '#E0E7FF' }]}>
+              <MaterialCommunityIcons name="eye-outline" size={18} color="#4F46E5" />
+            </View>
+            <View style={styles.optionMeta}>
+              <Text style={styles.optionTitle}>Visibility</Text>
+              <Text style={styles.optionSub}>Control whether clients can see you nearby</Text>
+            </View>
+            {isToggling ? (
+              <ActivityIndicator size="small" color="#4F46E5" />
+            ) : (
+              <Switch
+                value={!!vendorProfile?.is_available}
+                onValueChange={handleToggleVisibility}
+                trackColor={{ false: '#E5E7EB', true: '#C7D2FE' }}
+                thumbColor={vendorProfile?.is_available ? '#4F46E5' : '#9CA3AF'}
+              />
+            )}
+          </View>
+
+          <View style={styles.divider} />
+
           <TouchableOpacity
             style={styles.optionRow}
             activeOpacity={0.85}
@@ -115,7 +166,7 @@ export default function VendorSettingsScreen() {
         <TouchableOpacity
           style={styles.logoutCard}
           activeOpacity={0.85}
-          onPress={() => router.replace('/login' as Href)}
+          onPress={logout}
         >
           <View style={[styles.optionIconWrap, { backgroundColor: '#FEE2E2' }]}>
             <MaterialCommunityIcons name="logout" size={18} color="#EF4444" />

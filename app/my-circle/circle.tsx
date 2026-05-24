@@ -266,7 +266,7 @@ export default function CircleIndexScreen() {
                       </View>
                       <Text style={styles.progressText}>{device.current_level}%</Text>
                     </View>
-                    {/* <MonitorReadingSummary deviceId={device.device_id} compact /> */}
+                    <MonitorReadingSummary deviceId={device.device_id} compact />
                   </View>
                   <View style={styles.deviceActions}>
                     {isCreator ? (

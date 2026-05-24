@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, TextInput, ScrollView, ActivityIndicator } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, TextInput, ScrollView, ActivityIndicator, Switch } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
 import { useFocusEffect } from 'expo-router';
@@ -11,11 +11,17 @@ import { Vendor } from '@/types';
 
 const PRIMARY_COLOR = '#3629B7';
 
+const formatKm = (distanceKm: number) => {
+  const rounded = distanceKm < 10 ? Math.round(distanceKm * 10) / 10 : Math.round(distanceKm);
+  return `${rounded} km`;
+};
+
 export default function VendorsScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ preselectedCylinderName?: string; preselectedCylinderLevel?: string }>();
   const [activeTab, setActiveTab] = useState<'all' | 'mine'>('all');
   const [query, setQuery] = useState('');
+  const [nearbyOnly, setNearbyOnly] = useState(false);
   
   const { vendors, isLoading: isLoadingVendors, fetchVendors } = useVendorList();
   const { subscriptions, isLoading: isLoadingSubs, fetchSubscriptions } = useVendorSubscriptions();
@@ -42,12 +48,18 @@ export default function VendorsScreen() {
   }, [vendors, subscribedVendorIds]);
 
   const filtered = useMemo(() => {
-    return vendorsWithSubscription.filter((vendor: Vendor & { is_subscribed?: boolean }) => {
+    const tabFiltered = vendorsWithSubscription.filter((vendor: Vendor & { is_subscribed?: boolean }) => {
       const tabOk = activeTab === 'all' ? true : vendor.is_subscribed;
       const queryOk = vendor.company_name.toLowerCase().includes(query.toLowerCase().trim());
       return tabOk && queryOk;
     });
-  }, [activeTab, query, vendorsWithSubscription]);
+
+    if (!nearbyOnly) return tabFiltered;
+
+    return [...tabFiltered]
+      .filter((v) => typeof v.distance_km === 'number')
+      .sort((a, b) => (a.distance_km ?? Number.POSITIVE_INFINITY) - (b.distance_km ?? Number.POSITIVE_INFINITY));
+  }, [activeTab, nearbyOnly, query, vendorsWithSubscription]);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -101,6 +113,19 @@ export default function VendorsScreen() {
           onChangeText={setQuery}
         />
 
+        <View style={styles.filtersRow}>
+          <View style={styles.filterLeft}>
+            <MaterialCommunityIcons name="map-marker-radius-outline" size={16} color="#6B7280" />
+            <Text style={styles.filterLabel}>Nearby vendors</Text>
+          </View>
+          <Switch
+            value={nearbyOnly}
+            onValueChange={setNearbyOnly}
+            trackColor={{ false: '#E5E7EB', true: '#C7D2FE' }}
+            thumbColor={nearbyOnly ? PRIMARY_COLOR : '#9CA3AF'}
+          />
+        </View>
+
         {isLoadingVendors || isLoadingSubs ? (
           <ActivityIndicator size="large" color={PRIMARY_COLOR} style={styles.loader} />
         ) : filtered.length === 0 ? (
@@ -116,13 +141,16 @@ export default function VendorsScreen() {
                 <Text style={styles.vendorName}>{vendor.company_name}</Text>
                 <View style={styles.ratingRow}>
                   <MaterialCommunityIcons name="star" size={12} color="#F59E0B" />
-                  <Text style={styles.ratingText}>
-                    {vendor.is_available ? 'Available' : 'Unavailable'}
-                  </Text>
+                  <Text style={styles.ratingText}>{typeof vendor.avg_rating === 'number' ? vendor.avg_rating.toFixed(1) : '—'}</Text>
+                  <Text style={styles.dot}>•</Text>
+                  <Text style={styles.ratingText}>{vendor.is_available ? 'Available' : 'Unavailable'}</Text>
                 </View>
                 <View style={styles.metaRow}>
                   <MaterialCommunityIcons name="map-marker" size={12} color="#9CA3AF" />
-                  <Text style={styles.metaText}>{vendor.location}</Text>
+                  <Text style={styles.metaText}>
+                    {vendor.location}
+                    {typeof vendor.distance_km === 'number' ? ` • ${formatKm(vendor.distance_km)} away` : ''}
+                  </Text>
                 </View>
               </View>
               {vendor.is_subscribed ? (
@@ -235,6 +263,7 @@ const styles = StyleSheet.create({
   vendorName: { color: '#11181C', fontSize: 14, fontWeight: '700' },
   ratingRow: { flexDirection: 'row', alignItems: 'center', marginTop: 1 },
   ratingText: { marginLeft: 4, color: '#6B7280', fontSize: 9 },
+  dot: { marginHorizontal: 6, fontSize: 9, color: '#9CA3AF' },
   metaRow: { flexDirection: 'row', alignItems: 'center', marginTop: 1 },
   metaText: { marginLeft: 4, color: '#9CA3AF', fontSize: 9 },
   subscribedBadge: { backgroundColor: '#D1FAE5', borderRadius: 10, paddingHorizontal: 8, paddingVertical: 3 },
@@ -245,6 +274,20 @@ const styles = StyleSheet.create({
   priceValue: { color: '#11181C', fontSize: 16, fontWeight: '700', marginTop: 2 },
   detailsBtn: { height: 28, borderRadius: 14, paddingHorizontal: 14 },
   detailsBtnText: { fontSize: 10 },
+  filtersRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    backgroundColor: '#FFFFFF',
+    marginBottom: 12,
+  },
+  filterLeft: { flexDirection: 'row', alignItems: 'center' },
+  filterLabel: { marginLeft: 8, fontSize: 12, color: '#111827', fontWeight: '600' },
   loader: {
     marginTop: 40,
   },

@@ -6,6 +6,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
 import { VendorBottomNav } from '@/components/vendor/VendorBottomNav';
 import { useRefillRequestDetails } from '@/hooks/refill';
+import { useAuth } from '@/providers/AuthProvider';
 
 const PRIMARY_COLOR = '#3629B7';
 
@@ -15,6 +16,7 @@ export default function VendorOrderDetailScreen() {
   const orderId = Array.isArray(params.orderId) ? params.orderId[0] : params.orderId;
   
   const { fetchRequest, refillRequest, isLoading } = useRefillRequestDetails();
+  const { updateVendorLocationIfNeeded } = useAuth();
   
   useEffect(() => {
     if (orderId) {
@@ -68,6 +70,42 @@ export default function VendorOrderDetailScreen() {
   const handleMarkDelivered = () => {
     router.push((`/vendor-mark-delivered?orderId=${orderId || ''}&customer=${customerName}`) as Href);
   };
+
+  useEffect(() => {
+    if (status !== 'in_transit') return;
+
+    let intervalId: ReturnType<typeof setInterval> | null = null;
+    let cancelled = false;
+
+    const tick = async () => {
+      if (cancelled) return;
+
+      const lastUpdated = refillRequest?.updated_at;
+      if (lastUpdated) {
+        const ms = Date.parse(lastUpdated);
+        if (!Number.isNaN(ms)) {
+          const minutesSinceUpdate = (Date.now() - ms) / 60_000;
+          if (minutesSinceUpdate > 60) {
+            if (intervalId) clearInterval(intervalId);
+            intervalId = null;
+            return;
+          }
+        }
+      }
+
+      await updateVendorLocationIfNeeded({ force: true, showDeniedAlert: false });
+    };
+
+    tick().catch(() => {});
+    intervalId = setInterval(() => {
+      tick().catch(() => {});
+    }, 10 * 60_000);
+
+    return () => {
+      cancelled = true;
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [status, refillRequest?.updated_at, updateVendorLocationIfNeeded]);
 
   return (
     <View style={styles.container}>

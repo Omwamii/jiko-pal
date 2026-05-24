@@ -8,7 +8,7 @@ import { VendorBottomNav } from '@/components/vendor/VendorBottomNav';
 
 export default function VendorMonitorDetailScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ name?: string; percent?: string; sub?: string; used?: string; days?: string; status?: string }>();
+  const params = useLocalSearchParams<{ name?: string; percent?: string; sub?: string; usedToday?: string; daysLeft?: string; status?: string }>();
 
   const percent = Number(params.percent || '65');
   const status = params.status || 'good';
@@ -61,11 +61,11 @@ export default function VendorMonitorDetailScreen() {
           <View style={styles.metricsRow}>
             <View>
               <Text style={styles.metricLabel}>Used Today</Text>
-              <Text style={styles.metricValue}>{params.used || '2.3 kg'}</Text>
+              <Text style={styles.metricValue}>{params.usedToday || 'N/A'}</Text>
             </View>
             <View>
               <Text style={styles.metricLabel}>Est. Days Left</Text>
-              <Text style={styles.metricValue}>{params.days || '12 days'}</Text>
+              <Text style={styles.metricValue}>{params.daysLeft || 'N/A'}</Text>
             </View>
           </View>
 

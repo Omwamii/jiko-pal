@@ -35,6 +35,8 @@ export default function VendorDetailScreen() {
     const sum = reviews.reduce((acc, r) => acc + r.rating, 0);
     return Math.round(sum / reviews.length * 10) / 10;
   }, [reviews]);
+  const displayedAvgRating = typeof vendor?.avg_rating === 'number' ? vendor.avg_rating : avgRating;
+  const displayedReviewCount = reviews.length;
 
   useEffect(() => {
     if (vendorId) {
@@ -81,8 +83,15 @@ export default function VendorDetailScreen() {
             <View>
               <Text style={styles.vendorName}>{vendorName}</Text>
               <View style={styles.ratingRow}>
-                <Stars rating={avgRating} />
-                <Text style={styles.reviewedText}>{avgRating} ({reviews.length} reviews)</Text>
+                <Stars rating={displayedAvgRating} />
+                <Text style={styles.reviewedText}>{displayedAvgRating} ({displayedReviewCount} reviews)</Text>
+                {typeof vendor?.distance_km === 'number' ? (
+                  <>
+                    <Text style={styles.reviewedDot}>•</Text>
+                    <MaterialCommunityIcons name="map-marker-radius-outline" size={14} color="#6B7280" />
+                    <Text style={styles.distanceText}>{vendor.distance_km.toFixed(1)} km away</Text>
+                  </>
+                ) : null}
               </View>
             </View>
           </View>
@@ -98,7 +107,15 @@ export default function VendorDetailScreen() {
             </View>
             <View style={styles.metricCol}>
               <Text style={styles.metricLabel}>Availability</Text>
-              <Text style={[styles.metricValue, { color: '#10B981' }]}>{vendor?.is_available}</Text>
+              <Text style={[styles.metricValue, { color: vendor?.is_available ? '#10B981' : '#EF4444' }]}>
+                {vendor?.is_available ? 'Available' : 'Unavailable'}
+              </Text>
+            </View>
+            <View style={styles.metricCol}>
+              <Text style={styles.metricLabel}>Distance</Text>
+              <Text style={styles.metricValue}>
+                {typeof vendor?.distance_km === 'number' ? `${vendor.distance_km.toFixed(1)} km` : '—'}
+              </Text>
             </View>
           </View>
 
@@ -308,6 +325,8 @@ const styles = StyleSheet.create({
   vendorName: { fontSize: 16, color: '#11181C', fontWeight: '700' },
   ratingRow: { flexDirection: 'row', alignItems: 'center', marginTop: 2 },
   reviewedText: { marginLeft: 6, color: '#9CA3AF', fontSize: 10 },
+  reviewedDot: { marginHorizontal: 6, color: '#D1D5DB', fontSize: 10 },
+  distanceText: { marginLeft: 4, color: '#6B7280', fontSize: 10, fontWeight: '600' },
   metricsRow: { flexDirection: 'row', marginTop: 10, marginBottom: 10 },
   metricCol: { flex: 1 },
   metricLabel: { color: '#9CA3AF', fontSize: 9 },

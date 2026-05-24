@@ -17,6 +17,7 @@ export type Client = {
   phone_number: string;
   location_latitude: number | null;
   location_longitude: number | null;
+  location_updated_at: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -26,6 +27,9 @@ export type Vendor = {
   user: User;
   company_name: string;
   location: string;
+  location_latitude: number | null;
+  location_longitude: number | null;
+  location_updated_at: string | null;
   is_available: boolean;
   business_registration_number?: string;
   tax_pin?: string;
@@ -40,6 +44,8 @@ export type Vendor = {
   delivery_radius?: number;
   created_at: string;
   updated_at: string;
+  avg_rating: number | null;
+  distance_km: number | null; // Distance of vendor from client.
 };
 
 export type VendorCatalogue = {
@@ -97,6 +103,10 @@ export type DeviceReading = {
   liquid_status?: 'liquid_detected' | 'no_liquid' | null;
   battery_level: number | null;
   timestamp: string;
+  estimated_days_left?: number | null;
+  depletion_forecast_status?: "invalid_window" | "insufficient_data" | "no_recent_activity" | "depleted" | "ok";
+  depletion_forecast_message?: string | null;
+  used_today_percent?: number;
 };
 
 export type MonitoringCircle = {
@@ -135,6 +145,7 @@ export type RefillRequest = {
   device: IoTDevice | null;
   status: RefillRequestStatus;
   requested_at: string;
+  updated_at?: string;
   scheduled_date: string | null;
   completed_at: string | null;
   notes: string | null;

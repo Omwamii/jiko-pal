@@ -1,11 +1,12 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Alert } from 'react-native';
 import { authService, LoginData, RegisterClientData, RegisterVendorData } from '../lib/auth';
 import { getTokens, clearTokens, setTokens } from '../lib/api';
 import { User, LoginResponse, Client, Vendor } from '../types';
 import { clientService } from '../lib/client';
-import { vendorService } from '../lib/vendor';
+import { getCurrentCoords, isTimestampStale, requestForegroundLocationPermission } from '../lib/location';
 
 interface AuthContextType {
   user: User | null;
@@ -21,6 +22,8 @@ interface AuthContextType {
   refreshUser: () => Promise<void>;
   refreshClientProfile: () => Promise<void>;
   refreshVendorProfile: () => Promise<void>;
+  updateVendorLocationIfNeeded: (opts?: { force?: boolean; staleMinutes?: number; showDeniedAlert?: boolean }) => Promise<void>;
+  updateClientLocationIfNeeded: (opts?: { force?: boolean; staleMinutes?: number; showDeniedAlert?: boolean }) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -37,6 +40,106 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [vendorProfile, setVendorProfile] = useState<Vendor | null>(null);
   const [tokens, setTokensState] = useState<{ access: string; refresh: string } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  const updateVendorLocationIfNeeded = useCallback(
+    async (opts?: { force?: boolean; staleMinutes?: number; showDeniedAlert?: boolean }) => {
+      const profile = vendorProfile;
+      if (!profile) return;
+
+      const staleMinutes = opts?.staleMinutes ?? 15;
+      const shouldUpdate = opts?.force ? true : isTimestampStale(profile.location_updated_at, staleMinutes);
+      if (!shouldUpdate) return;
+
+      const perm = await requestForegroundLocationPermission();
+      if (perm.status !== 'granted') {
+        if (opts?.showDeniedAlert === false) return;
+        await new Promise<void>((resolve) => {
+          const baseMessage =
+            "Location access helps show you to nearby clients. Denying this may reduce your visibility to customers searching for vendors near them.";
+
+          const canTryAgain = perm.canAskAgain !== false;
+          if (!canTryAgain) {
+            Alert.alert('Location disabled', baseMessage, [{ text: 'OK', onPress: () => resolve() }]);
+            return;
+          }
+
+          Alert.alert('Location access needed', baseMessage, [
+            { text: 'Continue', style: 'cancel', onPress: () => resolve() },
+            {
+              text: 'Try again',
+              onPress: async () => {
+                try {
+                  await updateVendorLocationIfNeeded({ force: true, staleMinutes });
+                } finally {
+                  resolve();
+                }
+              },
+            },
+          ]);
+        });
+        return;
+      }
+
+      const coords = await getCurrentCoords();
+      const updated = await authService.updateVendorProfile({
+        location_latitude: coords.latitude,
+        location_longitude: coords.longitude,
+      });
+      setVendorProfile(updated);
+    },
+    [vendorProfile]
+  );
+
+  const updateClientLocationIfNeeded = useCallback(
+    async (opts?: { force?: boolean; staleMinutes?: number; showDeniedAlert?: boolean }) => {
+      const profile = clientProfile;
+      if (!profile) return;
+
+      const staleMinutes = opts?.staleMinutes ?? 15;
+      const hasCoords = profile.location_latitude != null && profile.location_longitude != null;
+      const shouldUpdate = opts?.force ? true : !hasCoords || isTimestampStale(profile.location_updated_at, staleMinutes);
+      if (!shouldUpdate) return;
+
+      const perm = await requestForegroundLocationPermission();
+      if (perm.status !== 'granted') {
+        if (opts?.showDeniedAlert === false) return;
+
+        await new Promise<void>((resolve) => {
+          const baseMessage =
+            "Location access helps us show you nearby gas vendors and enables live location-based updates. Denying this may reduce the accuracy of nearby vendor suggestions.";
+
+          const canTryAgain = perm.canAskAgain !== false;
+          if (!canTryAgain) {
+            Alert.alert('Location disabled', baseMessage, [{ text: 'OK', onPress: () => resolve() }]);
+            return;
+          }
+
+          Alert.alert('Location access needed', baseMessage, [
+            { text: 'Continue', style: 'cancel', onPress: () => resolve() },
+            {
+              text: 'Try again',
+              onPress: async () => {
+                try {
+                  await updateClientLocationIfNeeded({ force: true, staleMinutes });
+                } finally {
+                  resolve();
+                }
+              },
+            },
+          ]);
+        });
+        return;
+      }
+
+      const coords = await getCurrentCoords();
+      const updated = await authService.updateClientProfile({
+        location_latitude: coords.latitude,
+        location_longitude: coords.longitude,
+      });
+      setClientProfile(updated);
+    },
+    [clientProfile]
+  );
 
   const loadStoredAuth = useCallback(async () => {
     try {
@@ -66,10 +169,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         } else if (currentUser.role === 'vendor') {
           try {
-            const vendors = await vendorService.getVendors();
-            if (vendors.results.length > 0) {
-              setVendorProfile(vendors.results[0]);
-            }
+            const vendor = await authService.getMyVendorProfile();
+            setVendorProfile(vendor);
           } catch (e) {
             console.log('No vendor profile found');
           }
@@ -86,6 +187,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     loadStoredAuth();
   }, [loadStoredAuth]);
+
+  useEffect(() => {
+    if (user?.role !== 'vendor') return;
+    if (!vendorProfile) return;
+    updateVendorLocationIfNeeded().catch((e) => console.log('Vendor location update failed:', e));
+  }, [user?.role, vendorProfile?.id, updateVendorLocationIfNeeded]);
+
+  useEffect(() => {
+    if (user?.role !== 'client') return;
+    if (!clientProfile) return;
+    updateClientLocationIfNeeded().catch((e) => console.log('Client location update failed:', e));
+  }, [user?.role, clientProfile?.id, updateClientLocationIfNeeded]);
 
   const login = async (data: LoginData) => {
     const response = await authService.login(data);
@@ -225,6 +338,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         refreshUser,
         refreshClientProfile,
         refreshVendorProfile,
+        updateVendorLocationIfNeeded,
+        updateClientLocationIfNeeded,
       }}
     >
       {children}

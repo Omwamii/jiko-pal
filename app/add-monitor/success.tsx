@@ -9,7 +9,7 @@ const PRIMARY_COLOR = '#3629B7';
 export default function SuccessScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ fromCircle?: string; circleId?: string; circleName?: string; members?: string }>();
-  const isFromCircle = params.fromCircle === '1';
+  const isFromCircle = params.fromCircle === '1' || params.fromCircle === 'true';
 
   const backToCircle = () => {
     router.replace({
@@ -27,7 +27,7 @@ export default function SuccessScreen() {
       router.replace({
         pathname: '/add-monitor',
         params: {
-          fromCircle: '1',
+          fromCircle: params.fromCircle,
           circleId: params.circleId,
           circleName: params.circleName,
           members: params.members,

@@ -69,7 +69,7 @@ export default function WifiCredentialsScreen() {
 
       await stopForcingWifiUsage();
 
-      router.push({
+      router.replace({
         pathname: '/add-monitor/details',
         params: {
           fromCircle: params.fromCircle,

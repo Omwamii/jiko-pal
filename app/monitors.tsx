@@ -108,7 +108,7 @@ export default function MonitorsScreen() {
                     <Text style={styles.monitorSubtitle}>
                       {device.current_level}% remaining • {device.status}
                     </Text>
-                    {/* <MonitorReadingSummary deviceId={device.device_id} compact /> */}
+                    <MonitorReadingSummary deviceId={device.device_id} compact />
                   </View>
                   <MaterialCommunityIcons name="chevron-right" size={24} color="#9CA3AF" />
                 </TouchableOpacity>

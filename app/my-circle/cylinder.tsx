@@ -246,11 +246,15 @@ export default function CircleCylinderScreen() {
           <View style={styles.metricsRow}>
             <View style={styles.metricItem}>
               <Text style={styles.metricLabel}>Used Today</Text>
-              <Text style={styles.metricValue}>2.3 kg</Text>
+              <Text style={styles.metricValue}>{latestReading?.used_today_percent}</Text>
             </View>
             <View style={styles.metricItem}>
               <Text style={styles.metricLabel}>Est. Days Left</Text>
-              <Text style={styles.metricValue}>12 days</Text>
+              <Text style={styles.metricValue}>
+                {typeof latestReading?.estimated_days_left === 'number'
+                  ? `${latestReading.estimated_days_left} day${latestReading.estimated_days_left === 1 ? '' : 's'}`
+                  : '—'}
+              </Text>
             </View>
           </View>
 

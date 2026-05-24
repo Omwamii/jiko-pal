@@ -12,7 +12,7 @@
       "supportsTablet": true,
       "infoPlist": {
         "NSLocalNetworkUsageDescription": "Jiko Pal needs local network access to configure your LPG tank sensor.",
-        "NSLocationWhenInUseUsageDescription": "Jiko Pal uses location access to discover nearby Wi-Fi networks for sensor setup."
+        "NSLocationWhenInUseUsageDescription": "Jiko Pal uses your location to show nearby vendors/clients and to support deliveries and sensor setup."
       },
       "bundleIdentifier": "com.anonymous.jikopal"
     },
