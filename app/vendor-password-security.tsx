@@ -79,12 +79,12 @@ export default function VendorPasswordSecurityScreen() {
               <MaterialCommunityIcons name="shield-key-outline" size={12} color="#3629B7" />
               <Text style={styles.tipTitle}>Security Tips</Text>
             </View>
-            <Text style={styles.tipItem}>- Use a unique password you don't use elsewhere</Text>
-            <Text style={styles.tipItem}>- Enable two-factor authentication for extra security</Text>
-            <Text style={styles.tipItem}>- Never share your password with anyone</Text>
-          </View>
-        </View>
-      </View>
+	            <Text style={styles.tipItem}>- Use a unique password you don{"'"}t use elsewhere</Text>
+	            <Text style={styles.tipItem}>- Enable two-factor authentication for extra security</Text>
+	            <Text style={styles.tipItem}>- Never share your password with anyone</Text>
+	          </View>
+	        </View>
+	      </View>
 
       <VendorBottomNav active="profile" />
     </View>

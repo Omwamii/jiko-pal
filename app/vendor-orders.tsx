@@ -1,27 +1,33 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, ActivityIndicator, Alert, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import { type Href, useRouter } from 'expo-router';
 import { VendorBottomNav } from '@/components/vendor/VendorBottomNav';
-import { useVendorOrders, useAcceptRefillRequest } from '@/hooks/refill';
+import { useVendorOrders, useAcceptRefillRequest, useCancelRefillRequest } from '@/hooks/refill';
+import { formatDate } from '@/lib/utils';
 
 const PRIMARY_COLOR = '#3629B7';
 const SECONDARY_COLOR = '#14B27A';
 
-type FilterKey = 'pending' | 'active' | 'completed' | 'all';
+type FilterKey = 'pending' | 'active' | 'completed' | 'cancelled' | 'all';
 
 const filters: Array<{ key: FilterKey; label: string }> = [
   { key: 'pending', label: 'Pending' },
   { key: 'active', label: 'In progress' },
   { key: 'completed', label: 'Completed' },
+  { key: 'cancelled', label: 'Cancelled' },
   { key: 'all', label: 'All' },
 ];
 
 function getStatusStyle(status: string) {
   if (status === 'pending') {
     return { backgroundColor: '#F6E6C9', color: '#D48C18', label: 'Pending' };
+  }
+
+  if (status === 'arrived') {
+    return { backgroundColor: '#DBEAFE', color: '#2563EB', label: 'Arrived' };
   }
 
   if (status === 'completed') {
@@ -62,8 +68,11 @@ export default function VendorOrdersScreen() {
   const router = useRouter();
   const { orders, isLoading, fetchOrders } = useVendorOrders();
   const { acceptOrder, isLoading: isAccepting } = useAcceptRefillRequest();
+  const { cancelRequest, isLoading: isCancelling } = useCancelRefillRequest();
   const [filter, setFilter] = useState<FilterKey>('pending');
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
+  const [cancelOrder, setCancelOrder] = useState<any>(null);
+  const [cancelReason, setCancelReason] = useState('');
 
   useEffect(() => {
     fetchOrders();
@@ -74,10 +83,24 @@ export default function VendorOrdersScreen() {
       return orders;
     }
     if (filter === 'active') {
-      return orders.filter((o) => o.status === 'in_transit' || o.status === 'accepted');
+      return orders.filter((o) => o.status === 'in_transit' || o.status === 'accepted' || o.status === 'arrived');
+    }
+    if (filter === 'cancelled') {
+      return orders.filter((o) => o.status === 'cancelled');
     }
     return orders.filter((order) => order.status === filter);
   }, [orders, filter]);
+
+  const getFilterCount = useMemo(() => {
+    const counts: Record<FilterKey, number> = {
+      all: orders.length,
+      pending: orders.filter((o) => o.status === 'pending').length,
+      completed: orders.filter((o) => o.status === 'completed').length,
+      cancelled: orders.filter((o) => o.status === 'cancelled').length,
+      active: orders.filter((o) => o.status === 'accepted' || o.status === 'in_transit' || o.status === 'arrived').length,
+    };
+    return (key: FilterKey) => counts[key] ?? 0;
+  }, [orders]);
 
   const handleAcceptOrder = async () => {
     if (!selectedOrder) {
@@ -101,8 +124,28 @@ export default function VendorOrdersScreen() {
     if (filter === 'all') return 'No orders';
     if (filter === 'active') return 'No orders in progress';
     if (filter === 'pending') return 'No pending orders';
+    if (filter === 'cancelled') return 'No cancelled orders';
     return 'No completed orders';
   }, [filter]);
+
+  const handleCancelOrder = async () => {
+    if (!cancelOrder) return;
+    const reason = cancelReason.trim();
+    if (!reason) {
+      Alert.alert('Reason required', 'Please provide a reason for cancelling this order.');
+      return;
+    }
+
+    try {
+      await cancelRequest(cancelOrder.id, reason);
+      await fetchOrders();
+      setCancelOrder(null);
+      setCancelReason('');
+      Alert.alert('Order cancelled', 'The order has been marked as cancelled.');
+    } catch {
+      Alert.alert('Error', 'Failed to cancel order. Please try again.');
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -111,12 +154,6 @@ export default function VendorOrdersScreen() {
         <SafeAreaView edges={['top']} style={styles.safeHeader}>
           <View style={styles.headerRow}>
             <Text style={styles.title}>All Orders</Text>
-            <TouchableOpacity style={styles.notificationButton} activeOpacity={0.8}>
-              <MaterialCommunityIcons name="bell-outline" size={20} color="#FFFFFF" />
-              <View style={styles.notificationBadge}>
-                <Text style={styles.badgeText}>3</Text>
-              </View>
-            </TouchableOpacity>
           </View>
         </SafeAreaView>
       </View>
@@ -133,7 +170,7 @@ export default function VendorOrdersScreen() {
                 onPress={() => setFilter(item.key)}
               >
                 <Text style={[styles.filterText, active && styles.filterTextActive]}>
-                  {item.label} ({item.key === 'all' ? orders.length : orders.filter((order) => order.status === item.key).length})
+                  {item.label} ({getFilterCount(item.key)})
                 </Text>
               </TouchableOpacity>
             );
@@ -183,7 +220,7 @@ export default function VendorOrdersScreen() {
                   <View style={styles.detailsRow}>
                     <View>
                       <Text style={styles.metaLabel}>Scheduled</Text>
-                      <Text style={styles.metaValue}>{new Date(order.scheduled_date).toLocaleDateString()}</Text>
+                      <Text style={styles.metaValue}>{formatDate(order.scheduled_date)}</Text>
                     </View>
                   </View>
                 ) : null}
@@ -199,6 +236,18 @@ export default function VendorOrdersScreen() {
 
                 {order.status === 'pending' ? (
                   <View style={styles.actionsRow}>
+                    <TouchableOpacity
+                      style={styles.rejectButton}
+                      activeOpacity={0.85}
+                      onPress={(event) => {
+                        event.stopPropagation();
+                        setCancelOrder(order);
+                        setCancelReason('');
+                      }}
+                    >
+                      <Text style={styles.rejectText}>Cancel</Text>
+                    </TouchableOpacity>
+
                     <TouchableOpacity
                       style={styles.acceptButton}
                       activeOpacity={0.85}
@@ -238,6 +287,31 @@ export default function VendorOrdersScreen() {
           </View>
         </View>
       </Modal>
+
+      <Modal visible={!!cancelOrder} transparent animationType="fade" onRequestClose={() => setCancelOrder(null)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Cancel Order</Text>
+            <Text style={styles.modalBody}>Enter a cancellation reason. The customer will see this.</Text>
+            <TextInput
+              value={cancelReason}
+              onChangeText={setCancelReason}
+              placeholder="Cancellation reason..."
+              placeholderTextColor="#9CA3AF"
+              style={styles.reasonInput}
+              multiline
+            />
+            <View style={styles.modalActions}>
+              <TouchableOpacity style={styles.modalCancel} activeOpacity={0.85} onPress={() => setCancelOrder(null)}>
+                <Text style={styles.modalCancelText}>Back</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.modalDanger} activeOpacity={0.85} onPress={handleCancelOrder} disabled={isCancelling}>
+                <Text style={styles.modalDangerText}>{isCancelling ? 'Cancelling...' : 'Cancel Order'}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -263,30 +337,6 @@ const styles = StyleSheet.create({
   title: {
     color: '#FFFFFF',
     fontSize: 34,
-    fontWeight: '700',
-  },
-  notificationButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  notificationBadge: {
-    position: 'absolute',
-    top: 6,
-    right: 4,
-    minWidth: 14,
-    height: 14,
-    borderRadius: 7,
-    backgroundColor: '#F04438',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 2,
-  },
-  badgeText: {
-    color: '#FFFFFF',
-    fontSize: 8,
     fontWeight: '700',
   },
   sheet: {
@@ -504,5 +554,30 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 10,
     fontWeight: '600',
+  },
+  modalDanger: {
+    width: '47.5%',
+    height: 27,
+    borderRadius: 14,
+    backgroundColor: '#EF4444',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalDangerText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '600',
+  },
+  reasonInput: {
+    marginTop: 10,
+    minHeight: 90,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    color: '#111827',
+    backgroundColor: '#FFFFFF',
+    textAlignVertical: 'top',
   },
 });

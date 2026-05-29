@@ -1,10 +1,11 @@
 import React, { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, TextInput } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, TextInput, Alert } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppCard } from '@/components/ui/AppCard';
+import { useCreateCircle } from '@/hooks/circle';
 
 const PRIMARY_COLOR = '#3629B7';
 
@@ -61,6 +62,7 @@ const CIRCLE_TYPES = [
 
 export default function CreateCircleScreen() {
   const router = useRouter();
+  const { createCircle, isLoading: isCreating } = useCreateCircle();
   const [circleName, setCircleName] = useState('');
   const [selectedType, setSelectedType] = useState<(typeof CIRCLE_TYPES)[number] | null>(null);
 
@@ -73,12 +75,14 @@ export default function CreateCircleScreen() {
     };
   }, [circleName, selectedType]);
 
-  const handleContinue = () => {
-    if (!canContinue) {
-      return;
+  const handleCreate = async () => {
+    if (!canContinue) return;
+    try {
+      await createCircle({ circle_name: continueParams.name });
+      router.replace({ pathname: './success', params: continueParams });
+    } catch {
+      Alert.alert('Error', 'Failed to create circle. Please try again.');
     }
-
-    router.push({ pathname: './invite', params: continueParams });
   };
 
   return (
@@ -129,7 +133,7 @@ export default function CreateCircleScreen() {
 
         {!canContinue ? <Text style={styles.errorText}>Enter circle name and select type to continue.</Text> : null}
 
-        <AppButton title="Continue" onPress={handleContinue} disabled={!canContinue} />
+        <AppButton title="Create Circle" onPress={handleCreate} disabled={!canContinue} loading={isCreating} />
       </ScrollView>
     </View>
   );

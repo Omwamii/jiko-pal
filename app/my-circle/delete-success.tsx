@@ -1,15 +1,26 @@
-import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, SafeAreaView } from 'react-native';
+import React, { useCallback, useMemo } from 'react';
+import { BackHandler, SafeAreaView, StyleSheet, Text, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { AppButton } from '@/components/ui/AppButton';
+import { useFocusEffect } from '@react-navigation/native';
 
 const PRIMARY_COLOR = '#3629B7';
 
 export default function CircleDeleteSuccessScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ name?: string }>();
+
+  useFocusEffect(
+    useCallback(() => {
+      const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+        router.replace('/(tabs)');
+        return true;
+      });
+      return () => sub.remove();
+    }, [router])
+  );
 
   const circleName = useMemo(() => params.name || 'Circle', [params.name]);
 
@@ -24,10 +35,10 @@ export default function CircleDeleteSuccessScreen() {
             </View>
           </View>
 
-          <Text style={styles.title}>Circle Deleted</Text>
-          <Text style={styles.subtitle}>
-            The circle "{circleName}" has been deleted successfully.
-          </Text>
+	          <Text style={styles.title}>Circle Deleted!</Text>
+	          <Text style={styles.subtitle}>
+	            The circle “{circleName}” has been deleted successfully.
+	          </Text>
 
           <AppButton 
             title="View All Circles" 
@@ -39,7 +50,7 @@ export default function CircleDeleteSuccessScreen() {
             title="Go to Dashboard" 
             variant="ghost" 
             style={styles.actionButton} 
-            onPress={() => router.replace('/')} 
+            onPress={() => router.replace('/(tabs)')} 
           />
         </View>
       </SafeAreaView>

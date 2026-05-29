@@ -4,9 +4,30 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as Clipboard from 'expo-clipboard';
+import { useQuery } from '@tanstack/react-query';
 import { invitesApi } from '@/lib/invites';
 
 const PRIMARY_COLOR = '#3629B7';
+
+const getInviteRecipientLabel = (invite: { recipient_email?: string | null; recipient_phone?: string | null }) => {
+  if (invite.recipient_email) return invite.recipient_email;
+  if (invite.recipient_phone) return invite.recipient_phone;
+  return 'Link invite';
+};
+
+const getInviteStatusLabel = (invite: { revoked_at: string | null; expires_at: string | null; uses_count: number }) => {
+  if (invite.revoked_at) return { label: 'Revoked', bg: '#FEE2E2', color: '#EF4444' };
+
+  if (invite.expires_at) {
+    const expiresMs = Date.parse(invite.expires_at);
+    if (!Number.isNaN(expiresMs) && expiresMs < Date.now()) {
+      return { label: 'Expired', bg: '#FEF3C7', color: '#D08B17' };
+    }
+  }
+
+  if (invite.uses_count > 0) return { label: 'Joined', bg: '#D1FAE5', color: '#10B981' };
+  return { label: 'Pending', bg: '#E5E7EB', color: '#6B7280' };
+};
 
 export default function InviteMethodScreen() {
   const router = useRouter();
@@ -21,7 +42,24 @@ export default function InviteMethodScreen() {
   const [inviteLink, setInviteLink] = useState<string>('');
   const [isLoadingLink, setIsLoadingLink] = useState(false);
 
+  const circleId = useMemo(() => (Array.isArray(params.circleId) ? params.circleId[0] : params.circleId), [params.circleId]);
+
   const inviteType = useMemo(() => (params.circleId ? 'circle' : 'platform'), [params.circleId]);
+
+  const {
+    data: invitesData,
+    isLoading: isLoadingInvites,
+    isError: isInvitesError,
+    refetch: refetchInvites,
+  } = useQuery({
+    queryKey: ['myInvites', inviteType, circleId],
+    queryFn: () => invitesApi.listMine({ type: inviteType, circle_id: circleId }),
+  });
+
+  const invitedPeople = useMemo(() => {
+    const results = invitesData?.results ?? [];
+    return results.filter((i) => i.recipient_email || i.recipient_phone);
+  }, [invitesData]);
 
   const generateInviteLink = async () => {
     if (isLoadingLink || inviteLink) return;
@@ -29,8 +67,7 @@ export default function InviteMethodScreen() {
     try {
       const invite = await invitesApi.create({
         type: inviteType,
-        circle_id: params.circleId,
-        expires_in_days: 30,
+        circle_id: circleId
       });
       setInviteLink(invite.invite_url);
     } catch (err: any) {
@@ -128,7 +165,7 @@ export default function InviteMethodScreen() {
             <MaterialCommunityIcons name="chevron-right" size={24} color="#9CA3AF" />
           </TouchableOpacity>
 
-          <View style={styles.divider} />
+          {/* <View style={styles.divider} />
 
           <TouchableOpacity style={styles.methodListCard} onPress={() => setShowLink(!showLink)}>
             <View style={[styles.iconBadge, { backgroundColor: '#D1FAE5' }]}>
@@ -138,7 +175,7 @@ export default function InviteMethodScreen() {
               <Text style={styles.methodTitle}>Share link</Text>
               <Text style={styles.methodSubtitle}>Copy and share link</Text>
             </View>
-          </TouchableOpacity>
+          </TouchableOpacity> */}
 
           {showLink && (
             <View style={styles.linkShareContainer}>
@@ -162,28 +199,51 @@ export default function InviteMethodScreen() {
 
         {/* Shared With Section */}
         <Text style={[styles.sectionTitle, { marginTop: 24 }]}>Shared With</Text>
-        
-        <View style={styles.sharedUserCard}>
-          <View style={styles.sharedUserHeader}>
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>SJ</Text>
-            </View>
-            <View style={styles.sharedUserDetails}>
-              <Text style={styles.sharedUserName}>Sarah Johnson</Text>
-              <Text style={styles.sharedUserEmail}>sarae.j@email.com</Text>
-            </View>
-            <TouchableOpacity hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-              <MaterialCommunityIcons name="cog-outline" size={24} color="#6B7280" />
+
+        {isLoadingInvites ? (
+          <View style={styles.sharedEmpty}>
+            <ActivityIndicator size="small" color={PRIMARY_COLOR} />
+            <Text style={styles.sharedEmptyText}>Loading invited users…</Text>
+          </View>
+        ) : isInvitesError ? (
+          <View style={styles.sharedEmpty}>
+            <Text style={styles.sharedEmptyText}>Couldn’t load invited users.</Text>
+            <TouchableOpacity onPress={() => refetchInvites()} activeOpacity={0.85}>
+              <Text style={styles.sharedRetryText}>Retry</Text>
             </TouchableOpacity>
           </View>
-          
-          <View style={styles.sharedUserFooter}>
-            <Text style={styles.permissionText}>Permission: View only</Text>
-            <View style={styles.activeTag}>
-              <Text style={styles.activeTagText}>Active</Text>
-            </View>
+        ) : invitedPeople.length === 0 ? (
+          <View style={styles.sharedEmpty}>
+            <Text style={styles.sharedEmptyText}>No invited users yet.</Text>
           </View>
-        </View>
+        ) : (
+          invitedPeople.map((invite) => {
+            const statusMeta = getInviteStatusLabel(invite);
+            const label = getInviteRecipientLabel(invite);
+            const initials = (label[0] || 'U').toUpperCase();
+
+            return (
+              <View key={invite.id} style={styles.sharedUserCard}>
+                <View style={styles.sharedUserHeader}>
+                  <View style={styles.avatar}>
+                    <Text style={styles.avatarText}>{initials}</Text>
+                  </View>
+                  <View style={styles.sharedUserDetails}>
+                    <Text style={styles.sharedUserName}>{label}</Text>
+                    <Text style={styles.sharedUserEmail}>{invite.circle_name ? invite.circle_name : 'JikoPal invite'}</Text>
+                  </View>
+                </View>
+
+                <View style={styles.sharedUserFooter}>
+                  <Text style={styles.permissionText}>{invite.type === 'circle' ? 'Circle invite' : 'Platform invite'}</Text>
+                  <View style={[styles.activeTag, { backgroundColor: statusMeta.bg }]}>
+                    <Text style={[styles.activeTagText, { color: statusMeta.color }]}>{statusMeta.label}</Text>
+                  </View>
+                </View>
+              </View>
+            );
+          })
+        )}
 
       </ScrollView>
     </View>
@@ -393,4 +453,20 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
   },
+  sharedEmpty: {
+    marginTop: 8,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2,
+    marginBottom: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sharedEmptyText: { color: '#6B7280', fontSize: 12, fontWeight: '500' },
+  sharedRetryText: { marginTop: 8, color: PRIMARY_COLOR, fontSize: 12, fontWeight: '700' },
 });

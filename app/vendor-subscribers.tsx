@@ -105,9 +105,6 @@ const subscribersWithStatus = useMemo(() => {
               <Text style={styles.headerTitle}>Subscribers</Text>
               <Text style={styles.headerSub}>Customers monitoring gas with you</Text>
             </View>
-            <TouchableOpacity style={styles.notificationButton} activeOpacity={0.8}>
-              <MaterialCommunityIcons name="bell-outline" size={20} color="#FFFFFF" />
-            </TouchableOpacity>
           </View>
         </SafeAreaView>
       </View>
@@ -205,7 +202,6 @@ const styles = StyleSheet.create({
   backButton: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.18)', marginRight: 8 },
   headerTitle: { color: '#FFFFFF', fontSize: 28, fontWeight: '700' },
   headerSub: { color: '#CFCBF9', fontSize: 9, marginTop: 1 },
-  notificationButton: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
   sheet: { flex: 1, backgroundColor: '#F3F3F7', paddingHorizontal: 14, paddingTop: 10 },
   loader: { marginTop: 40 },
   statGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 8 },

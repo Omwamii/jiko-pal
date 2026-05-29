@@ -42,6 +42,13 @@ export default function TabLayout() {
         options={{
           title: 'Vendors',
           tabBarIcon: ({ color }) => <MaterialCommunityIcons name="account-group-outline" size={26} color={color} />,
+          listeners: ({ navigation }) => ({
+            tabPress: (e) => {
+              // Always reset Vendors tab to its index route.
+              e.preventDefault();
+              navigation.navigate('vendors', { screen: 'index' });
+            },
+          }),
         }}
       />
       <Tabs.Screen

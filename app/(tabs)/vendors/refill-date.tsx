@@ -36,12 +36,14 @@ export default function RefillDateScreen() {
     cylinderName?: string; 
     cylinderLevel?: string;
     catalogueId?: string;
+    deviceId?: string;
   }>();
   
   const vendorName = useMemo(() => params.vendorName || 'Quick Gas', [params.vendorName]);
   const cylinderName = useMemo(() => params.cylinderName || 'Kitchen Gas', [params.cylinderName]);
   const vendorId = params.vendorId;
   const catalogueId = params.catalogueId;
+  const deviceId = params.deviceId || '';
   
   const [selectedDay, setSelectedDay] = useState(currentDate);
   const [selectedMonth, setSelectedMonth] = useState(currentMonth);
@@ -105,7 +107,7 @@ export default function RefillDateScreen() {
     }
 
     try {
-      const scheduledDate = new Date(selectedYear, selectedMonth, selectedDay).toISOString().split('T')[0];
+      const scheduledDate = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-${String(selectedDay).padStart(2, '0')}`;
       
       const requestData: any = {
         provider_id: vendorId,
@@ -113,9 +115,13 @@ export default function RefillDateScreen() {
         notes: `Refill for ${cylinderName}`,
         client_id: clientProfile?.id,
       };
-      
+
       if (catalogueId) {
         requestData.catalogue_item_id = catalogueId;
+      }
+
+      if (deviceId) {
+        requestData.device_id = deviceId;
       }
       
       await createRequestMutation.mutateAsync(requestData);

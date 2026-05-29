@@ -1,8 +1,9 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView } from 'react-native';
+import React, { useCallback } from 'react';
+import { BackHandler, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { useFocusEffect } from '@react-navigation/native';
 
 const PRIMARY_COLOR = '#3629B7';
 
@@ -16,6 +17,16 @@ export default function InviteSuccessScreen() {
     monitorId?: string;
   }>();
   const fromCircle = params.fromCircle === '1';
+
+  useFocusEffect(
+    useCallback(() => {
+      const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+        router.replace('/(tabs)');
+        return true;
+      });
+      return () => sub.remove();
+    }, [router])
+  );
 
   return (
     <View style={styles.container}>

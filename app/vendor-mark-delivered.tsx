@@ -76,9 +76,6 @@ export default function VendorMarkDeliveredScreen() {
               <MaterialCommunityIcons name="arrow-left" size={18} color="#FFFFFF" />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Mark Delivered</Text>
-            <TouchableOpacity style={styles.notificationButton} activeOpacity={0.8}>
-              <MaterialCommunityIcons name="bell-outline" size={20} color="#FFFFFF" />
-            </TouchableOpacity>
           </View>
         </SafeAreaView>
       </View>
@@ -182,20 +179,6 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   headerTitle: { flex: 1, color: '#FFFFFF', fontSize: 32, fontWeight: '600' },
-  notificationButton: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
-  notificationBadge: {
-    position: 'absolute',
-    top: 6,
-    right: 4,
-    minWidth: 14,
-    height: 14,
-    borderRadius: 7,
-    backgroundColor: '#F04438',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 2,
-  },
-  badgeText: { color: '#FFFFFF', fontSize: 8, fontWeight: '700' },
   sheet: { flex: 1, backgroundColor: '#F3F3F7', paddingHorizontal: 14, paddingTop: 12 },
   title: { color: '#15151F', fontSize: 33, fontWeight: '700' },
   orderId: { color: '#9A9CAC', fontSize: 10, marginTop: 2 },

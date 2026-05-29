@@ -5,6 +5,7 @@ import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { AppCard } from '@/components/ui/AppCard';
 import { useRequestAccountDeletion, useUpdateUserSettings, useUserSettings } from '@/hooks/queries';
+import { formatDate } from '@/lib/utils';
 
 const PRIMARY_COLOR = '#3629B7';
 
@@ -193,7 +194,7 @@ export default function PreferencesScreen() {
                     {deletionRequestedAt ? 'Deletion Requested' : 'Request Account Deletion'}
                   </Text>
                   <Text style={styles.sub}>
-                    {deletionRequestedAt ? `Requested on ${new Date(deletionRequestedAt).toLocaleDateString()}` : 'Submit a deletion request for review'}
+                    {deletionRequestedAt ? `Requested on ${formatDate(deletionRequestedAt)}` : 'Submit a deletion request for review'}
                   </Text>
                 </View>
                 <MaterialCommunityIcons name="chevron-right" size={20} color="#EF4444" />

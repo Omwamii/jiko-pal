@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, SafeAreaView, KeyboardAvoidingView, Platform, Dimensions, Alert, ActivityIndicator } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../providers/AuthProvider';
 import { invitesApi } from '@/lib/invites';
+import { getDashboardPathForRole, isKnownInternalPathname, parseDeepLinkTarget } from '@/lib/deepLinking';
 
 const PRIMARY_COLOR = '#3629B7';
 const { height } = Dimensions.get('window');
@@ -13,10 +14,22 @@ const PENDING_INVITE_KEY = 'pendingInviteCode';
 export default function LoginScreen() {
   const router = useRouter();
   const { login } = useAuth();
+  const { redirectTo } = useLocalSearchParams<{ redirectTo?: string }>();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  const safeDismissAll = () => {
+    try {
+      const r: any = router as any;
+      if (typeof r?.dismissAll !== 'function') return;
+      if (typeof r?.canDismiss === 'function' && !r.canDismiss()) return;
+      r.dismissAll();
+    } catch {
+      // no-op
+    }
+  };
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
@@ -35,7 +48,7 @@ export default function LoginScreen() {
         try {
           const result = await invitesApi.accept(pendingCode);
           if (result.circle_id) {
-            router.dismissAll();
+            safeDismissAll();
             router.replace({ pathname: '/my-circle/circle', params: { circleId: result.circle_id } } as any);
             return;
           }
@@ -44,8 +57,23 @@ export default function LoginScreen() {
         }
       }
 
-      router.dismissAll();
-      router.replace(response.user.role === 'vendor' ? '/vendor-dashboard' : '/(tabs)');
+      safeDismissAll();
+      const target = parseDeepLinkTarget(typeof redirectTo === 'string' ? redirectTo : undefined);
+      if (target && isKnownInternalPathname(target.pathname)) {
+        const dashboard = getDashboardPathForRole(response.user.role);
+        const targetHref = { pathname: target.pathname, params: target.params } as any;
+        if (target.pathname === dashboard) {
+          router.replace(dashboard as any);
+          return;
+        }
+
+        // Ensure "Back" from the deep-linked screen goes to the dashboard, not the login screen.
+        router.replace(dashboard as any);
+        router.push(targetHref);
+        return;
+      }
+
+      router.replace(getDashboardPathForRole(response.user.role) as any);
     } catch (err: any) {
       console.error('Login error:', err);
       if (err.response?.data?.detail) {
@@ -124,14 +152,14 @@ export default function LoginScreen() {
             ) : (
               <Text style={styles.loginButtonText}>Log in</Text>
             )}
-          </TouchableOpacity>
+	          </TouchableOpacity>
 
-          <View style={styles.footerContainer}>
-            <Text style={styles.footerText}>Don't have an account? </Text>
-            <TouchableOpacity onPress={() => router.push('/account-type')}>
-              <Text style={styles.footerLink}>Sign Up</Text>
-            </TouchableOpacity>
-          </View>
+	          <View style={styles.footerContainer}>
+	            <Text style={styles.footerText}>Don{"'"}t have an account? </Text>
+	            <TouchableOpacity onPress={() => router.push('/account-type')}>
+	              <Text style={styles.footerLink}>Sign Up</Text>
+	            </TouchableOpacity>
+	          </View>
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>

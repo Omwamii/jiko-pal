@@ -55,10 +55,16 @@
     <string>Allow $(PRODUCT_NAME) to access your camera</string>
     <key>NSLocalNetworkUsageDescription</key>
     <string>Jiko Pal needs local network access to configure your LPG tank sensor.</string>
+    <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+    <string>Allow $(PRODUCT_NAME) to access your location</string>
+    <key>NSLocationAlwaysUsageDescription</key>
+    <string>Allow $(PRODUCT_NAME) to access your location</string>
     <key>NSLocationWhenInUseUsageDescription</key>
-    <string>Jiko Pal uses location access to discover nearby Wi-Fi networks for sensor setup.</string>
+    <string>Jiko Pal uses your location to show nearby vendors/clients and to support deliveries and sensor setup.</string>
     <key>NSMicrophoneUsageDescription</key>
     <string>Allow $(PRODUCT_NAME) to access your microphone</string>
+    <key>NSMotionUsageDescription</key>
+    <string>Allow $(PRODUCT_NAME) to detect your current motion activity</string>
     <key>NSPhotoLibraryUsageDescription</key>
     <string>Allow $(PRODUCT_NAME) to access your photos</string>
     <key>NSUserActivityTypes</key>

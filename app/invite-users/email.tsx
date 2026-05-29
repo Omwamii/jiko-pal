@@ -34,7 +34,6 @@ export default function InviteEmailScreen() {
       const invite = await invitesApi.create({
         type: inviteType,
         circle_id: params.circleId,
-        expires_in_days: 30,
         recipient_email: email.trim(),
       });
       setInviteData(invite);
@@ -42,7 +41,8 @@ export default function InviteEmailScreen() {
       Alert.alert('Invite Sent', `Invitation sent to ${email.trim()}`);
       router.push({ pathname: '/invite-users/success', params } as Href);
     } catch (err: any) {
-      Alert.alert('Error', 'Failed to send invite. Please try again.');
+      console.error(err);
+      Alert.alert('Error', err?.message || 'Failed to send invite. Please try again.');
     } finally {
       setLoading(false);
     }

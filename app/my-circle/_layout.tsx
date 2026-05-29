@@ -6,7 +6,7 @@ export default function MyCircleLayout() {
       <Stack.Screen 
         name="index" 
         options={{ 
-          title: 'My Circle',
+          title: 'My Circles',
           headerShown: false 
         }} 
       />
@@ -31,6 +31,14 @@ export default function MyCircleLayout() {
           headerShown: false,
           gestureEnabled: false // Prevent swiping back
         }} 
+      />
+      <Stack.Screen
+        name="delete-success"
+        options={{
+          title: 'Success',
+          headerShown: false,
+          gestureEnabled: false,
+        }}
       />
       <Stack.Screen
         name="circle"

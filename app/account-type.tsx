@@ -10,7 +10,6 @@ export default function AccountTypeScreen() {
   const [selectedType, setSelectedType] = useState<'client' | 'vendor'>('client');
 
   const handleContinue = () => {
-    console.log('Selected Account Type:', selectedType);
     router.push({ pathname: '/signup', params: { accountType: selectedType } } as Href);
   };
 

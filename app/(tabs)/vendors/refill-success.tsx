@@ -1,10 +1,11 @@
-import React, { useMemo } from 'react';
-import { Alert, View, Text, StyleSheet, SafeAreaView } from 'react-native';
+import React, { useCallback, useMemo } from 'react';
+import { Alert, BackHandler, SafeAreaView, StyleSheet, Text, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppCard } from '@/components/ui/AppCard';
+import { useFocusEffect } from '@react-navigation/native';
 
 const PRIMARY_COLOR = '#3629B7';
 
@@ -15,13 +16,23 @@ export default function RefillSuccessScreen() {
   const vendorName = useMemo(() => params.vendorName || 'QuickGas Ltd', [params.vendorName]);
   const cylinderName = useMemo(() => params.cylinderName || 'Office Gas', [params.cylinderName]);
 
+  useFocusEffect(
+    useCallback(() => {
+      const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+        router.replace('/(tabs)');
+        return true;
+      });
+      return () => sub.remove();
+    }, [router])
+  );
+
   const handleChat = () => {
     if (!vendorId) {
       Alert.alert('Missing vendor', 'Unable to open chat right now. Please find the vendor in Vendors and start chat from there.');
       return;
     }
-    router.replace({
-      pathname: '/(tabs)/vendors/chat',
+    router.push({
+      pathname: '/vendor-chat',
       params: { vendorId, vendorName },
     });
   };

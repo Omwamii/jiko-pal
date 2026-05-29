@@ -1,5 +1,5 @@
 import api from './api';
-import { Vendor, VendorSubscription, VendorCatalogue, PaginatedResponse } from '../types';
+import { Vendor, VendorSubscription, VendorCatalogue, PaginatedResponse, VendorAnalyticsPeriod, VendorAnalyticsResponse } from '../types';
 
 export interface CreateVendorData {
   company_name: string;
@@ -133,5 +133,12 @@ export const vendorService = {
 
   async deleteCatalogueItem(id: string): Promise<void> {
     await api.delete(`/catalogue/${id}/`);
+  },
+
+  async getMyAnalytics(period: VendorAnalyticsPeriod): Promise<VendorAnalyticsResponse> {
+    const response = await api.get<VendorAnalyticsResponse>('/vendors/analytics/', {
+      params: { period },
+    });
+    return response.data;
   },
 };

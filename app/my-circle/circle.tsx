@@ -242,6 +242,7 @@ export default function CircleIndexScreen() {
                         location: device.owner_name ? device.owner_name : 'Unknown',
                         fill: String(device.current_level),
                         deviceId: device.device_id,
+                        deviceUuid: device.id,
                       },
                     } as Href)
                   }

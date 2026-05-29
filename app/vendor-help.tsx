@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
@@ -7,14 +7,31 @@ import { useRouter } from 'expo-router';
 import { VendorBottomNav } from '@/components/vendor/VendorBottomNav';
 
 const faqs = [
-  'How Do I add new Gas monitor',
-  'How Do I add new Gas monitor',
-  'How Do I add new Gas monitor',
-  'How Do I add new Gas monitor',
+  {
+    q: 'How do I view product analytics and reviews?',
+    a: ['From the vendor dashboard, tap the Analytics tab.', 'To see reviews, open Reviews from the dashboard or vendor menu.'].join('\n'),
+  },
+  {
+    q: "How do I view my subscribers' cylinder levels?",
+    a: ['From the vendor dashboard, tap Subscribers.', 'Tap any subscriber/cylinder to view details.'].join('\n'),
+  },
+  {
+    q: 'Do I have to fulfil client orders immediately?',
+    a: 'No. You can fulfil orders based on the scheduled date/time set by the client. Use chat to confirm delivery details.',
+  },
+  {
+    q: 'Clients can’t see my distance/location after ordering',
+    a: 'Ensure your location is enabled on your phone and your vendor availability/location sharing is turned on. Clients typically see clearer updates when you mark the order as arrived.',
+  },
+  {
+    q: 'I’m not receiving notifications',
+    a: 'Go to your Profile → Preferences/Notifications and enable push notifications. Also confirm notifications are allowed in your phone settings.',
+  },
 ];
 
 export default function VendorHelpScreen() {
   const router = useRouter();
+  const [openIndex, setOpenIndex] = useState<number | null>(null);
 
   return (
     <View style={styles.container}>
@@ -29,11 +46,11 @@ export default function VendorHelpScreen() {
 
             <View>
               <Text style={styles.headerTitle}>Help Center</Text>
-              <Text style={styles.headerSub}>We're here to help</Text>
-            </View>
-          </View>
-        </SafeAreaView>
-      </View>
+	              <Text style={styles.headerSub}>We{"'"}re here to help</Text>
+	            </View>
+	          </View>
+	        </SafeAreaView>
+	      </View>
 
       <View style={styles.sheet}>
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -57,12 +74,23 @@ export default function VendorHelpScreen() {
 
           <Text style={styles.sectionTitle}>Frequently Asked Questions</Text>
 
-          {faqs.map((item, index) => (
-            <TouchableOpacity key={`${item}-${index}`} style={styles.faqCard} activeOpacity={0.85}>
-              <Text style={styles.faqText}>{item}</Text>
-              <MaterialCommunityIcons name="chevron-right" size={18} color="#4F46E5" />
-            </TouchableOpacity>
-          ))}
+          {faqs.map((item, index) => {
+            const isOpen = openIndex === index;
+            return (
+              <TouchableOpacity
+                key={`${item.q}-${index}`}
+                style={styles.faqCard}
+                activeOpacity={0.85}
+                onPress={() => setOpenIndex((prev) => (prev === index ? null : index))}
+              >
+                <View style={styles.faqTopRow}>
+                  <Text style={styles.faqText}>{item.q}</Text>
+                  <MaterialCommunityIcons name={isOpen ? 'chevron-up' : 'chevron-down'} size={18} color="#4F46E5" />
+                </View>
+                {isOpen ? <Text style={styles.faqAnswer}>{item.a}</Text> : null}
+              </TouchableOpacity>
+            );
+          })}
 
           <View style={styles.supportCard}>
             <Text style={styles.supportTitle}>Still need help?</Text>
@@ -136,11 +164,10 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 12,
     marginBottom: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
   },
+  faqTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
   faqText: { color: '#1F2937', fontSize: 12, fontWeight: '500' },
+  faqAnswer: { marginTop: 10, color: '#6B7280', fontSize: 12, lineHeight: 16 },
   supportCard: {
     marginTop: 12,
     backgroundColor: '#3B30B6',

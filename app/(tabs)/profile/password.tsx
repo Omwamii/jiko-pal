@@ -109,7 +109,7 @@ export default function ChangePasswordScreen() {
               <MaterialCommunityIcons name="shield-key-outline" size={12} color={PRIMARY_COLOR} />
               <Text style={styles.tipTitle}>Security Tips</Text>
             </View>
-            <Text style={styles.tipItem}>Use a unique password you don't use elsewhere</Text>
+            <Text style={styles.tipItem}>Use a unique password you don{"'"}t use elsewhere</Text>
             <Text style={styles.tipItem}>Enable two-factor authentication for extra security</Text>
             <Text style={styles.tipItem}>Never share your password with anyone</Text>
           </AppCard>

@@ -5,6 +5,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { AppCard } from '@/components/ui/AppCard';
 import { useReviews } from '@/hooks/queries';
+import { formatDate } from '@/lib/utils';
 
 const PRIMARY_COLOR = '#3629B7';
 
@@ -61,7 +62,7 @@ export default function VendorReviewsScreen() {
                   <Text style={styles.reviewAuthor}>{review.request?.client?.full_name || 'Anonymous'}</Text>
                   <Stars rating={review.rating} />
                 </View>
-                <Text style={styles.reviewDate}>{new Date(review.created_at).toLocaleDateString()}</Text>
+                <Text style={styles.reviewDate}>{formatDate(review.created_at)}</Text>
               </View>
               {review.comment && (
                 <Text style={styles.reviewComment}>{review.comment}</Text>

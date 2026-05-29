@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -9,14 +9,37 @@ import { AppButton } from '@/components/ui/AppButton';
 const PRIMARY_COLOR = '#3629B7';
 
 const faqs = [
-  'How Do I add new Gas monitor',
-  'How Do I add new Gas monitor',
-  'How Do I add new Gas monitor',
-  'How Do I add new Gas monitor',
+  {
+    q: "I don’t receive any gas alerts or notifications",
+    a: "Go to Profile → Preferences/Notifications and enable the notification types you want (Push/SMS/Email).",
+  },
+  {
+    q: "My cylinder readings show 0% despite it being new",
+    a: "Re-attach the sensor firmly at the bottom of the cylinder (clean, flat surface). Then check the recent signal strength on the cylinder details page — it should be above 1300.",
+  },
+  {
+    q: "I can't see how far the vendor is after ordering",
+    a: "The vendor may have turned off location sharing. Distance/location updates are usually shown when the vendor marks the order as arrived.",
+  },
+  {
+    q: "Cylinder reading level seems to be off",
+    a: "Confirm you set either Cylinder size or Custom height during setup. You can update this later by tapping the cylinder sensor card to open the details page, then editing the cylinder size/custom height. Contact support if you still need help.",
+  },
+  {
+    q: "How do I add a level sensor?",
+    a: [
+      "Tap + Level sensor.",
+      "Turn on your sensor.",
+      "Choose the first option (Wi‑Fi setup), select the sensor Wi‑Fi, and allow connection.",
+      "Enter your home Wi‑Fi / hotspot name and password, then tap Send.",
+      "Fill in the cylinder details, then tap Add Cylinder.",
+    ].join('\n'),
+  },
 ];
 
 export default function HelpScreen() {
   const router = useRouter();
+  const [openIndex, setOpenIndex] = useState<number | null>(null);
 
   return (
     <View style={styles.container}>
@@ -30,7 +53,7 @@ export default function HelpScreen() {
             </TouchableOpacity>
             <View>
               <Text style={styles.headerTitle}>Help Center</Text>
-              <Text style={styles.headerSub}>We're here to help</Text>
+              <Text style={styles.headerSub}>We{"'"}re here to help</Text>
             </View>
           </View>
         </SafeAreaView>
@@ -55,12 +78,24 @@ export default function HelpScreen() {
         </View>
 
         <Text style={styles.sectionTitle}>Frequently Asked Questions</Text>
-        {faqs.map((faq, index) => (
-          <AppCard key={`${faq}-${index}`} style={styles.faqCard}>
-            <Text style={styles.faqText}>{faq}</Text>
-            <MaterialCommunityIcons name="chevron-right" size={20} color={PRIMARY_COLOR} />
-          </AppCard>
-        ))}
+        {faqs.map((faq, index) => {
+          const isOpen = openIndex === index;
+          return (
+            <TouchableOpacity
+              key={`${faq.q}-${index}`}
+              activeOpacity={0.85}
+              onPress={() => setOpenIndex((prev) => (prev === index ? null : index))}
+            >
+              <AppCard style={styles.faqCard}>
+                <View style={styles.faqTopRow}>
+                  <Text style={styles.faqText}>{faq.q}</Text>
+                  <MaterialCommunityIcons name={isOpen ? 'chevron-up' : 'chevron-down'} size={20} color={PRIMARY_COLOR} />
+                </View>
+                {isOpen ? <Text style={styles.faqAnswer}>{faq.a}</Text> : null}
+              </AppCard>
+            </TouchableOpacity>
+          );
+        })}
 
         <View style={styles.supportCard}>
           <Text style={styles.supportTitle}>Still need help?</Text>
@@ -123,11 +158,10 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 12,
     marginBottom: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
   },
+  faqTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
   faqText: { color: '#11181C', fontSize: 13, fontWeight: '500' },
+  faqAnswer: { marginTop: 10, color: '#6B7280', fontSize: 12, lineHeight: 16 },
   supportCard: {
     backgroundColor: PRIMARY_COLOR,
     borderRadius: 8,

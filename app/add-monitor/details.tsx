@@ -18,6 +18,16 @@ const parseCylinderSizeKg = (raw: string) => {
   return Number(match[1]);
 };
 
+const parseCylinderHeightCm = (raw: string) => {
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+  const match = trimmed.match(/(\d+(\.\d+)?)/);
+  if (!match) return NaN;
+  const cm = Number(match[1]);
+  if (!Number.isFinite(cm) || cm <= 0) return NaN;
+  return cm;
+};
+
 export default function DeviceDetailsScreen() {
   const router = useRouter();
   const { clientProfile } = useAuth();
@@ -34,6 +44,8 @@ export default function DeviceDetailsScreen() {
   const [name, setName] = useState('');
   const [location, setLocation] = useState('');
   const [cylinderSize, setCylinderSize] = useState('');
+  const [cylinderBrand, setCylinderBrand] = useState('');
+  const [customCylinderHeightCm, setCustomCylinderHeightCm] = useState('');
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isConnected, setIsConnected] = useState(true);
@@ -68,15 +80,32 @@ export default function DeviceDetailsScreen() {
       const deviceId = buildDeviceId();
 
       const parsedCylinderSizeKg = parseCylinderSizeKg(cylinderSize);
+      const parsedCustomHeightCm = parseCylinderHeightCm(customCylinderHeightCm);
+
       if (Number.isNaN(parsedCylinderSizeKg)) {
         Alert.alert('Invalid cylinder size', 'Please enter a valid number (e.g. 6 or 13).');
+        return;
+      }
+      if (Number.isNaN(parsedCustomHeightCm)) {
+        Alert.alert('Invalid cylinder height', 'Please enter a valid height in centimeters (e.g. 30 or 45.5).');
+        return;
+      }
+
+      const hasSize = parsedCylinderSizeKg != null;
+      const hasCustomHeight = parsedCustomHeightCm != null;
+      if (!hasSize && !hasCustomHeight) {
+        Alert.alert('Cylinder information needed', 'Select a cylinder size or enter a custom cylinder height.');
         return;
       }
       
       await deviceService.updateDevice(deviceId, {
         owner_id: clientId,
         circle_id: params.circleId || null,
-        ...(parsedCylinderSizeKg != null ? { cylinder_size: parsedCylinderSizeKg } : {}),
+        ...(cylinderBrand.trim() ? { cylinder_brand: cylinderBrand.trim() } : {}),
+        ...(hasSize ? { cylinder_size: parsedCylinderSizeKg, custom_cylinder_height_mm: null } : {}),
+        ...(hasCustomHeight
+          ? { custom_cylinder_height_mm: Math.round(parsedCustomHeightCm * 10), cylinder_size: null }
+          : {}),
       });
 
       // Separate API call for activity mode (kept distinct from attach/update fields).
@@ -168,14 +197,47 @@ export default function DeviceDetailsScreen() {
 
         {/* Cylinder Size Input */}
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Cylinder Size</Text>
+          <Text style={styles.label}>Cylinder size (kg) *</Text>
           <TextInput
             style={styles.input}
             placeholder="e.g. 6kg, 13kg"
             value={cylinderSize}
-            onChangeText={setCylinderSize}
+            onChangeText={(v) => {
+              setCylinderSize(v);
+              if (v.trim()) setCustomCylinderHeightCm('');
+            }}
             placeholderTextColor="#9CA3AF"
             keyboardType="numeric"
+          />
+          <Text style={styles.helperText}>Enter size or use custom height below (choose one).</Text>
+        </View>
+
+        {/* Custom Cylinder Height Input */}
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Custom cylinder height (cm) *</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="e.g. 30"
+            value={customCylinderHeightCm}
+            onChangeText={(v) => {
+              setCustomCylinderHeightCm(v);
+              if (v.trim()) setCylinderSize('');
+            }}
+            placeholderTextColor="#9CA3AF"
+            keyboardType="numeric"
+          />
+          <Text style={styles.helperText}>If set, it will be saved in millimeters on the backend.</Text>
+        </View>
+
+        {/* Cylinder Brand Input */}
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Cylinder brand (optional)</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="e.g. Total, K-Gas"
+            value={cylinderBrand}
+            onChangeText={setCylinderBrand}
+            placeholderTextColor="#9CA3AF"
           />
         </View>
 
@@ -220,13 +282,26 @@ export default function DeviceDetailsScreen() {
         )}
 
         {/* Submit Button */}
+        {(() => {
+          const parsedCylinderSizeKg = parseCylinderSizeKg(cylinderSize);
+          const parsedCustomHeightCm = parseCylinderHeightCm(customCylinderHeightCm);
+          const hasValidSize = parsedCylinderSizeKg != null && !Number.isNaN(parsedCylinderSizeKg);
+          const hasValidCustomHeight = parsedCustomHeightCm != null && !Number.isNaN(parsedCustomHeightCm);
+          const canSubmit = !!name && !!location && (hasValidSize || hasValidCustomHeight);
+
+          return (
         <TouchableOpacity
-          style={[styles.primaryButton, (isSubmitting || !isConnected) && styles.primaryButtonDisabled]}
+          style={[
+            styles.primaryButton,
+            (isSubmitting || !isConnected || !canSubmit) && styles.primaryButtonDisabled,
+          ]}
           onPress={handleAddMonitor}
-          disabled={isSubmitting || !isConnected}
+          disabled={isSubmitting || !isConnected || !canSubmit}
         >
           {isSubmitting ? <ActivityIndicator size="small" color="#FFF" /> : <Text style={styles.primaryButtonText}>Add Cylinder</Text>}
         </TouchableOpacity>
+          );
+        })()}
 
       </ScrollView>
     </KeyboardAvoidingView>
@@ -298,6 +373,11 @@ const styles = StyleSheet.create({
   },
   inputGroup: {
     marginBottom: 20,
+  },
+  helperText: {
+    marginTop: 6,
+    color: '#6B7280',
+    fontSize: 11,
   },
   label: {
     fontSize: 13,

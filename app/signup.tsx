@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, SafeAreaView, KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, SafeAreaView, KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator, Alert } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -12,7 +12,7 @@ const PENDING_INVITE_KEY = 'pendingInviteCode';
 export default function SignupScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ accountType?: string }>();
-  const { registerClient, registerVendor, user } = useAuth();
+  const { registerClient, registerVendor } = useAuth();
   
   const accountType = useMemo(() => params.accountType as 'client' | 'vendor' | undefined, [params.accountType]);
   const [fullName, setFullName] = useState('');
@@ -26,6 +26,17 @@ export default function SignupScreen() {
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  const safeDismissAll = () => {
+    try {
+      const r: any = router as any;
+      if (typeof r?.dismissAll !== 'function') return;
+      if (typeof r?.canDismiss === 'function' && !r.canDismiss()) return;
+      r.dismissAll();
+    } catch {
+      // no-op
+    }
+  };
 
   const handleSignup = async () => {
     setError('');
@@ -86,6 +97,14 @@ export default function SignupScreen() {
           company_name: companyName.trim(),
           location: location.trim(),
         });
+
+        safeDismissAll();
+        Alert.alert(
+          'Signup successful',
+          'Your vendor account will be activated by the site admin. You should be able to log in shortly.',
+          [{ text: 'OK', onPress: () => router.replace('/login') }]
+        );
+        return;
       }
 
       const pendingCode = await AsyncStorage.getItem(PENDING_INVITE_KEY);
@@ -94,7 +113,7 @@ export default function SignupScreen() {
         try {
           const result = await invitesApi.accept(pendingCode);
           if (result.circle_id) {
-            router.dismissAll();
+            safeDismissAll();
             router.replace({ pathname: '/my-circle/circle', params: { circleId: result.circle_id } } as any);
             return;
           }
@@ -103,13 +122,7 @@ export default function SignupScreen() {
         }
       }
 
-      if (accountType === 'vendor') {
-        router.dismissAll();
-        router.replace('/vendor-dashboard');
-        return;
-      }
-
-      router.dismissAll();
+      safeDismissAll();
       router.replace('/(tabs)');
     } catch (err: any) {
       console.error('Signup error:', err);

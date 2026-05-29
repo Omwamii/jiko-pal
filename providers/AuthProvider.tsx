@@ -33,6 +33,9 @@ const TOKEN_KEYS = {
   refresh: '@jiko_pal_refresh_token',
 };
 
+const DEACTIVATED_ACCOUNT_MESSAGE =
+  'Your account has been deactivated. Please contact support at jikopalsupport@gmail.com for account reactivation.';
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
@@ -43,6 +46,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const updateVendorLocationIfNeeded = useCallback(
     async (opts?: { force?: boolean; staleMinutes?: number; showDeniedAlert?: boolean }) => {
+      if (user?.role !== 'vendor') return;
       const profile = vendorProfile;
       if (!profile) return;
 
@@ -87,11 +91,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
       setVendorProfile(updated);
     },
-    [vendorProfile]
+    [user?.role, vendorProfile]
   );
 
   const updateClientLocationIfNeeded = useCallback(
     async (opts?: { force?: boolean; staleMinutes?: number; showDeniedAlert?: boolean }) => {
+      if (user?.role !== 'client') return;
       const profile = clientProfile;
       if (!profile) return;
 
@@ -138,7 +143,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
       setClientProfile(updated);
     },
-    [clientProfile]
+    [user?.role, clientProfile]
   );
 
   const loadStoredAuth = useCallback(async () => {
@@ -161,18 +166,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(currentUser);
 
         if (currentUser.role === 'client') {
+          setVendorProfile(null);
           try {
             const client = await clientService.getMyClient();
             setClientProfile(client);
           } catch (e) {
-            console.log('No client profile found');
+            console.error('No client profile found');
           }
         } else if (currentUser.role === 'vendor') {
+          setClientProfile(null);
           try {
             const vendor = await authService.getMyVendorProfile();
+            const isVendorActive = vendor?.user?.is_active ?? (vendor as any)?.is_active;
+            if (isVendorActive === false) {
+              await logout();
+              return;
+            }
             setVendorProfile(vendor);
           } catch (e) {
-            console.log('No vendor profile found');
+            console.error('No vendor profile found');
           }
         }
       }
@@ -191,22 +203,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (user?.role !== 'vendor') return;
     if (!vendorProfile) return;
-    updateVendorLocationIfNeeded().catch((e) => console.log('Vendor location update failed:', e));
+    updateVendorLocationIfNeeded().catch((e) => console.error('Vendor location update failed:', e));
   }, [user?.role, vendorProfile?.id, updateVendorLocationIfNeeded]);
 
   useEffect(() => {
     if (user?.role !== 'client') return;
     if (!clientProfile) return;
-    updateClientLocationIfNeeded().catch((e) => console.log('Client location update failed:', e));
+    updateClientLocationIfNeeded().catch((e) => console.error('Client location update failed:', e));
   }, [user?.role, clientProfile?.id, updateClientLocationIfNeeded]);
 
   const login = async (data: LoginData) => {
     const response = await authService.login(data);
-    console.log(response)
 
     if (!response.user.is_active) {
       await clearTokens();
-      throw new Error('Your account has been deactivated. Please contact support at jikopalsupport@gmail.com for account reactivation.');
+      throw new Error(DEACTIVATED_ACCOUNT_MESSAGE);
+    }
+
+    // Extra guard: vendor accounts may be deactivated at the vendor profile level
+    // even if the auth user record appears active.
+    if (response.user.role === 'vendor') {
+      try {
+        const vendor = await authService.getMyVendorProfile();
+        const isVendorActive = vendor?.is_active;
+        if (isVendorActive === false) {
+          await Promise.all([
+            AsyncStorage.removeItem(TOKEN_KEYS.access),
+            AsyncStorage.removeItem(TOKEN_KEYS.refresh),
+          ]);
+          await clearTokens();
+          throw new Error(DEACTIVATED_ACCOUNT_MESSAGE);
+        }
+        setVendorProfile(vendor);
+      } catch (e: any) {
+        if (e?.message === DEACTIVATED_ACCOUNT_MESSAGE) throw e;
+        console.error('No vendor profile found');
+      }
     }
 
     await Promise.all([
@@ -219,19 +251,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(response.user);
 
     if (response.user.role === 'client') {
+      setVendorProfile(null);
       try {
         const client = await clientService.getMyClient();
         setClientProfile(client);
       } catch (e) {
-        console.log('No client profile found');
+        console.error('No client profile found');
       }
-    } else if (response.user.role === 'vendor') {
-      try {
-        const vendor = await authService.getMyVendorProfile();
-        setVendorProfile(vendor);
-      } catch (e) {
-        console.log('No vendor profile found');
-      }
+    } else {
+      setClientProfile(null);
     }
     
     return response;
@@ -248,26 +276,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setTokens(response.tokens.access, response.tokens.refresh);
     setTokensState({ access: response.tokens.access, refresh: response.tokens.refresh });
     setUser(response.user);
+    setVendorProfile(null);
   };
 
   const registerVendor = async (data: RegisterVendorData) => {
-    const response = await authService.registerVendor(data);
-    
-    await Promise.all([
-      AsyncStorage.setItem(TOKEN_KEYS.access, response.tokens.access),
-      AsyncStorage.setItem(TOKEN_KEYS.refresh, response.tokens.refresh),
-    ]);
-
-    setTokens(response.tokens.access, response.tokens.refresh);
-    setTokensState({ access: response.tokens.access, refresh: response.tokens.refresh });
-    setUser(response.user);
-    
-    try {
-      const vendor = await authService.getMyVendorProfile();
-      setVendorProfile(vendor);
-    } catch (e) {
-      console.log('No vendor profile found');
-    }
+    // Vendors must be activated by an admin; do not auto-login after signup.
+    await authService.registerVendor(data);
   };
 
   const logout = async () => {
@@ -276,7 +290,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       await authService.logout(refreshToken || undefined);
     } catch (e) {
-      console.log('Logout error:', e);
+      console.error('Logout error:', e);
     } finally {
       await Promise.all([
         AsyncStorage.removeItem(TOKEN_KEYS.access),

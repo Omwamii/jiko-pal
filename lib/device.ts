@@ -9,7 +9,9 @@ export interface CreateDeviceData {
   current_level?: number;
   battery_level?: number;
   cylinder_size?: number | null;
-  activity_mode?: 'low' | 'medium' | 'high' | 'ultra_high';
+  cylinder_brand?: string | null;
+  custom_cylinder_height_mm?: number | null;
+  activity_mode?: 'low' | 'medium' | 'high' | 'ultra_high' | 'perpetual';
 }
 
 export const deviceService = {

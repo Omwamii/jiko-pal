@@ -1,4 +1,5 @@
 import api from './api';
+import type { PaginatedResponse } from '@/types';
 
 export type InviteType = 'circle' | 'platform';
 
@@ -16,11 +17,16 @@ export type Invite = {
   last_used_at: string | null;
   created_at: string;
   invite_url: string;
+  recipient_email?: string | null;
+  recipient_phone?: string | null;
 };
 
 export const invitesApi = {
-  create: async (data: { type: InviteType; circle_id?: string; expires_in_days?: number; recipient_email?: string; recipient_phone?: string }) =>
+  create: async (data: { type: InviteType; circle_id?: string; recipient_email?: string; recipient_phone?: string }) =>
     (await api.post<Invite>('/invites/', data)).data,
+
+  listMine: async (params?: { type?: InviteType; circle_id?: string }) =>
+    (await api.get<PaginatedResponse<Invite>>('/invites/', { params })).data,
 
   getByCode: async (code: string) =>
     (await api.get<Invite>(`/invites/${code}/`)).data,
@@ -28,4 +34,3 @@ export const invitesApi = {
   accept: async (code: string) =>
     (await api.post<{ detail: string; circle_id?: string }>(`/invites/${code}/accept/`, {})).data,
 };
-

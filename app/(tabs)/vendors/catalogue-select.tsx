@@ -4,6 +4,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useCatalogueByVendor } from '@/hooks/queries';
+import { useDevices } from '@/hooks/queries';
 
 const PRIMARY_COLOR = '#3629B7';
 
@@ -14,15 +15,25 @@ export default function CatalogueSelectScreen() {
     vendorName?: string;
     cylinderName?: string;
     cylinderLevel?: string;
+    deviceId?: string;
   }>();
   
   const vendorId = params.vendorId || '';
   const vendorName = params.vendorName || 'Vendor';
   const cylinderName = params.cylinderName;
   const cylinderLevel = params.cylinderLevel;
+  const deviceId = params.deviceId || '';
   
   const { data: catalogue = [], isLoading } = useCatalogueByVendor(vendorId);
+  const { data: devicesData, isLoading: devicesLoading } = useDevices();
   const [selectedCatalogueId, setSelectedCatalogueId] = useState<string>('');
+  const [selectedDeviceId, setSelectedDeviceId] = useState<string>(deviceId);
+
+  const selectedDevice = selectedDeviceId
+    ? devicesData?.results?.find((d) => d.id === selectedDeviceId) ?? null
+    : null;
+  const derivedCylinderName = cylinderName || selectedDevice?.device_id || '';
+  const derivedCylinderLevel = cylinderLevel || (selectedDevice ? String(selectedDevice.current_level) : '');
 
   const handleSelectCylinder = () => {
     if (!selectedCatalogueId) return;
@@ -33,8 +44,9 @@ export default function CatalogueSelectScreen() {
         vendorId,
         vendorName,
         catalogueId: selectedCatalogueId,
-        cylinderName: cylinderName || '',
-        cylinderLevel: cylinderLevel || '',
+        cylinderName: derivedCylinderName,
+        cylinderLevel: derivedCylinderLevel,
+        deviceId: selectedDeviceId || deviceId || '',
       },
     } as Href);
   };
@@ -45,8 +57,9 @@ export default function CatalogueSelectScreen() {
       params: {
         vendorId,
         vendorName,
-        cylinderName: cylinderName || '',
-        cylinderLevel: cylinderLevel || '',
+        cylinderName: derivedCylinderName,
+        cylinderLevel: derivedCylinderLevel,
+        deviceId: selectedDeviceId || deviceId || '',
       },
     } as Href);
   };
@@ -122,6 +135,54 @@ export default function CatalogueSelectScreen() {
           <Text style={styles.dividerText}>OR</Text>
           <View style={styles.dividerLine} />
         </View>
+
+        {!deviceId ? (
+          <>
+            <Text style={styles.sectionTitle}>Select a monitored cylinder (optional)</Text>
+            <Text style={styles.sectionSubtitle}>
+              If you do not pick a catalogue item, you can still link this refill request to one of your connected level sensors.
+            </Text>
+
+            {devicesLoading ? (
+              <ActivityIndicator size="small" color={PRIMARY_COLOR} style={styles.loader} />
+            ) : !devicesData?.results || devicesData.results.length === 0 ? (
+              <View style={styles.emptyState}>
+                <MaterialCommunityIcons name="gas-cylinder" size={36} color="#9CA3AF" />
+                <Text style={styles.emptyText}>No connected level sensors</Text>
+              </View>
+            ) : (
+              devicesData.results.map((d) => (
+                <TouchableOpacity
+                  key={d.id}
+                  style={[styles.deviceCard, selectedDeviceId === d.id && styles.deviceCardActive]}
+                  onPress={() => setSelectedDeviceId(d.id)}
+                >
+                  <View style={styles.deviceContent}>
+                    <Text style={styles.deviceTitle}>{d.device_id}</Text>
+                    <Text style={styles.deviceSub}>Level: {d.current_level}%</Text>
+                  </View>
+                  {selectedDeviceId === d.id && (
+                    <MaterialCommunityIcons name="check-circle" size={22} color="#10B981" />
+                  )}
+                </TouchableOpacity>
+              ))
+            )}
+
+            <TouchableOpacity
+              style={[styles.selectButton, !selectedDeviceId && styles.selectButtonDisabled]}
+              onPress={handleSkipAndChat}
+              disabled={!selectedDeviceId}
+            >
+              <Text style={styles.selectButtonText}>Continue with Selected Monitor</Text>
+            </TouchableOpacity>
+
+            <View style={styles.dividerContainer}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>OR</Text>
+              <View style={styles.dividerLine} />
+            </View>
+          </>
+        ) : null}
 
         <TouchableOpacity style={styles.chatButton} onPress={handleSkipAndChat}>
           <MaterialCommunityIcons name="chat-outline" size={20} color={PRIMARY_COLOR} />
@@ -208,4 +269,18 @@ const styles = StyleSheet.create({
   chatButtonTextWrap: { alignItems: 'center' },
   chatButtonText: { color: PRIMARY_COLOR, fontSize: 16, fontWeight: '600' },
   chatButtonNote: { color: '#6B7280', fontSize: 11, marginTop: 2, fontWeight: '500' },
+  deviceCard: {
+    backgroundColor: '#FFF',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  deviceCardActive: { borderColor: PRIMARY_COLOR },
+  deviceContent: { flex: 1 },
+  deviceTitle: { color: '#11181C', fontSize: 16, fontWeight: '600' },
+  deviceSub: { color: '#6B7280', fontSize: 12, marginTop: 2 },
 });

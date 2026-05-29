@@ -26,6 +26,7 @@ export type Vendor = {
   id: string;
   user: User;
   company_name: string;
+  is_active: boolean;
   location: string;
   location_latitude: number | null;
   location_longitude: number | null;
@@ -84,7 +85,8 @@ export type IoTDevice = {
   status: 'active' | 'inactive' | 'maintenance';
   cylinder_size?: number | null;
   cylinder_brand?: string | null;
-  activity_mode?: 'low' | 'medium' | 'high' | 'ultra_high';
+  custom_cylinder_height_mm?: number | null;
+  activity_mode?: 'low' | 'medium' | 'high' | 'ultra_high' | 'perpetual';
   created_at: string;
   updated_at: string;
 };
@@ -92,7 +94,6 @@ export type IoTDevice = {
 export type DeviceReading = {
   id: string;
   device: IoTDevice;
-  // Backend renamed `level_percent` -> `percent`; keep both for compatibility.
   level_percent?: number;
   percent?: number;
   level?: number | null;
@@ -134,9 +135,11 @@ export type Notification = {
   type: 'alert' | 'info' | 'warning';
   is_read: boolean;
   created_at: string;
+  action_url?: string | null;
+  metadata?: Record<string, unknown> | null;
 };
 
-export type RefillRequestStatus = 'pending' | 'accepted' | 'in_transit' | 'completed' | 'cancelled';
+export type RefillRequestStatus = 'pending' | 'accepted' | 'in_transit' | 'arrived' | 'completed' | 'cancelled';
 
 export type RefillRequest = {
   id: string;
@@ -149,6 +152,7 @@ export type RefillRequest = {
   scheduled_date: string | null;
   completed_at: string | null;
   notes: string | null;
+  cancellation_reason?: string | null;
   catalogue_item: VendorCatalogue | null;
 };
 
@@ -271,4 +275,36 @@ export type Conversation = {
   unread_count: number;
   created_at: string;
   updated_at: string;
+};
+
+export type VendorAnalyticsPeriod = 'all' | 'week' | 'month' | 'year';
+
+export type VendorAnalyticsProductBreakdownRow = {
+  label: string;
+  units_sold: number;
+  ratio: number;
+};
+
+export type VendorAnalyticsRatingBreakdownRow = {
+  rating: 1 | 2 | 3 | 4 | 5;
+  count: number;
+  ratio: number;
+};
+
+export type VendorAnalyticsResponse = {
+  period: VendorAnalyticsPeriod;
+  start: string | null;
+  end: string | null;
+  totals: {
+    total_orders: number;
+    completed_orders: number;
+    cancelled_orders: number;
+    products_sold: number;
+  };
+  product_breakdown: VendorAnalyticsProductBreakdownRow[];
+  satisfaction: {
+    avg_rating: number;
+    total_reviews: number;
+    breakdown: VendorAnalyticsRatingBreakdownRow[];
+  };
 };

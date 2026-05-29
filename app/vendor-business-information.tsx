@@ -73,7 +73,6 @@ export default function VendorBusinessInformationScreen() {
   }, [profile]);
 
   const handleSave = async () => {
-    console.log('Saving profile:', form);
     try {
       await updateProfile(form);
       Alert.alert('Success', 'Business information updated successfully');

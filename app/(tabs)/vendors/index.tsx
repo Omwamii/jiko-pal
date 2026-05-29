@@ -12,13 +12,19 @@ import { Vendor } from '@/types';
 const PRIMARY_COLOR = '#3629B7';
 
 const formatKm = (distanceKm: number) => {
-  const rounded = distanceKm < 10 ? Math.round(distanceKm * 10) / 10 : Math.round(distanceKm);
-  return `${rounded} km`;
+  if (distanceKm < 1) {
+    const meters = distanceKm * 1000;
+    const roundedMeters = meters < 10 ? Math.round(meters * 10) / 10 : Math.round(meters);
+    return `${roundedMeters} m`;
+  }
+
+  const roundedKm = distanceKm < 10 ? Math.round(distanceKm * 10) / 10 : Math.round(distanceKm);
+  return `${roundedKm} km`;
 };
 
 export default function VendorsScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ preselectedCylinderName?: string; preselectedCylinderLevel?: string }>();
+  const params = useLocalSearchParams<{ preselectedCylinderName?: string; preselectedCylinderLevel?: string; preselectedDeviceId?: string }>();
   const [activeTab, setActiveTab] = useState<'all' | 'mine'>('all');
   const [query, setQuery] = useState('');
   const [nearbyOnly, setNearbyOnly] = useState(false);
@@ -34,10 +40,21 @@ export default function VendorsScreen() {
     () => (Array.isArray(params.preselectedCylinderLevel) ? params.preselectedCylinderLevel[0] : params.preselectedCylinderLevel),
     [params.preselectedCylinderLevel]
   );
-  const isRefillVendorSelection = Boolean(preselectedCylinderName);
+  const preselectedDeviceId = useMemo(
+    () => (Array.isArray(params.preselectedDeviceId) ? params.preselectedDeviceId[0] : params.preselectedDeviceId),
+    [params.preselectedDeviceId]
+  );
+  const isRefillVendorSelection = Boolean(preselectedDeviceId || preselectedCylinderName);
 
   const subscribedVendorIds = useMemo(() => {
     return new Set(subscriptions.map(sub => sub.vendor.id));
+  }, [subscriptions]);
+
+  const myVendors = useMemo(() => {
+    return subscriptions.map((sub) => ({
+      ...sub.vendor,
+      is_subscribed: true,
+    }));
   }, [subscriptions]);
 
   const vendorsWithSubscription = useMemo(() => {
@@ -48,8 +65,10 @@ export default function VendorsScreen() {
   }, [vendors, subscribedVendorIds]);
 
   const filtered = useMemo(() => {
-    const tabFiltered = vendorsWithSubscription.filter((vendor: Vendor & { is_subscribed?: boolean }) => {
-      const tabOk = activeTab === 'all' ? true : vendor.is_subscribed;
+    const source = activeTab === 'mine' ? myVendors : vendorsWithSubscription;
+
+    const tabFiltered = source.filter((vendor: Vendor & { is_subscribed?: boolean }) => {
+      const tabOk = true;
       const queryOk = vendor.company_name.toLowerCase().includes(query.toLowerCase().trim());
       return tabOk && queryOk;
     });
@@ -59,7 +78,7 @@ export default function VendorsScreen() {
     return [...tabFiltered]
       .filter((v) => typeof v.distance_km === 'number')
       .sort((a, b) => (a.distance_km ?? Number.POSITIVE_INFINITY) - (b.distance_km ?? Number.POSITIVE_INFINITY));
-  }, [activeTab, nearbyOnly, query, vendorsWithSubscription]);
+  }, [activeTab, nearbyOnly, myVendors, query, vendorsWithSubscription]);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -174,6 +193,7 @@ export default function VendorsScreen() {
                     router.setParams({
                       preselectedCylinderName: undefined,
                       preselectedCylinderLevel: undefined,
+                      preselectedDeviceId: undefined,
                     });
                     router.push({
                       pathname: '/(tabs)/vendors/catalogue-select',
@@ -182,6 +202,7 @@ export default function VendorsScreen() {
                         vendorName: vendor.company_name,
                         cylinderName: preselectedCylinderName,
                         cylinderLevel: preselectedCylinderLevel || '65',
+                        deviceId: preselectedDeviceId || '',
                       },
                     } as Href);
                     return;

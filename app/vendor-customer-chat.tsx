@@ -8,6 +8,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api';
 import type { Conversation, Message, PaginatedResponse } from '../types';
 import { useAuth } from '../providers/AuthProvider';
+import { formatDate } from '@/lib/utils';
 
 const PRIMARY_COLOR = '#3629B7';
 
@@ -143,7 +144,8 @@ export default function VendorCustomerChatScreen() {
                       <Text style={[styles.msgText, mine ? styles.msgTextRight : styles.msgTextLeft]}>{item.content}</Text>
                     </View>
                     <Text style={[styles.msgTime, mine ? styles.msgTimeRight : styles.msgTimeLeft]}>
-                      {new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      {/* {new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} */}
+                      {formatDate(item.created_at, true)}
                     </Text>
                   </View>
                 </View>

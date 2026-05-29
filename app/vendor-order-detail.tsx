@@ -5,8 +5,9 @@ import { StatusBar } from 'expo-status-bar';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
 import { VendorBottomNav } from '@/components/vendor/VendorBottomNav';
-import { useRefillRequestDetails } from '@/hooks/refill';
+import { useArriveRefillRequest, useRefillRequestDetails, useStartRefillRequest } from '@/hooks/refill';
 import { useAuth } from '@/providers/AuthProvider';
+import { formatDate } from '@/lib/utils';
 
 const PRIMARY_COLOR = '#3629B7';
 
@@ -16,6 +17,8 @@ export default function VendorOrderDetailScreen() {
   const orderId = Array.isArray(params.orderId) ? params.orderId[0] : params.orderId;
   
   const { fetchRequest, refillRequest, isLoading } = useRefillRequestDetails();
+  const { markArrived, isLoading: isMarkingArrived } = useArriveRefillRequest();
+  const { startDelivery, isLoading: isStartingDelivery } = useStartRefillRequest();
   const { updateVendorLocationIfNeeded } = useAuth();
   
   useEffect(() => {
@@ -41,14 +44,18 @@ export default function VendorOrderDetailScreen() {
   const statusMeta = {
     title: status === 'completed' ? 'Order Completed' :
            status === 'cancelled' ? 'Order Cancelled' :
+           status === 'arrived' ? 'Order Arrived' :
            status === 'accepted' || status === 'in_transit' ? 'Order Accepted' : 'Order Pending',
     label: status === 'completed' ? 'Completed' :
            status === 'cancelled' ? 'Cancelled' :
+           status === 'arrived' ? 'Arrived' :
            status === 'accepted' || status === 'in_transit' ? 'In Progress' : 'Pending',
-    bg: status === 'accepted' || status === 'in_transit' ? '#E0E7FF' : 
+    bg: status === 'accepted' || status === 'in_transit' ? '#E0E7FF' :
+        status === 'arrived' ? '#DBEAFE' :
         status === 'completed' ? '#D1FAE5' :
         status === 'cancelled' ? '#FEE2E2' : '#FEF3C7',
     color: status === 'accepted' || status === 'in_transit' ? '#4F46E5' :
+        status === 'arrived' ? '#2563EB' :
         status === 'completed' ? '#10B981' :
         status === 'cancelled' ? '#EF4444' : '#D08B17',
   };
@@ -69,6 +76,28 @@ export default function VendorOrderDetailScreen() {
 
   const handleMarkDelivered = () => {
     router.push((`/vendor-mark-delivered?orderId=${orderId || ''}&customer=${customerName}`) as Href);
+  };
+
+  const handleMarkArrived = async () => {
+    if (!orderId) return;
+    try {
+      await markArrived(orderId);
+      await fetchRequest(orderId);
+      Alert.alert('Updated', 'Marked as arrived. The client will be notified.');
+    } catch {
+      Alert.alert('Update failed', 'Unable to mark as arrived right now. Please try again.');
+    }
+  };
+
+  const handleStartDelivery = async () => {
+    if (!orderId) return;
+    try {
+      await startDelivery(orderId);
+      await fetchRequest(orderId);
+      Alert.alert('Updated', 'Marked as in transit. The client will be notified.');
+    } catch {
+      Alert.alert('Update failed', 'Unable to start delivery right now. Please try again.');
+    }
   };
 
   useEffect(() => {
@@ -117,9 +146,6 @@ export default function VendorOrderDetailScreen() {
               <MaterialCommunityIcons name="arrow-left" size={18} color="#FFFFFF" />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>{statusMeta.title}</Text>
-            <TouchableOpacity style={styles.notificationButton} activeOpacity={0.8}>
-              <MaterialCommunityIcons name="bell-outline" size={20} color="#FFFFFF" />
-            </TouchableOpacity>
           </View>
         </SafeAreaView>
       </View>
@@ -161,7 +187,7 @@ export default function VendorOrderDetailScreen() {
               </View>
               <Text style={styles.scheduleTime}>
                 {refillRequest?.scheduled_date 
-                  ? new Date(refillRequest.scheduled_date).toLocaleDateString() 
+                  ? formatDate(refillRequest.scheduled_date)
                   : 'Not scheduled'}
               </Text>
             </View>
@@ -202,7 +228,39 @@ export default function VendorOrderDetailScreen() {
               </View>
             )}
 
-            {status === 'accepted' || status === 'in_transit' ? (
+            {status === 'accepted' ? (
+              <TouchableOpacity
+                style={styles.markButton}
+                activeOpacity={0.85}
+                onPress={handleStartDelivery}
+                disabled={isStartingDelivery}
+              >
+                {isStartingDelivery ? (
+                  <ActivityIndicator size="small" color="#5F4ED8" />
+                ) : (
+                  <>
+                    <MaterialCommunityIcons name="truck-delivery-outline" size={16} color="#5F4ED8" />
+                    <Text style={styles.markButtonText}>Start Delivery</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            ) : status === 'in_transit' ? (
+              <TouchableOpacity
+                style={styles.markButton}
+                activeOpacity={0.85}
+                onPress={handleMarkArrived}
+                disabled={isMarkingArrived}
+              >
+                {isMarkingArrived ? (
+                  <ActivityIndicator size="small" color="#5F4ED8" />
+                ) : (
+                  <>
+                    <MaterialCommunityIcons name="map-marker-check-outline" size={16} color="#5F4ED8" />
+                    <Text style={styles.markButtonText}>Mark Arrived</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            ) : status === 'arrived' ? (
               <TouchableOpacity style={styles.markButton} activeOpacity={0.85} onPress={handleMarkDelivered}>
                 <MaterialCommunityIcons name="cube-outline" size={16} color="#5F4ED8" />
                 <Text style={styles.markButtonText}>Mark Delivered</Text>
@@ -210,12 +268,15 @@ export default function VendorOrderDetailScreen() {
             ) : (
               <View style={styles.readOnlyState}>
                 <Text style={styles.readOnlyStateText}>
-                  {status === 'completed' 
-                    ? 'This order has already been delivered.' 
+                  {status === 'completed'
+                    ? 'This order has already been delivered.'
                     : status === 'cancelled'
                       ? 'This order was cancelled and is read-only.'
                       : 'This order is pending acceptance.'}
                 </Text>
+                {status === 'cancelled' && refillRequest?.cancellation_reason ? (
+                  <Text style={styles.readOnlyStateReason}>Reason: {refillRequest.cancellation_reason}</Text>
+                ) : null}
               </View>
             )}
 
@@ -244,19 +305,6 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   headerTitle: { flex: 1, color: '#FFFFFF', fontSize: 24, fontWeight: '600' },
-  notificationButton: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
-  notificationBadge: {
-    position: 'absolute',
-    top: 6,
-    right: 4,
-    minWidth: 14,
-    height: 14,
-    borderRadius: 7,
-    backgroundColor: '#F04438',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  badgeText: { color: '#FFFFFF', fontSize: 8, fontWeight: '700' },
   sheet: { flex: 1, backgroundColor: '#FFFFFF', borderTopLeftRadius: 22, borderTopRightRadius: 22, padding: 16 },
   loader: { marginTop: 40 },
   customerRow: { flexDirection: 'row', alignItems: 'center' },
@@ -303,5 +351,6 @@ const styles = StyleSheet.create({
   markButtonText: { color: '#5F4ED8', fontSize: 12, fontWeight: '600' },
   readOnlyState: { marginTop: 10, borderRadius: 10, borderWidth: 1, borderColor: '#E5E7EB', backgroundColor: '#F9FAFB', padding: 10 },
   readOnlyStateText: { color: '#6B7280', fontSize: 10, textAlign: 'center', fontWeight: '600' },
+  readOnlyStateReason: { marginTop: 6, color: '#6B7280', fontSize: 10, textAlign: 'center' },
   bottomSpacer: { height: 14 },
 });

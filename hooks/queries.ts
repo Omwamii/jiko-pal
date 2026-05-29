@@ -10,7 +10,7 @@ import { authService } from '../lib/auth';
 import { activityLogService } from '../lib/activity';
 import { chatApi } from '../lib/chat';
 import { userSettingsApi, type UpdateUserSettingsInput } from '../lib/userSettings';
-import { ActivityLog, Conversation, Message, VendorCatalogue } from '../types';
+import { ActivityLog, Conversation, Message, VendorCatalogue, VendorAnalyticsPeriod } from '../types';
 
 export const useClient = (id?: string) => {
   return useQuery({
@@ -193,8 +193,13 @@ export const useChangeActivityMode = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, activity_mode }: { id: string; activity_mode: 'low' | 'medium' | 'high' | 'ultra_high' }) =>
-      deviceService.changeActivityMode(id, activity_mode),
+    mutationFn: ({
+      id,
+      activity_mode,
+    }: {
+      id: string;
+      activity_mode: 'low' | 'medium' | 'high' | 'ultra_high' | 'perpetual';
+    }) => deviceService.changeActivityMode(id, activity_mode),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['devices'] });
       queryClient.invalidateQueries({ queryKey: ['device', variables.id] });
@@ -226,7 +231,7 @@ export const useLatestDeviceReading = (deviceId: string) => {
     queryKey: ['deviceLatestReading', deviceId],
     queryFn: () => deviceService.getLatestDeviceReading(deviceId),
     enabled: !!deviceId,
-    refetchInterval: 30_000,
+    // refetchInterval: 30_000,
   });
 };
 
@@ -443,5 +448,12 @@ export const useVendorReviews = (vendorId: string) => {
     queryKey: ['vendorReviews', vendorId],
     queryFn: () => reviewService.getReviews({ vendor: vendorId }),
     enabled: !!vendorId,
+  });
+};
+
+export const useVendorAnalytics = (period: VendorAnalyticsPeriod) => {
+  return useQuery({
+    queryKey: ['vendorAnalytics', period],
+    queryFn: () => vendorService.getMyAnalytics(period),
   });
 };

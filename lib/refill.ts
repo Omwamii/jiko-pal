@@ -40,6 +40,11 @@ export const refillRequestService = {
     return response.data;
   },
 
+  async arriveRefillRequest(id: string): Promise<RefillRequest> {
+    const response = await api.patch<RefillRequest>(`/refill-requests/${id}/status/`, { status: 'arrived' });
+    return response.data;
+  },
+
   async completeRefillRequest(id: string, price?: number): Promise<RefillRequest> {
     const data: any = { status: 'completed' };
     if (price !== undefined) {
@@ -49,8 +54,8 @@ export const refillRequestService = {
     return response.data;
   },
 
-  async rejectRefillRequest(id: string): Promise<RefillRequest> {
-    const response = await api.patch<RefillRequest>(`/refill-requests/${id}/status/`, { status: 'cancelled' });
+  async rejectRefillRequest(id: string, cancellation_reason?: string): Promise<RefillRequest> {
+    const response = await api.patch<RefillRequest>(`/refill-requests/${id}/status/`, { status: 'cancelled', cancellation_reason });
     return response.data;
   },
 
@@ -59,8 +64,8 @@ export const refillRequestService = {
     return response.data;
   },
 
-  async cancelRefillRequest(id: string): Promise<RefillRequest> {
-    const response = await api.patch<RefillRequest>(`/refill-requests/${id}/status/`, { status: 'cancelled' });
+  async cancelRefillRequest(id: string, cancellation_reason?: string): Promise<RefillRequest> {
+    const response = await api.patch<RefillRequest>(`/refill-requests/${id}/status/`, { status: 'cancelled', cancellation_reason });
     return response.data;
   },
 

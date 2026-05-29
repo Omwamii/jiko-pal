@@ -1,24 +1,21 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, TextInput, ScrollView, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, KeyboardAvoidingView, Platform, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import api from '../../../lib/api';
-import type { Conversation, Message, PaginatedResponse } from '../../../types';
-import { useAuth } from '../../../providers/AuthProvider';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import api from '@/lib/api';
+import type { Conversation, Message, PaginatedResponse } from '@/types';
+import { useAuth } from '@/providers/AuthProvider';
+import { formatDate } from '@/lib/utils';
 
 const PRIMARY_COLOR = '#3629B7';
 
 const getConversation = async (vendorId: string) => {
-  // Get all conversations and find existing one with this vendor
   const conversations = await api.get<{ results: Conversation[] }>('/conversations/');
-  const existing = conversations.data.results.find(
-    (conv: any) => conv.vendor?.id === vendorId || conv.vendor === vendorId
-  );
+  const existing = conversations.data.results.find((conv: any) => conv.vendor?.id === vendorId || conv.vendor === vendorId);
   if (existing) return existing;
-  
-  // Create new conversation - backend uses authenticated user's client profile
+
   const res = await api.post<Conversation>('/conversations/', { vendor_id: vendorId });
   return res.data;
 };
@@ -40,10 +37,8 @@ export default function VendorChatScreen() {
   const [conversationId, setConversationId] = useState<string | null>(null);
   const scrollRef = useRef<ScrollView>(null);
   const queryClient = useQueryClient();
-
   const { user, tokens } = useAuth();
 
-  // Pre-fetch messages when conversation is ready
   const { data: messagesData, isLoading: msgLoading } = useQuery({
     queryKey: ['messages', conversationId],
     queryFn: () => getMessages(conversationId!),
@@ -61,26 +56,24 @@ export default function VendorChatScreen() {
 
   useEffect(() => {
     if (vendorId && !conversationId) {
-      getConversation(vendorId).then(data => setConversationId(data.id));
+      getConversation(vendorId).then((data) => setConversationId(data.id));
     }
   }, [vendorId, conversationId]);
 
   useEffect(() => {
     if (conversationId && tokens?.access) {
-      // Construct WebSocket URL from API base URL
       const baseUrl = process.env.EXPO_PUBLIC_WS_URL || 'http://localhost:8000';
       const wsBase = baseUrl.replace(/^http/, 'ws');
       const ws = new WebSocket(`${wsBase}/ws/chat/${conversationId}/?token=${tokens.access}`);
-      
+
       ws.onmessage = (e) => {
         const data = JSON.parse(e.data);
-        // Handle both direct messages and nested message format
         const messageData = data.message || data;
         if (messageData.conversation === conversationId || messageData.conversation_id === conversationId) {
           queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
         }
       };
-      
+
       return () => ws.close();
     }
   }, [conversationId, tokens?.access, queryClient]);
@@ -91,7 +84,6 @@ export default function VendorChatScreen() {
   };
 
   const messages = messagesData?.results || [];
-  const isLoading = msgLoading;
 
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
@@ -113,7 +105,7 @@ export default function VendorChatScreen() {
           </View>
         </View>
 
-        {isLoading ? (
+        {msgLoading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={PRIMARY_COLOR} />
           </View>
@@ -140,7 +132,8 @@ export default function VendorChatScreen() {
                       <Text style={[styles.msgText, mine ? styles.msgTextRight : styles.msgTextLeft]}>{item.content}</Text>
                     </View>
                     <Text style={[styles.msgTime, mine ? styles.msgTimeRight : styles.msgTimeLeft]}>
-                      {new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      {/* {new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} */}
+                      {formatDate(item.created_at, true)}
                     </Text>
                   </View>
                 </View>
@@ -218,45 +211,47 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 8,
-    marginTop: 18,
   },
-  smallAvatarText: { color: '#FFF', fontSize: 10, fontWeight: '700' },
-  senderName: { color: '#11181C', fontSize: 12, fontWeight: '700', marginBottom: 4 },
-  msgWrap: { maxWidth: '82%' },
-  msgBubble: { borderRadius: 12, paddingHorizontal: 12, paddingVertical: 9 },
-  msgBubbleLeft: { backgroundColor: '#FFFFFF' },
-  msgBubbleRight: { backgroundColor: PRIMARY_COLOR, alignSelf: 'flex-end' },
-  msgText: { fontSize: 11, lineHeight: 15 },
-  msgTextLeft: { color: '#4B5563' },
+  smallAvatarText: { color: '#FFF', fontWeight: '700', fontSize: 11 },
+  msgWrap: { maxWidth: '80%' },
+  senderName: { color: '#6B7280', fontSize: 10, marginBottom: 4 },
+  msgBubble: { borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10 },
+  msgBubbleLeft: { backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E5E7EB' },
+  msgBubbleRight: { backgroundColor: PRIMARY_COLOR },
+  msgText: { fontSize: 13, lineHeight: 18 },
+  msgTextLeft: { color: '#11181C' },
   msgTextRight: { color: '#FFFFFF' },
-  msgTime: { fontSize: 9, color: '#9CA3AF', marginTop: 4 },
-  msgTimeLeft: { alignSelf: 'flex-start' },
-  msgTimeRight: { alignSelf: 'flex-end' },
+  msgTime: { fontSize: 9, marginTop: 4 },
+  msgTimeLeft: { color: '#9CA3AF' },
+  msgTimeRight: { color: '#D1D5DB', textAlign: 'right' },
   inputBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     borderTopWidth: 1,
     borderTopColor: '#E5E7EB',
     backgroundColor: '#FFFFFF',
-    paddingVertical: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
   },
   input: {
     flex: 1,
-    height: 36,
-    backgroundColor: '#F3F4F6',
-    borderRadius: 18,
+    height: 42,
+    borderRadius: 10,
     paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    backgroundColor: '#F9FAFB',
     color: '#11181C',
-    fontSize: 12,
-    marginHorizontal: 6,
   },
   sendBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
     backgroundColor: PRIMARY_COLOR,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: 'center',
     alignItems: 'center',
+    justifyContent: 'center',
+    opacity: 1,
   },
 });
+

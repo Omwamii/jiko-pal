@@ -36,7 +36,7 @@ export default function MyCircleScreen() {
             >
               <MaterialCommunityIcons name="arrow-left" size={24} color="#FFF" />
             </TouchableOpacity>
-            <Text style={styles.headerTitle}>My Circle</Text>
+            <Text style={styles.headerTitle}>My Circles</Text>
           </View>
         </SafeAreaView>
       </View>

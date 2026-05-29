@@ -24,9 +24,7 @@ export default function InviteLandingScreen() {
           router.replace('/login');
           return;
         }  
-
-        console.log(`In invite, received the user: `, user);
-
+        
         const result = await invitesApi.accept(code);
         if (result.circle_id) {
           router.replace({ pathname: '/my-circle/circle', params: { circleId: result.circle_id } } as any);

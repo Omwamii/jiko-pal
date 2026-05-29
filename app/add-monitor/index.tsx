@@ -1,11 +1,13 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, ActivityIndicator, Linking, Alert } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useDevices } from '@/hooks/queries';
 
 const PRIMARY_COLOR = '#3629B7';
+const SUPPORT_EMAIL = 'alphaian020@gmail.com';
+const SUPPORT_SUBJECT = 'Help needed with connecting jikopal level sensor';
 
 export default function SelectDeviceTypeScreen() {
   const router = useRouter();
@@ -37,6 +39,16 @@ export default function SelectDeviceTypeScreen() {
 
   const existingDisabled = isLoadingDevices || eligibleExistingCount === 0;
   const existingNotForCircle = !(params.fromCircle === 'true' || params.fromCircle === '1');
+
+  const onContactSupport = React.useCallback(async () => {
+    const url = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(SUPPORT_SUBJECT)}`;
+    const canOpen = await Linking.canOpenURL(url);
+    if (!canOpen) {
+      Alert.alert('Unable to open email', `Please email us at ${SUPPORT_EMAIL}`);
+      return;
+    }
+    await Linking.openURL(url);
+  }, []);
 
   return (
     <View style={styles.container}>
@@ -120,7 +132,7 @@ export default function SelectDeviceTypeScreen() {
         </TouchableOpacity>
 
         {/* Option: NFC Tag */}
-        <View style={[styles.optionCard, { opacity: 0.6 }]}>
+        {/* <View style={[styles.optionCard, { opacity: 0.6 }]}>
           <View style={[styles.iconContainer, { backgroundColor: '#E5E7EB' }]}>
             <MaterialCommunityIcons name="nfc" size={24} color="#9CA3AF" />
           </View>
@@ -130,7 +142,7 @@ export default function SelectDeviceTypeScreen() {
             <Text style={[styles.optionBadgeText, { color: '#6B7280' }]}>Coming Soon</Text>
           </View>
           <MaterialCommunityIcons name="chevron-right" size={24} color="#9CA3AF" />
-        </View>
+        </View> */}
 
         {/* Need Help Box */}
         <View style={styles.helpBox}>
@@ -140,7 +152,7 @@ export default function SelectDeviceTypeScreen() {
             <Text style={styles.helpBoxDescription}>
               Not sure which option to choose? Contact our support team for guidance.
             </Text>
-            <TouchableOpacity style={styles.contactButton}>
+            <TouchableOpacity style={styles.contactButton} onPress={onContactSupport}>
               <Text style={styles.contactButtonText}>Contact Support</Text>
               <MaterialCommunityIcons name="arrow-right" size={16} color={PRIMARY_COLOR} />
             </TouchableOpacity>

@@ -18,6 +18,10 @@ const quickActions = [
 ];
 
 function getOrderStatusMeta(status: string) {
+  if (status === 'arrived') {
+    return { label: 'Arrived', bg: '#DBEAFE', color: '#2563EB' };
+  }
+
   if (status === 'in_transit' || status === 'accepted') {
     return { label: 'Active', bg: '#E7E3FF', color: '#5B4DCB' };
   }
@@ -61,7 +65,7 @@ export default function VendorDashboardScreen() {
   }, [vendorProfile, fetchOrders]);
 
   const activeOrders = useMemo(() => 
-    orders.filter((order) => order.status === 'in_transit' || order.status === 'accepted'),
+    orders.filter((order) => order.status === 'in_transit' || order.status === 'accepted' || order.status === 'arrived'),
     [orders]
   );
   const pendingOrders = useMemo(() => 

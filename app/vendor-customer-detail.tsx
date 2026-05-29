@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Alert, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -33,6 +33,23 @@ export default function VendorCustomerDetailScreen() {
     return n.slice(0, 2).toUpperCase();
   };
 
+  const phoneNumber = detail?.client?.phone_number || '';
+  const clientId = detail?.client?.id || '';
+
+  const handleCallCustomer = async () => {
+    if (!phoneNumber) {
+      Alert.alert('Missing phone number', 'This customer does not have a phone number on record.');
+      return;
+    }
+    const url = `tel:${phoneNumber}`;
+    const canOpen = await Linking.canOpenURL(url);
+    if (!canOpen) {
+      Alert.alert('Call unavailable', `Your device cannot place calls to ${phoneNumber}.`);
+      return;
+    }
+    await Linking.openURL(url);
+  };
+
   useFocusEffect(
     React.useCallback(() => {
       if (subscriptionId) {
@@ -54,10 +71,6 @@ export default function VendorCustomerDetailScreen() {
 
             <Text style={styles.headerTitle}>Customer Details</Text>
 
-            <TouchableOpacity style={styles.notificationButton} activeOpacity={0.8}>
-              <MaterialCommunityIcons name="bell-outline" size={20} color="#FFFFFF" />
-              <View style={styles.notificationBadge}><Text style={styles.badgeText}>3</Text></View>
-            </TouchableOpacity>
           </View>
         </SafeAreaView>
       </View>
@@ -93,7 +106,7 @@ export default function VendorCustomerDetailScreen() {
             </View>
 
             <View style={styles.actionsRow}>
-              <TouchableOpacity style={[styles.actionButton, styles.callButton]} activeOpacity={0.85}>
+              <TouchableOpacity style={[styles.actionButton, styles.callButton]} activeOpacity={0.85} onPress={handleCallCustomer}>
                 <MaterialCommunityIcons name="phone-outline" size={16} color="#16A34A" />
                 <Text style={[styles.actionText, styles.callText]}>Call Customer</Text>
               </TouchableOpacity>
@@ -101,7 +114,11 @@ export default function VendorCustomerDetailScreen() {
               <TouchableOpacity 
                 style={[styles.actionButton, styles.messageButton]} 
                 activeOpacity={0.85}
-                onPress={() => router.push(`/vendor-customer-chat?customer=${encodeURIComponent(name)}&phone=${encodeURIComponent(detail?.client?.phone_number || '')}&subscriptionId=${subscriptionId}`)}
+                onPress={() =>
+                  router.push(
+                    `/vendor-customer-chat?customer=${encodeURIComponent(name)}&phone=${encodeURIComponent(phoneNumber)}&clientId=${encodeURIComponent(clientId)}`
+                  )
+                }
               >
                 <MaterialCommunityIcons name="message-outline" size={16} color="#3629B7" />
                 <Text style={[styles.actionText, styles.messageText]}>Message</Text>
@@ -113,11 +130,11 @@ export default function VendorCustomerDetailScreen() {
               <Text style={styles.contactText}>{detail.client.phone_number}</Text>
             )}
             <Text style={styles.contactText}>{email}</Text>
-            {(detail?.client?.location_latitude || detail?.client?.location_longitude) && (
+            {/* {(detail?.client?.location_latitude || detail?.client?.location_longitude) && (
               <Text style={styles.contactText}>
                 {detail.client.location_latitude}, {detail.client.location_longitude}
               </Text>
-            )}
+            )} */}
 
             <Text style={styles.sectionTitle}>Cylinders</Text>
             {isLoading ? (
@@ -177,20 +194,6 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   headerTitle: { flex: 1, color: '#FFFFFF', fontSize: 28, fontWeight: '700' },
-  notificationButton: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
-  notificationBadge: {
-    position: 'absolute',
-    top: 6,
-    right: 4,
-    minWidth: 14,
-    height: 14,
-    borderRadius: 7,
-    backgroundColor: '#F04438',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 2,
-  },
-  badgeText: { color: '#FFFFFF', fontSize: 8, fontWeight: '700' },
   sheet: {
     flex: 1,
     backgroundColor: '#F3F3F7',

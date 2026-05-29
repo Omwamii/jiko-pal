@@ -11,6 +11,17 @@ import { formatDate } from '@/lib/utils';
 
 const PRIMARY_COLOR = '#3629B7';
 
+const formatDistance = (distanceKm: number) => {
+  if (distanceKm < 1) {
+    const meters = distanceKm * 1000;
+    const roundedMeters = meters < 10 ? Math.round(meters * 10) / 10 : Math.round(meters);
+    return `${roundedMeters} m`;
+  }
+
+  const roundedKm = distanceKm < 10 ? Math.round(distanceKm * 10) / 10 : Math.round(distanceKm);
+  return `${roundedKm} km`;
+};
+
 export default function VendorDetailScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ vendorId?: string; vendorName?: string }>();
@@ -30,12 +41,7 @@ export default function VendorDetailScreen() {
   }, [subscriptions, vendorId]);
 
   const reviews = useMemo(() => reviewsData?.results || [], [reviewsData]);
-  const avgRating = useMemo(() => {
-    if (reviews.length === 0) return 0;
-    const sum = reviews.reduce((acc, r) => acc + r.rating, 0);
-    return Math.round(sum / reviews.length * 10) / 10;
-  }, [reviews]);
-  const displayedAvgRating = typeof vendor?.avg_rating === 'number' ? vendor.avg_rating : avgRating;
+  const displayedAvgRating = typeof vendor?.avg_rating === 'number' ? (Math.round(vendor.avg_rating * 10) / 10) : 0;
   const displayedReviewCount = reviews.length;
 
   useEffect(() => {
@@ -89,7 +95,7 @@ export default function VendorDetailScreen() {
                   <>
                     <Text style={styles.reviewedDot}>•</Text>
                     <MaterialCommunityIcons name="map-marker-radius-outline" size={14} color="#6B7280" />
-                    <Text style={styles.distanceText}>{vendor.distance_km.toFixed(1)} km away</Text>
+                    <Text style={styles.distanceText}>{formatDistance(vendor.distance_km)} away</Text>
                   </>
                 ) : null}
               </View>
@@ -114,7 +120,7 @@ export default function VendorDetailScreen() {
             <View style={styles.metricCol}>
               <Text style={styles.metricLabel}>Distance</Text>
               <Text style={styles.metricValue}>
-                {typeof vendor?.distance_km === 'number' ? `${vendor.distance_km.toFixed(1)} km` : '—'}
+                {typeof vendor?.distance_km === 'number' ? formatDistance(vendor.distance_km) : '—'}
               </Text>
             </View>
           </View>
@@ -126,7 +132,7 @@ export default function VendorDetailScreen() {
           />
           <AppButton
             title="Chat with vendor"
-            onPress={() => router.push({ pathname: '/(tabs)/vendors/chat', params: { vendorId, vendorName } } as Href)}
+            onPress={() => router.push({ pathname: '/vendor-chat', params: { vendorId, vendorName } } as Href)}
             style={styles.chatBtn}
             textStyle={styles.chatBtnText}
           />

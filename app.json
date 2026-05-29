@@ -4,7 +4,7 @@
     "slug": "jikopal",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/propane.png",
     "scheme": "myapp",
     "deeplinking": true,
     "userInterfaceStyle": "automatic",
@@ -45,7 +45,11 @@
           "image": "./assets/images/fire-logo.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#5E60CE"
+          "backgroundColor": "#5E60CE",
+          "dark": {
+            "image": "./assets/images/fire-logo.png",
+            "backgroundColor": "#5E60CE"
+          }
         }
       ],
       [
@@ -55,7 +59,8 @@
           "iosModes": [
             "development",
             "production"
-          ]
+          ],
+          "icon": "./assets/images/propane.png"
         }
       ]
     ],

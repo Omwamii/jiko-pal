@@ -13,6 +13,19 @@ export default function VendorSettingsScreen() {
   const { vendorProfile, user, logout, refreshVendorProfile, updateVendorLocationIfNeeded } = useAuth();
   const { mutateAsync: toggleAvailability, isPending: isToggling } = useToggleVendorAvailability();
 
+  const handleLogout = React.useCallback(() => {
+    Alert.alert('Log Out', 'Are you sure you want to log out?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Log Out',
+        style: 'destructive',
+        onPress: async () => {
+          await logout();
+        },
+      },
+    ]);
+  }, [logout]);
+
   const initials =
     (vendorProfile?.company_name || user?.username || user?.email || 'V')
       .split(' ')
@@ -166,7 +179,7 @@ export default function VendorSettingsScreen() {
         <TouchableOpacity
           style={styles.logoutCard}
           activeOpacity={0.85}
-          onPress={logout}
+          onPress={handleLogout}
         >
           <View style={[styles.optionIconWrap, { backgroundColor: '#FEE2E2' }]}>
             <MaterialCommunityIcons name="logout" size={18} color="#EF4444" />

@@ -5,6 +5,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useRefillRequests } from '@/hooks/queries';
+import { formatDate } from '@/lib/utils';
 
 const PRIMARY_COLOR = '#3629B7';
 
@@ -146,7 +147,7 @@ export default function ClientOrdersScreen() {
                     <MaterialCommunityIcons name="calendar" size={12} color="#9CA3AF" />
                     <Text style={styles.metaText}>
                       {order.scheduled_date 
-                        ? new Date(order.scheduled_date).toLocaleDateString() 
+                        ? formatDate(order.scheduled_date)
                         : 'Not scheduled'}
                     </Text>
                   </View>

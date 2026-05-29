@@ -116,6 +116,50 @@ export const useCompleteRefillRequest = () => {
   return { completeOrder, isLoading, error };
 };
 
+export const useArriveRefillRequest = () => {
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const markArrived = useCallback(async (id: string): Promise<RefillRequest> => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await refillRequestService.arriveRefillRequest(id);
+      return response;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to mark order as arrived';
+      setError(message);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  return { markArrived, isLoading, error };
+};
+
+export const useStartRefillRequest = () => {
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const startDelivery = useCallback(async (id: string): Promise<RefillRequest> => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await refillRequestService.startRefillRequest(id);
+      return response;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to start delivery';
+      setError(message);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  return { startDelivery, isLoading, error };
+};
+
 export const useRefillRequestDetails = () => {
   const [refillRequest, setRefillRequest] = useState<RefillRequest | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -144,11 +188,11 @@ export const useCancelRefillRequest = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const cancelRequest = useCallback(async (id: string): Promise<RefillRequest> => {
+  const cancelRequest = useCallback(async (id: string, cancellation_reason?: string): Promise<RefillRequest> => {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await refillRequestService.cancelRefillRequest(id);
+      const response = await refillRequestService.cancelRefillRequest(id, cancellation_reason);
       return response;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to cancel refill request';

@@ -8,6 +8,8 @@ import { AppCard } from '@/components/ui/AppCard';
 import { useNotifications, useMarkAllNotificationsRead, useMarkNotificationRead, useUnreadNotificationCount } from '@/hooks/queries';
 import { Notification } from '@/types';
 import { VendorBottomNav } from '@/components/vendor/VendorBottomNav';
+import { useAuth } from '@/providers/AuthProvider';
+import { navigateFromNotificationLink } from '@/lib/deepLinking';
 
 const PRIMARY_COLOR = '#3629B7';
 
@@ -46,6 +48,7 @@ const formatRelativeTime = (dateStr: string) => {
 
 export default function VendorNotificationsScreen() {
   const router = useRouter();
+  const { isAuthenticated, user } = useAuth();
   const { data: notificationsData, isLoading, refetch } = useNotifications({ limit: '20' });
   const { data: unreadCountData } = useUnreadNotificationCount();
   const markAllReadMutation = useMarkAllNotificationsRead();
@@ -69,11 +72,23 @@ export default function VendorNotificationsScreen() {
     refetch();
   };
 
-  const handleNotificationPress = async (id: string, isRead: boolean) => {
-    if (!isRead) {
-      await markReadMutation.mutateAsync(id);
+  const getNotificationLink = (item: Notification) => {
+    const metadata: any = item.metadata;
+    return (item.action_url ?? metadata?.deep_link ?? metadata?.deepLink ?? metadata?.action_url ?? metadata?.actionUrl) as
+      | string
+      | null
+      | undefined;
+  };
+
+  const handleNotificationPress = async (item: Notification) => {
+    if (!item.is_read) {
+      await markReadMutation.mutateAsync(item.id);
       refetch();
     }
+
+    const link = getNotificationLink(item);
+    if (!link) return;
+    navigateFromNotificationLink({ router, urlOrPath: link, isAuthenticated, role: user?.role });
   };
 
   return (
@@ -117,7 +132,7 @@ export default function VendorNotificationsScreen() {
                     <AppCard 
                       key={item.id} 
                       style={styles.notificationCard}
-                      onPress={() => handleNotificationPress(item.id, item.is_read)}
+                      onPress={() => handleNotificationPress(item)}
                     >
                       <View style={[styles.iconWrap, { backgroundColor: colors.bg }]}>
                         <MaterialCommunityIcons 
@@ -151,7 +166,7 @@ export default function VendorNotificationsScreen() {
                     <AppCard 
                       key={item.id} 
                       style={styles.notificationCard}
-                      onPress={() => handleNotificationPress(item.id, item.is_read)}
+                      onPress={() => handleNotificationPress(item)}
                     >
                       <View style={[styles.iconWrap, { backgroundColor: colors.bg }]}>
                         <MaterialCommunityIcons 

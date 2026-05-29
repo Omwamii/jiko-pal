@@ -1,5 +1,16 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Alert, ActivityIndicator, ScrollView } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  SafeAreaView,
+  Alert,
+  ActivityIndicator,
+  ScrollView,
+  TextInput,
+  RefreshControl,
+} from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -28,11 +39,22 @@ const parseCylinderSizeKg = (raw: string) => {
   return Number(match[1]);
 };
 
+const parseCylinderHeightCm = (raw: string) => {
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+  const match = trimmed.match(/(\d+(\.\d+)?)/);
+  if (!match) return NaN;
+  const cm = Number(match[1]);
+  if (!Number.isFinite(cm) || cm <= 0) return NaN;
+  return cm;
+};
+
 export default function CircleCylinderScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ name?: string; location?: string; fill?: string; deviceId?: string }>();
+  const params = useLocalSearchParams<{ name?: string; location?: string; fill?: string; deviceId?: string; deviceUuid?: string }>();
   const [disconnecting, setDisconnecting] = useState(false);
   const [cylinderSizeDraft, setCylinderSizeDraft] = useState('');
+  const [customCylinderHeightCmDraft, setCustomCylinderHeightCmDraft] = useState('');
   const [cylinderSizeDropdownOpen, setCylinderSizeDropdownOpen] = useState(false);
 
   const { mutate: disconnect } = useDisconnectDevice();
@@ -41,20 +63,29 @@ export default function CircleCylinderScreen() {
   const { mutate: changeActivityMode, isPending: changingActivityMode } = useChangeActivityMode();
 
   const deviceId = params.deviceId || '';
-  const { data: device } = useDevice(deviceId);
-  const { data: latestReading } = useLatestDeviceReading(deviceId);
+  const deviceUuid = params.deviceUuid || '';
+  const { data: device, refetch: refetchDevice, isRefetching: isRefetchingDevice } = useDevice(deviceId);
+  const {
+    data: latestReading,
+    refetch: refetchLatestReading,
+    isRefetching: isRefetchingLatestReading,
+  } = useLatestDeviceReading(deviceId);
   const signalQuality = getSignalQuality(latestReading?.signal_strength);
   const signalColors = signalQuality ? getSignalQualityColors(signalQuality) : null;
+
+  const handleRefresh = useCallback(async () => {
+    await Promise.all([refetchDevice(), refetchLatestReading()]);
+  }, [refetchDevice, refetchLatestReading]);
 
   const cylinderName = useMemo(() => params.name || device?.device_id || 'Kitchen Gas', [params.name, device?.device_id]);
   const status = useMemo(() => {
     const fallback = device ? Number(device.current_level || 0) : Number(params.fill || '65');
     const hasLiquid = latestReading?.liquid_status !== 'no_liquid';
-    const readingLevel = latestReading?.level;
-    const candidate = hasLiquid && readingLevel != null ? Number(readingLevel) : fallback;
-    if (Number.isNaN(candidate)) return 0;
+    const latestPercent = latestReading?.percent ?? latestReading?.level_percent;
+    const candidate = hasLiquid && latestPercent != null ? Number(latestPercent) : fallback;
+    if (!Number.isFinite(candidate)) return 0;
     return Math.max(0, Math.min(100, candidate));
-  }, [device, params.fill, latestReading?.liquid_status, latestReading?.level]);
+  }, [device, params.fill, latestReading?.liquid_status, latestReading?.percent, latestReading?.level_percent]);
   const location = useMemo(() => params.location || device?.mac_address || 'Home - Kitchen', [params.location, device?.mac_address]);
   const strokeDashoffset = circumference - (circumference * status) / 100;
 
@@ -64,19 +95,37 @@ export default function CircleCylinderScreen() {
   const currentCylinderSizeLabel = device?.cylinder_size != null ? `${device.cylinder_size} kg` : '—';
   const selectedCylinderSize = parseCylinderSizeKg(cylinderSizeDraft);
   const selectedCylinderSizeLabel = selectedCylinderSize != null ? `${selectedCylinderSize} kg` : 'Not set';
+  const currentCustomHeightCm =
+    typeof device?.custom_cylinder_height_mm === 'number' && !Number.isNaN(device.custom_cylinder_height_mm)
+      ? device.custom_cylinder_height_mm / 10
+      : null;
+  const currentCustomHeightLabel = currentCustomHeightCm != null ? `${Math.round(currentCustomHeightCm * 10) / 10} cm` : '—';
+  const selectedCustomHeightCm = parseCylinderHeightCm(customCylinderHeightCmDraft);
+  const selectedCustomHeightLabel = selectedCustomHeightCm != null ? `${Math.round(selectedCustomHeightCm * 10) / 10} cm` : 'Not set';
 
   useEffect(() => {
     if (!device) return;
     const nextDraft = device.cylinder_size != null ? String(device.cylinder_size) : '';
     setCylinderSizeDraft(nextDraft);
+    const nextCustomDraft = currentCustomHeightCm != null ? String(currentCustomHeightCm) : '';
+    setCustomCylinderHeightCmDraft(nextCustomDraft);
     setCylinderSizeDropdownOpen(false);
   }, [device]);
 
-  const activityModes: { key: 'low' | 'medium' | 'high' | 'ultra_high'; title: string; description: string }[] = [
+  const activityModes: {
+    key: 'low' | 'medium' | 'high' | 'ultra_high' | 'perpetual';
+    title: string;
+    description: string;
+  }[] = [
     { key: 'low', title: 'Low usage', description: 'Ideal for low usage. Fetches levels every 12 hours.' },
     { key: 'medium', title: 'Medium usage', description: 'Ideal for families. Fetches every 6 hours (between meals).' },
-    { key: 'high', title: 'High usage', description: 'Ideal for restaurants / commercial kitchens. Fetches every 1 hour.' },
-    { key: 'ultra_high', title: 'Ultra (demo)', description: 'Better for demo purposes. Fetches every 1 minute.' },
+    { key: 'high', title: 'High usage', description: 'Ideal for restaurants / commercial kitchens. Fetches every 1 hour. Ideal for high-activity short periods.' },
+    { key: 'ultra_high', title: 'Ultra', description: 'Fetches level data after every 1 minute.' },
+    {
+      key: 'perpetual',
+      title: 'Perpetual',
+      description: 'Senses level data continuously without the device going to sleep periodically. Uses battery power much faster than other modes.',
+    },
   ];
 
   const handleSetActivityMode = (nextMode: (typeof activityModes)[number]['key']) => {
@@ -103,8 +152,35 @@ export default function CircleCylinderScreen() {
       return;
     }
     updateDevice(
-      { id: deviceId, data: { cylinder_size: parsedCylinderSizeKg } },
+      { id: deviceId, data: { cylinder_size: parsedCylinderSizeKg, custom_cylinder_height_mm: null } },
       { onError: () => Alert.alert('Update failed', 'Could not update cylinder size. Please try again.') }
+    );
+  };
+
+  const handleSaveCustomHeight = () => {
+    if (!deviceId) return;
+    if (!canEditCylinderSize) {
+      Alert.alert('Not allowed', 'Only the device owner can change the cylinder height.');
+      return;
+    }
+    const parsed = parseCylinderHeightCm(customCylinderHeightCmDraft);
+    if (Number.isNaN(parsed)) {
+      Alert.alert('Invalid cylinder height', 'Please enter a valid height in centimeters (e.g. 30 or 45.5).');
+      return;
+    }
+
+    // If blank => clear custom height.
+    if (parsed == null) {
+      updateDevice(
+        { id: deviceId, data: { custom_cylinder_height_mm: null } },
+        { onError: () => Alert.alert('Update failed', 'Could not update cylinder height. Please try again.') }
+      );
+      return;
+    }
+
+    updateDevice(
+      { id: deviceId, data: { custom_cylinder_height_mm: Math.round(parsed * 10), cylinder_size: null } },
+      { onError: () => Alert.alert('Update failed', 'Could not update cylinder height. Please try again.') }
     );
   };
 
@@ -169,8 +245,12 @@ export default function CircleCylinderScreen() {
      return { label: 'Idle', fg: '#10B981', bg: '#10B98120' };
    };
 
-   const temperatureStatus = getTemperatureStatus(latestReading?.temperature);
+  const temperatureStatus = getTemperatureStatus(latestReading?.temperature);
    const cookingStatus = getCookingStatus(latestReading?.temperature, latestReading?.liquid_status);
+  const rawLevelCm =
+    typeof latestReading?.level === 'number' && !Number.isNaN(latestReading.level) ? latestReading.level / 10 : null;
+  const rawLevelLabel =
+    rawLevelCm == null ? '—' : `${Number.isInteger(Math.round(rawLevelCm * 10) / 10) ? rawLevelCm : (Math.round(rawLevelCm * 10) / 10).toFixed(1)}cm`;
 
   return (
     <View style={styles.container}>
@@ -187,7 +267,20 @@ export default function CircleCylinderScreen() {
         </SafeAreaView>
       </View>
 
-      <ScrollView style={styles.body} contentContainerStyle={styles.bodyContent} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.body}
+        contentContainerStyle={styles.bodyContent}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefetchingDevice || isRefetchingLatestReading}
+            onRefresh={() => {
+              handleRefresh().catch(() => {});
+            }}
+            tintColor={PRIMARY_COLOR}
+          />
+        }
+      >
         <AppCard style={styles.card}>
           {latestReading?.liquid_status === 'no_liquid' && (
             <View style={styles.warningBox}>
@@ -246,7 +339,7 @@ export default function CircleCylinderScreen() {
           <View style={styles.metricsRow}>
             <View style={styles.metricItem}>
               <Text style={styles.metricLabel}>Used Today</Text>
-              <Text style={styles.metricValue}>{latestReading?.used_today_percent}</Text>
+              <Text style={styles.metricValue}>{latestReading?.used_today_percent}%</Text>
             </View>
             <View style={styles.metricItem}>
               <Text style={styles.metricLabel}>Est. Days Left</Text>
@@ -259,6 +352,10 @@ export default function CircleCylinderScreen() {
           </View>
 
           <View style={styles.readingRow}>
+            <View style={styles.readingItem}>
+              <Text style={styles.readingLabel}>Reading</Text>
+              <Text style={styles.readingValue}>{rawLevelLabel}</Text>
+            </View>
             <View style={styles.readingItem}>
               <Text style={styles.readingLabel}>Temp</Text>
               <Text style={styles.readingValue}>
@@ -335,6 +432,7 @@ export default function CircleCylinderScreen() {
                         style={[styles.cylinderSizeDropdownItem, selectedCylinderSize == null && styles.cylinderSizeDropdownItemSelected]}
                         onPress={() => {
                           setCylinderSizeDraft('');
+                          setCustomCylinderHeightCmDraft('');
                           setCylinderSizeDropdownOpen(false);
                         }}
                       >
@@ -355,6 +453,7 @@ export default function CircleCylinderScreen() {
                             style={[styles.cylinderSizeDropdownItem, selected && styles.cylinderSizeDropdownItemSelected]}
                             onPress={() => {
                               setCylinderSizeDraft(String(kg));
+                              setCustomCylinderHeightCmDraft('');
                               setCylinderSizeDropdownOpen(false);
                             }}
                           >
@@ -380,6 +479,49 @@ export default function CircleCylinderScreen() {
             ) : (
               <>
                 <Text style={styles.cylinderSizeReadOnlyValue}>{currentCylinderSizeLabel}</Text>
+                <Text style={styles.readOnlyHint}>Only the device owner can change this setting.</Text>
+              </>
+            )}
+          </View>
+
+          <View style={styles.customHeightSection}>
+            <View style={styles.customHeightHeader}>
+              <Text style={styles.customHeightTitle}>Custom cylinder height</Text>
+              {updatingDevice && <ActivityIndicator size="small" color={PRIMARY_COLOR} />}
+            </View>
+            <Text style={styles.customHeightSubtitle}>
+              Optional: set a custom cylinder height in centimeters for more accurate level calculations. Setting this clears the selected cylinder size.
+            </Text>
+
+            {canEditCylinderSize ? (
+              <>
+                <TextInput
+                  style={[styles.customHeightInput, updatingDevice && styles.customHeightInputDisabled]}
+                  placeholder="e.g. 30"
+                  placeholderTextColor="#9CA3AF"
+                  keyboardType="numeric"
+                  value={customCylinderHeightCmDraft}
+                  editable={!updatingDevice}
+                  onChangeText={(v) => {
+                    setCustomCylinderHeightCmDraft(v);
+                    if (v.trim()) {
+                      setCylinderSizeDraft('');
+                      setCylinderSizeDropdownOpen(false);
+                    }
+                  }}
+                />
+                <Text style={styles.customHeightHint}>Current: {currentCustomHeightLabel} • Selected: {selectedCustomHeightLabel}</Text>
+
+                <AppButton
+                  title="Save custom height"
+                  onPress={handleSaveCustomHeight}
+                  disabled={updatingDevice}
+                  style={styles.customHeightSaveBtn}
+                />
+              </>
+            ) : (
+              <>
+                <Text style={styles.customHeightReadOnlyValue}>{currentCustomHeightLabel}</Text>
                 <Text style={styles.readOnlyHint}>Only the device owner can change this setting.</Text>
               </>
             )}
@@ -423,6 +565,7 @@ export default function CircleCylinderScreen() {
               params: {
                 preselectedCylinderName: cylinderName,
                 preselectedCylinderLevel: String(status),
+                preselectedDeviceId: deviceUuid || device?.id || '',
               },
             } as Href);
           }} style={styles.refillButton} />
@@ -526,6 +669,56 @@ const styles = StyleSheet.create({
     color: PRIMARY_COLOR,
   },
   cylinderSizeReadOnlyValue: {
+    marginTop: 10,
+    fontSize: 14,
+    color: '#111827',
+    fontWeight: '600',
+  },
+  customHeightSection: {
+    marginTop: 16,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#EEF2F7',
+  },
+  customHeightHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  customHeightTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  customHeightSubtitle: {
+    marginTop: 4,
+    fontSize: 12,
+    color: '#6B7280',
+  },
+  customHeightInput: {
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    color: '#11181C',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  customHeightInputDisabled: { opacity: 0.7 },
+  customHeightHint: {
+    marginTop: 8,
+    color: '#6B7280',
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  customHeightSaveBtn: {
+    marginTop: 10,
+    paddingHorizontal: 14,
+  },
+  customHeightReadOnlyValue: {
     marginTop: 10,
     fontSize: 14,
     color: '#111827',
@@ -652,6 +845,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
     flexDirection: 'row',
     gap: 10,
+    flexWrap: 'wrap',
   },
   readingItem: {
     flex: 1,

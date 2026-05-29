@@ -10,6 +10,7 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 import QueryProvider from '@/providers/QueryProvider';
 import { AuthProvider, useAuth } from '@/providers/AuthProvider';
 import { pushNotificationService } from '@/lib/pushNotifications';
+import { NotificationResponseNavigator } from '@/components/NotificationResponseNavigator';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -49,6 +50,7 @@ export default function RootLayout() {
   return (
     <QueryProvider>
       <AuthProvider>
+        <NotificationResponseNavigator />
         <PushNotificationInitializer />
         <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
           <Stack screenOptions={{ headerShown: false }}>
@@ -76,6 +78,7 @@ export default function RootLayout() {
             <Stack.Screen name="vendor-notifications" />
             <Stack.Screen name="client-orders" />
             <Stack.Screen name="client-order-detail" />
+            <Stack.Screen name="vendor-chat" />
             <Stack.Screen name="monitors" />
             <Stack.Screen name="invite/[code]" />
             <Stack.Screen name="(tabs)" />

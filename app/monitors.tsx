@@ -5,6 +5,7 @@ import { type Href, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { AppCard } from '@/components/ui/AppCard';
 import { MonitorReadingSummary } from '@/components/MonitorReadingSummary';
+import { RawLevelReading } from '@/components/RawLevelReading';
 import { useDevices, useDisconnectDevice } from '@/hooks/queries';
 
 const PRIMARY_COLOR = '#3629B7';
@@ -85,50 +86,61 @@ export default function MonitorsScreen() {
           filteredDevices.map((device) => {
             const statusColors = getStatusColor(device.current_level);
             return (
-              <View key={device.id} style={styles.monitorCard}>
-                <TouchableOpacity
-                  style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}
-                  onPress={() =>
-                    router.push({
-                      pathname: '/my-circle/cylinder',
-                      params: {
-                        name: device.device_id,
-                        location: device.mac_address || 'Unknown location',
-                        fill: String(device.current_level),
-                        deviceId: device.device_id,
-                      },
-                    } as Href)
-                  }
-                >
-                  <View style={[styles.iconBadge, { backgroundColor: statusColors.bg }]}> 
-                    <MaterialCommunityIcons name="fire" size={18} color={statusColors.color} />
+              <AppCard
+                key={device.id}
+                style={styles.listCard}
+                onPress={() =>
+                  router.push({
+                    pathname: '/my-circle/cylinder',
+                    params: {
+                      name: device.device_id,
+                      location: device.owner_name || device.mac_address || 'Unknown',
+                      fill: String(device.current_level),
+                      deviceId: device.device_id,
+                      deviceUuid: device.id,
+                    },
+                  } as Href)
+                }
+              >
+                <View style={[styles.itemIcon, { backgroundColor: statusColors.bg }]}>
+                  <MaterialCommunityIcons name="fire" size={18} color={statusColors.color} />
+                </View>
+                <View style={styles.itemContent}>
+                  <Text style={styles.itemTitle}>{device.device_id}</Text>
+                  <Text style={styles.itemSubtitle}>{device.owner_name || 'Unassigned'}</Text>
+                  <View style={styles.progressRow}>
+                    <View style={styles.progressTrack}>
+                      <View
+                        style={[
+                          styles.progressFill,
+                          {
+                            width: `${device.current_level}%`,
+                            backgroundColor: device.current_level < 20 ? '#EF4444' : device.current_level < 50 ? '#F59E0B' : '#10B981',
+                          },
+                        ]}
+                      />
+                    </View>
+                    <Text style={styles.progressText}>{device.current_level}%</Text>
                   </View>
-                  <View style={styles.cardDetails}>
-                    <Text style={styles.monitorTitle}>{device.device_id}</Text>
-                    <Text style={styles.monitorSubtitle}>
-                      {device.current_level}% remaining • {device.status}
-                    </Text>
-                    <MonitorReadingSummary deviceId={device.device_id} compact />
-                  </View>
-                  <MaterialCommunityIcons name="chevron-right" size={24} color="#9CA3AF" />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.disconnectBtn}
-                  onPress={() => {
-                    Alert.alert(
-                      'Disconnect Sensor',
-                      `Disconnect ${device.device_id}?`,
-                      [
+                  <RawLevelReading deviceId={device.device_id} style={styles.readingText} missingText="N/A" />
+                  <MonitorReadingSummary deviceId={device.device_id} compact />
+                </View>
+                <View style={styles.deviceActions}>
+                  <TouchableOpacity
+                    onPress={() => {
+                      Alert.alert('Disconnect Sensor', `Disconnect ${device.device_id}?`, [
                         { text: 'Cancel', style: 'cancel' },
                         { text: 'Disconnect', style: 'destructive', onPress: () => disconnectDevice(device.id) },
-                      ]
-                    );
-                  }}
-                  disabled={disconnecting}
-                >
-                  <MaterialCommunityIcons name="link-off" size={20} color="#EF4444" />
-                </TouchableOpacity>
-              </View>
+                      ]);
+                    }}
+                    disabled={disconnecting}
+                    style={styles.removeBtn}
+                  >
+                    <MaterialCommunityIcons name="link-off" size={18} color="#EF4444" />
+                  </TouchableOpacity>
+                  <MaterialCommunityIcons name="chevron-right" size={22} color="#9CA3AF" />
+                </View>
+              </AppCard>
             );
           })
         )}
@@ -194,32 +206,68 @@ const styles = StyleSheet.create({
     color: '#1F2937',
     marginBottom: 16,
   },
-  monitorCard: {
+  listCard: {
+    marginBottom: 10,
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    padding: 12,
   },
-  iconBadge: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  itemIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 14,
+    marginRight: 10,
   },
-  cardDetails: {
+  itemContent: {
     flex: 1,
+  },
+  deviceActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  removeBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#FEE2E2',
     justifyContent: 'center',
+    alignItems: 'center',
   },
-  monitorTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
+  itemTitle: {
+    fontSize: 15,
+    fontWeight: '600',
     color: '#1F2937',
-    marginBottom: 4,
   },
-  monitorSubtitle: {
-    fontSize: 12,
+  itemSubtitle: {
+    fontSize: 11,
     color: '#9CA3AF',
+    marginTop: 2,
+  },
+  readingText: {
+    marginTop: 4,
+    fontSize: 11,
+    color: '#6B7280',
+    fontWeight: '600',
+  },
+  progressRow: {
+    marginTop: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  progressTrack: {
+    width: 90,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#E5E7EB',
+    marginRight: 8,
+  },
+  progressFill: {
+    height: 4,
+    borderRadius: 2,
+  },
+  progressText: {
+    fontSize: 10,
+    color: '#6B7280',
+    fontWeight: '600',
   },
   emptyState: {
     alignItems: 'center',
@@ -242,9 +290,5 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '600',
-  },
-  disconnectBtn: {
-    padding: 8,
-    marginLeft: 8,
   },
 });

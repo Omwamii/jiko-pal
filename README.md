@@ -23,7 +23,9 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
 3. Builds
    - Building for Android with EAS in development
    ```bash
-      eas build --platform android --profile development
+      npx expo prebuild
+      eas build --platform android --profile development # For the first build
+      eas build:dev # Subsequent builds (cached)
    ```
 
 In the output, you'll find options to open the app in a

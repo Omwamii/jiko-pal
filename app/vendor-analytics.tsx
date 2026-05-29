@@ -1,31 +1,58 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter, Href } from 'expo-router';
 import { VendorBottomNav } from '@/components/vendor/VendorBottomNav';
+import { useVendorAnalytics } from '@/hooks/queries';
+import type { VendorAnalyticsRatingBreakdownRow, VendorAnalyticsPeriod } from '@/types';
 
-type TimeFilter = 'all' | 'week' | 'month' | 'year';
+type TimeFilter = VendorAnalyticsPeriod;
 
 const timeFilters: Array<{ key: TimeFilter; label: string }> = [
-  { key: 'all', label: 'AllTime' },
+  { key: 'all', label: 'All time' },
   { key: 'week', label: 'This Week' },
   { key: 'month', label: 'This Month' },
   { key: 'year', label: 'This Year' },
 ];
 
-const ratingBreakdown = [
-  { label: '5 *', value: 220, ratio: 0.9 },
-  { label: '4 *', value: 45, ratio: 0.45 },
-  { label: '3 *', value: 15, ratio: 0.25 },
-  { label: '2 *', value: 6, ratio: 0.15 },
-  { label: '1 *', value: 3, ratio: 0.07 },
-];
-
 export default function VendorAnalyticsScreen() {
   const router = useRouter();
   const [activeFilter, setActiveFilter] = useState<TimeFilter>('all');
+  const { data, isLoading, isError } = useVendorAnalytics(activeFilter);
+
+  const ratingBreakdown = useMemo(() => {
+    const breakdown = data?.satisfaction?.breakdown ?? [];
+    const asMap = new Map<number, VendorAnalyticsRatingBreakdownRow>();
+    for (const row of breakdown) asMap.set(row.rating, row);
+
+    return [5, 4, 3, 2, 1].map((rating) => {
+      const row = asMap.get(rating);
+      return {
+        label: `${rating} *`,
+        value: row?.count ?? 0,
+        ratio: row?.ratio ?? 0,
+      };
+    });
+  }, [data?.satisfaction?.breakdown]);
+
+  const totals = data?.totals;
+  const productBreakdown = data?.product_breakdown ?? [];
+  const avgRating = data?.satisfaction?.avg_rating ?? 0;
+
+  const starIcons = useMemo(() => {
+    const icons: Array<'star' | 'star-half-full' | 'star-outline'> = [];
+    const clamped = Math.max(0, Math.min(5, avgRating));
+    const full = Math.floor(clamped);
+    const hasHalf = clamped - full >= 0.5;
+    for (let i = 0; i < 5; i++) {
+      if (i < full) icons.push('star');
+      else if (i === full && hasHalf) icons.push('star-half-full');
+      else icons.push('star-outline');
+    }
+    return icons;
+  }, [avgRating]);
 
   return (
     <View style={styles.container}>
@@ -68,14 +95,23 @@ export default function VendorAnalyticsScreen() {
           })}
         </View>
 
-        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        {isLoading ? (
+          <View style={styles.loadingWrap}>
+            <ActivityIndicator size="large" color="#3629B7" />
+          </View>
+        ) : isError ? (
+          <View style={styles.loadingWrap}>
+            <Text style={styles.errorText}>Unable to load analytics right now.</Text>
+          </View>
+        ) : (
+          <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           <View style={styles.statsRow}>
             <View style={styles.statCard}>
               <View style={styles.statIconWrap}>
                 <MaterialCommunityIcons name="clipboard-text-outline" size={12} color="#3629B7" />
               </View>
               <Text style={styles.statLabel}>Total Orders</Text>
-              <Text style={styles.statValue}>12</Text>
+              <Text style={styles.statValue}>{totals?.total_orders ?? 0}</Text>
             </View>
 
             <View style={styles.statCard}>
@@ -83,53 +119,42 @@ export default function VendorAnalyticsScreen() {
                 <MaterialCommunityIcons name="check-circle-outline" size={12} color="#18A875" />
               </View>
               <Text style={styles.statLabel}>Cylinders</Text>
-              <Text style={styles.statValue}>2</Text>
+              <Text style={styles.statValue}>{totals?.products_sold ?? 0}</Text>
             </View>
           </View>
 
           <Text style={styles.sectionTitle}>Product Breakdown</Text>
 
-          <View style={styles.productCard}>
-            <View style={styles.productTopRow}>
-              <View style={styles.productLeft}>
-                <View style={styles.dropIconWrap}><MaterialCommunityIcons name="water" size={15} color="#18A875" /></View>
-                <View>
-                  <Text style={styles.productName}>6kg</Text>
-                  <Text style={styles.productSub}>18 Units sold</Text>
-                </View>
-              </View>
-              <Text style={styles.percentText}>27%</Text>
+          {productBreakdown.length === 0 ? (
+            <View style={styles.emptyCard}>
+              <Text style={styles.emptyText}>No orders in this period.</Text>
             </View>
-            <View style={styles.progressTrack}><View style={[styles.progressFill, { width: '78%', backgroundColor: '#4238C9' }]} /></View>
-          </View>
-
-          <View style={styles.productCard}>
-            <View style={styles.productTopRow}>
-              <View style={styles.productLeft}>
-                <View style={styles.dropIconWrap}><MaterialCommunityIcons name="water" size={15} color="#18A875" /></View>
-                <View>
-                  <Text style={styles.productName}>13kg</Text>
-                  <Text style={styles.productSub}>18 Units sold</Text>
+          ) : (
+            productBreakdown.map((row, idx) => {
+              const percent = Math.round((row.ratio ?? 0) * 100);
+              const palette = ['#4238C9', '#F59E0B', '#10B981', '#3B82F6', '#EF4444'];
+              const color = palette[idx % palette.length];
+              return (
+                <View key={`${row.label}-${idx}`} style={styles.productCard}>
+                  <View style={styles.productTopRow}>
+                    <View style={styles.productLeft}>
+                      <View style={styles.dropIconWrap}>
+                        <MaterialCommunityIcons name="water" size={15} color="#18A875" />
+                      </View>
+                      <View>
+                        <Text style={styles.productName}>{row.label}</Text>
+                        <Text style={styles.productSub}>{row.units_sold} Units sold</Text>
+                      </View>
+                    </View>
+                    <Text style={styles.percentText}>{percent}%</Text>
+                  </View>
+                  <View style={styles.progressTrack}>
+                    <View style={[styles.progressFill, { width: `${percent}%`, backgroundColor: color }]} />
+                  </View>
                 </View>
-              </View>
-              <Text style={styles.percentText}>27%</Text>
-            </View>
-            <View style={styles.progressTrack}><View style={[styles.progressFill, { width: '78%', backgroundColor: '#F59E0B' }]} /></View>
-          </View>
-
-          <View style={styles.productCard}>
-            <View style={styles.productTopRow}>
-              <View style={styles.productLeft}>
-                <View style={styles.dropIconWrap}><MaterialCommunityIcons name="water" size={15} color="#18A875" /></View>
-                <View>
-                  <Text style={styles.productName}>50kg</Text>
-                  <Text style={styles.productSub}>18 Units sold</Text>
-                </View>
-              </View>
-              <Text style={styles.percentText}>27%</Text>
-            </View>
-            <View style={styles.progressTrack}><View style={[styles.progressFill, { width: '78%', backgroundColor: '#10B981' }]} /></View>
-          </View>
+              );
+            })
+          )}
 
         <Text style={styles.sectionTitle}>Customer Satisfaction</Text>
         <TouchableOpacity 
@@ -139,16 +164,14 @@ export default function VendorAnalyticsScreen() {
           <Text style={styles.ratingLabel}>Overall Rating</Text>
           
           <View style={styles.ratingRow}>
-            <Text style={styles.ratingValue}>4.8</Text>
+            <Text style={styles.ratingValue}>{avgRating.toFixed(1)}</Text>
             <View>
               <View style={styles.starsRow}>
-                <MaterialCommunityIcons name="star" size={11} color="#FBBF24" />
-                <MaterialCommunityIcons name="star" size={11} color="#FBBF24" />
-                <MaterialCommunityIcons name="star" size={11} color="#FBBF24" />
-                <MaterialCommunityIcons name="star" size={11} color="#FBBF24" />
-                <MaterialCommunityIcons name="star-half-full" size={11} color="#FBBF24" />
+                {starIcons.map((name, idx) => (
+                  <MaterialCommunityIcons key={`${name}-${idx}`} name={name} size={11} color="#FBBF24" />
+                ))}
               </View>
-              <Text style={styles.reviewCount}>389 Reviews</Text>
+              <Text style={styles.reviewCount}>{data?.satisfaction?.total_reviews ?? 0} Reviews</Text>
             </View>
           </View>
 
@@ -165,6 +188,7 @@ export default function VendorAnalyticsScreen() {
           </View>
          </TouchableOpacity>
          </ScrollView>
+        )}
       </View>
 
       <VendorBottomNav active="home" />
@@ -221,6 +245,8 @@ const styles = StyleSheet.create({
   filterText: { color: '#6D6E80', fontSize: 8, fontWeight: '500' },
   filterTextActive: { color: '#FFFFFF', fontWeight: '600' },
   content: { padding: 14, paddingBottom: 20 },
+  loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 30 },
+  errorText: { color: '#6D6E80', fontSize: 12 },
   statsRow: { flexDirection: 'row', justifyContent: 'space-between' },
   statCard: {
     width: '48%',
@@ -249,6 +275,16 @@ const styles = StyleSheet.create({
     padding: 10,
     marginBottom: 8,
   },
+  emptyCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#ECECF3',
+    padding: 14,
+    marginBottom: 8,
+    alignItems: 'center',
+  },
+  emptyText: { color: '#8E8FA1', fontSize: 12 },
   productTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   productLeft: { flexDirection: 'row', alignItems: 'center' },
   dropIconWrap: {

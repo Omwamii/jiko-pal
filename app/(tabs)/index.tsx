@@ -8,6 +8,7 @@ import { type Href, useRouter } from 'expo-router';
 import { useAuth } from '@/providers/AuthProvider';
 import { useDevices, useRefillRequests, useUnreadNotificationCount, useCurrentUser, useActivityLogs } from '@/hooks/queries';
 import { MonitorReadingSummary } from '@/components/MonitorReadingSummary';
+import { RawLevelReading } from '@/components/RawLevelReading';
 import { formatDate } from '@/lib/utils';
 
 const PRIMARY_COLOR = '#3629B7';
@@ -40,7 +41,7 @@ export default function DashboardScreen() {
 
   const devices = devicesData?.results || [];
   const mainDevice = devices[0];
-  const progress = mainDevice ? mainDevice.current_level / 100 : 0.65;
+  const progress = mainDevice ? mainDevice.current_level / 100 : 0;
   const strokeDashoffset = circumference - (circumference * progress);
   
   const unreadCount = notificationCount?.unread_count || 0;
@@ -124,7 +125,7 @@ export default function DashboardScreen() {
                    onPress={() =>
                     router.push({
                       pathname: '/my-circle/cylinder',
-                      params: { name: mainDevice.device_id, fill: String(mainDevice.current_level), deviceId: mainDevice.device_id },
+                      params: { name: mainDevice.device_id, fill: String(mainDevice.current_level), deviceId: mainDevice.device_id, deviceUuid: mainDevice.id },
                     } as Href)
                   }
                   >
@@ -142,7 +143,7 @@ export default function DashboardScreen() {
                    onPress={() =>
                     router.push({
                       pathname: '/my-circle/cylinder',
-                      params: { name: mainDevice.device_id, fill: String(mainDevice.current_level), deviceId: mainDevice.device_id },
+                      params: { name: mainDevice.device_id, fill: String(mainDevice.current_level), deviceId: mainDevice.device_id, deviceUuid: mainDevice.id },
                     } as Href)
                   }
                   >
@@ -183,8 +184,12 @@ export default function DashboardScreen() {
 
               <View style={styles.metricsRow}>
                 <View style={styles.metricItem}>
-                  <Text style={styles.metricLabel}>Battery</Text>
-                  <Text style={styles.metricValue}>{mainDevice?.battery_level || 0}%</Text>
+                  <Text style={styles.metricLabel}>Reading</Text>
+                  {mainDevice?.device_id ? (
+                    <RawLevelReading deviceId={mainDevice.device_id} valueOnly style={styles.metricValue} missingText="N/A" />
+                  ) : (
+                    <Text style={styles.metricValue}>N/A</Text>
+                  )}
                 </View>
                 <View style={styles.metricItemRight}>
                   <Text style={styles.metricLabel}>Last Seen</Text>
@@ -206,6 +211,7 @@ export default function DashboardScreen() {
                     params: {
                       preselectedCylinderName: mainDevice?.device_id,
                       preselectedCylinderLevel: String(mainDevice?.current_level || 0),
+                      preselectedDeviceId: mainDevice?.id,
                     },
                   } as Href)
                 }
@@ -252,7 +258,7 @@ export default function DashboardScreen() {
                 <View style={[styles.iconCircle, { backgroundColor: '#FEF3C7' }]}>
                   <MaterialCommunityIcons name="account-group-outline" size={22} color="#F59E0B" />
                 </View>
-                <Text style={styles.quickActionText}>My Circle</Text>
+                <Text style={styles.quickActionText}>My Circles</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -271,6 +277,7 @@ export default function DashboardScreen() {
                   pending: { bg: '#F6E6C9', text: '#D48C18' },
                   accepted: { bg: '#E9E6FF', text: '#6B5DD9' },
                   in_transit: { bg: '#E9E6FF', text: '#6B5DD9' },
+                  arrived: { bg: '#DBEAFE', text: '#2563EB' },
                   completed: { bg: '#D1FAE5', text: '#10B981' },
                   cancelled: { bg: '#F9CDD4', text: '#E44A69' },
                 };
@@ -306,7 +313,7 @@ export default function DashboardScreen() {
                     </View>
                     <View style={[styles.orderStatusBadge, { backgroundColor: status.bg }]}>
                       <Text style={[styles.orderStatusText, { color: status.text }]}>
-                        {order.status === 'in_transit' ? 'In progress' : order.status}
+                        {order.status === 'in_transit' ? 'In progress' : order.status === 'arrived' ? 'Arrived' : order.status}
                       </Text>
                     </View>
                   </TouchableOpacity>
@@ -380,7 +387,7 @@ export default function DashboardScreen() {
                         <View style={styles.activityDetails}>
                           <Text style={styles.activityTitle}>{item.title}</Text>
                           <Text style={styles.activitySubtitle}>
-                            {item.subtitle || item.description || new Date(item.created_at).toLocaleDateString()}
+                            {item.subtitle || item.description || formatDate(item.created_at)}
                           </Text>
                         </View>
                         <View style={styles.activityRight}>
@@ -413,7 +420,7 @@ export default function DashboardScreen() {
                   onPress={() =>
                     router.push({
                       pathname: '/my-circle/cylinder',
-                      params: { name: device.device_id, fill: String(device.current_level), deviceId: device.device_id },
+                      params: { name: device.device_id, fill: String(device.current_level), deviceId: device.device_id, deviceUuid: device.id },
                     } as Href)
                   }
                 >
@@ -431,6 +438,7 @@ export default function DashboardScreen() {
                   <View style={styles.activityDetails}>
                     <Text style={styles.activityTitle}>{device.device_id}</Text>
                     <Text style={styles.activitySubtitle}>{device.current_level}% remaining</Text>
+                    <RawLevelReading deviceId={device.device_id} style={styles.activitySubtitle} missingText="N/A" />
                     <MonitorReadingSummary deviceId={device.device_id} compact />
                   </View>
                   <MaterialCommunityIcons name="chevron-right" size={24} color="#9CA3AF" />

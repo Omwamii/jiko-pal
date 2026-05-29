@@ -6,9 +6,22 @@ import { StatusBar } from 'expo-status-bar';
 import { useRouter, useLocalSearchParams, type Href } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import api from '@/lib/api';
-import type { PaginatedResponse, Review } from '@/types';
+import { refillRequestService } from '@/lib/refill';
+import type { PaginatedResponse, Review, RefillRequest } from '@/types';
+import { formatDate } from '@/lib/utils';
 
 const PRIMARY_COLOR = '#3629B7';
+
+const formatDistance = (distanceKm: number) => {
+  if (distanceKm < 1) {
+    const meters = distanceKm * 1000;
+    const roundedMeters = meters < 10 ? Math.round(meters * 10) / 10 : Math.round(meters);
+    return `${roundedMeters} m`;
+  }
+
+  const roundedKm = distanceKm < 10 ? Math.round(distanceKm * 10) / 10 : Math.round(distanceKm);
+  return `${roundedKm} km`;
+};
 
 function getStatusStyle(status: string) {
   if (status === 'pending') {
@@ -51,16 +64,31 @@ export default function ClientOrderDetailScreen() {
   const [reviewText, setReviewText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  const status = params.status || 'pending';
-  const statusInfo = getStatusStyle(status);
   const orderId = params.orderId || '';
-  const vendorName = params.vendorName || 'Unknown Vendor';
-  const vendorId = params.vendorId;
-  const vendorPhone = params.vendorPhone;
+
+  const { data: orderDetails } = useQuery({
+    queryKey: ['refillRequest', orderId],
+    enabled: !!orderId,
+    queryFn: async (): Promise<RefillRequest> => {
+      return refillRequestService.getRefillRequest(orderId);
+    },
+  });
+
+  const status = params.status || orderDetails?.status || 'pending';
+  const statusInfo = getStatusStyle(status);
+  const vendorName = params.vendorName || orderDetails?.provider?.company_name || 'Unknown Vendor';
+  const vendorId = params.vendorId || orderDetails?.provider?.id || undefined;
+  const vendorPhone =
+    params.vendorPhone || orderDetails?.provider?.primary_phone || orderDetails?.provider?.alternate_phone || undefined;
+  const scheduledDate = params.scheduledDate || orderDetails?.scheduled_date || undefined;
+  const completedDate = params.completedDate || orderDetails?.completed_at || undefined;
+  const notes = params.notes || orderDetails?.notes || undefined;
 
   const isCompleted = status === 'completed';
   const isCancelled = status === 'cancelled';
   const canContact = !isCompleted && !isCancelled;
+
+  const vendorDistanceKm = orderDetails?.provider?.distance_km;
 
   const handleCall = () => {
     if (vendorPhone) {
@@ -73,7 +101,7 @@ export default function ClientOrderDetailScreen() {
   const handleChat = () => {
     if (vendorId && vendorId !== '') {
       router.push({
-        pathname: '/(tabs)/vendors/chat',
+        pathname: '/vendor-chat',
         params: { vendorId, vendorName }
       } as Href);
     } else {
@@ -143,33 +171,47 @@ export default function ClientOrderDetailScreen() {
 
         <View style={styles.detailCard}>
           <Text style={styles.detailLabel}>Vendor</Text>
-          <Text style={styles.detailValue}>{params.vendorName || 'Unknown Vendor'}</Text>
+          <Text style={styles.detailValue}>{vendorName}</Text>
         </View>
+
+        {status === 'in_transit' && typeof vendorDistanceKm === 'number' ? (
+          <View style={styles.detailCard}>
+            <Text style={styles.detailLabel}>Vendor distance</Text>
+            <Text style={styles.detailValue}>{formatDistance(vendorDistanceKm)} away</Text>
+          </View>
+        ) : null}
 
         <View style={styles.detailCard}>
           <Text style={styles.detailLabel}>Scheduled Date</Text>
           <Text style={styles.detailValue}>
-            {params.scheduledDate 
-              ? new Date(params.scheduledDate).toLocaleDateString() 
+            {scheduledDate
+              ? formatDate(scheduledDate)
               : 'Not scheduled'}
           </Text>
         </View>
 
-        {params.completedDate && (
+        {completedDate && (
           <View style={styles.detailCard}>
             <Text style={styles.detailLabel}>Completed Date</Text>
             <Text style={styles.detailValue}>
-              {new Date(params.completedDate).toLocaleDateString()}
+              {formatDate(completedDate)}
             </Text>
           </View>
         )}
 
-        {params.notes && (
+        {notes && (
           <View style={styles.detailCard}>
             <Text style={styles.detailLabel}>Notes</Text>
-            <Text style={styles.detailValue}>{params.notes}</Text>
+            <Text style={styles.detailValue}>{notes}</Text>
           </View>
         )}
+
+        {isCancelled && orderDetails?.cancellation_reason ? (
+          <View style={styles.detailCard}>
+            <Text style={styles.detailLabel}>Cancellation Reason</Text>
+            <Text style={styles.detailValue}>{orderDetails.cancellation_reason}</Text>
+          </View>
+        ) : null}
 
         {canContact && (
           <View style={styles.contactButtons}>
@@ -192,7 +234,7 @@ export default function ClientOrderDetailScreen() {
               <Stars rating={existingReview.rating} />
             </View>
             <Text style={styles.reviewDate}>
-              {new Date(existingReview.created_at).toLocaleDateString()}
+              {formatDate(existingReview.created_at)}
             </Text>
             <Text style={styles.reviewComment}>
               {existingReview.comment?.trim() ? existingReview.comment : 'No comment provided.'}
