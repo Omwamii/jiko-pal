@@ -103,9 +103,9 @@ export default function VendorDashboardScreen() {
       <StatusBar style="light" />
       <View style={styles.header}>
         <SafeAreaView edges={['top']} style={styles.safeHeader}>
-          <Text style={styles.welcomeText}>Welcome back, vendor!</Text>
+          <Text style={styles.welcomeText}>Welcome back,</Text>
           <View style={styles.headerRow}>
-            <Text style={styles.brandTitle}>QuickGas Distributors</Text>
+            <Text style={styles.brandTitle}>{vendorName || "vendor!"}</Text>
             <TouchableOpacity 
               style={styles.notificationButton} 
               activeOpacity={0.8}
